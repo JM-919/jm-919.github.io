@@ -1,2 +1,1 @@
-# jm-919.github.io
-MyBlog
+[**回到主页**](http://localhost:3000)
