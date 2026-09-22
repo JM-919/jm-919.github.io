@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSS 技巧 · PH_BLOG_TITLE</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+</head>
+<body>
+<div class="progress" id="progress"></div><div class="aurora"></div>
+<header class="nav glass">
+  <a class="brand" href="../">⚡ <span>PH_BLOG_TITLE</span></a>
+  <nav><a href="../">首页</a><a href="../archive.html">归档</a><a href="../about.html">关于</a>
+  <button id="theme-btn" class="icon-btn" aria-label="切换主题">🌙</button></nav>
+</header>
+<main><article class="post">
+
+<a class="back" href="../">← 返回首页</a>
+<h1>让博客好看 10 倍的 CSS 小技巧</h1>
+<p class="meta" style="color:var(--muted)">2026-01-03 · 4 分钟</p>
+<h2>1. 用变量驱动主题</h2>
+<pre><code>:root{ --bg:#0b0d12; --fg:#e8eaf0; --brand:#7c5cff; }
+html[data-theme="light"]{ --bg:#f6f7fb; --fg:#12172a; }</code></pre>
+<h2>2. 玻璃拟态</h2>
+<pre><code>.glass{
+  background:rgba(255,255,255,.06);
+  backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.12);
+}</code></pre>
+<h2>3. 渐变文字</h2>
+<pre><code>em{
+  background:linear-gradient(90deg,#7c5cff,#22d3ee);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}</code></pre>
+<h2>4. 悬浮抬升</h2>
+<pre><code>.card{transition:.28s cubic-bezier(.2,.7,.3,1)}
+.card:hover{transform:translateY(-6px)}</code></pre>
+
+</article></main>
+<footer class="footer"><p>© <span id="year"></span> ROLE_A · Powered by GitHub Pages</p></footer>
+<button id="top" class="icon-btn top" aria-label="回到顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+</body></html>
