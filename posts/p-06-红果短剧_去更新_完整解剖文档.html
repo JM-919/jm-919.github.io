@@ -1,38 +1,1116 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>红果短剧（红果免费短剧 / 果短剧）去更新 —— 完整解剖文档（终版） · Felix</title>
-<meta name="description" content="这个魔改包里有 三套彼此独立 的&quot;更新/升级&quot;通道并行工作，前两轮各只打掉一套，所以弹窗一直在。&amp;lt;br&amp;gt;本轮把 全部 4 个注入钩子 + 字…">
-<meta name="theme-color" content="#0b0716">
-<link rel="stylesheet" href="../assets/css/style.css">
+<title>红果短剧（红果免费短剧 / 果短剧）去更新 —— 完整解剖文档（终版） · ZY驿站</title>
+<meta name="description" content="代码 · 逆向 · 一直在路上">
+<meta name="theme-color" content="#f6f3ec">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="robots" content="noindex, nofollow, noarchive">
-<link rel="robots" href="../robots.txt">
-<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%225%22%20fill%3D%22%239d2933%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2245%22%20font-family%3D%22STKaiti%2CKaiTi%2CGeorgia%2Cserif%22%20font-size%3D%2238%22%20text-anchor%3D%22middle%22%20fill%3D%22%23fdfaf4%22%3EZ%3C%2Ftext%3E%3C%2Fsvg%3E">
+<style>/* ZY · 古典水墨主题 */
+:root{
+  --bg:#0b0716; --bg2:#150c2b;
+  --panel:rgba(255,255,255,.06); --panel2:rgba(255,255,255,.10);
+  --line:rgba(216,180,254,.18);
+  --fg:#f3ecff; --muted:#b9a8d8;
+  --p1:#9d2933; --p2:#9d2933; --p3:#7d776c; --p4:#e6e0d3;
+  --brand:#9d2933; --brand2:#7d776c;
+  --radius:20px;
+  --shadow:0 18px 50px rgba(88,28,135,.45);
+  --glow:0 22px 60px rgba(240,171,252,.28);
+}
+html[data-theme="light"]{
+  --bg:#fdf7ff; --bg2:#f3e8ff;
+  --panel:rgba(255,255,255,.72); --panel2:rgba(255,255,255,.9);
+  --line:rgba(139,92,246,.18);
+  --fg:#2c1e45; --muted:#6d5a95;
+  --shadow:0 16px 40px rgba(139,92,246,.18);
+  --glow:0 20px 50px rgba(236,72,153,.18);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);overflow-x:hidden;
+  font:16px/1.8 -apple-system,"PingFang SC","Noto Sans SC",system-ui,sans-serif}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;border-radius:16px}
+::selection{background:rgba(240,171,252,.35)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--p1),var(--p2));border-radius:9px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* 流光画布：全局跟随鼠标/手指 */
+#dream-canvas{position:fixed;inset:0;z-index:60;pointer-events:none;mix-blend-mode:screen}
+html[data-theme="light"] #dream-canvas{mix-blend-mode:multiply;opacity:.75}  to{transform:translate3d(4%,-5%,0) scale(1.14)}
+}to{opacity:.9}}
+.glass{background:var(--panel);backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);
+  border:1px solid var(--line)}
+.progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:99;
+  background:linear-gradient(90deg,var(--p1),var(--p2),var(--p3));transition:width .1s linear;
+  box-shadow:0 0 14px rgba(240,171,252,.7)}
+
+.nav{position:sticky;top:0;z-index:70;display:flex;align-items:center;justify-content:space-between;
+  padding:12px 22px;border-left:0;border-right:0;border-top:0;border-radius:0}
+.brand{font-weight:800;letter-spacing:.4px;display:flex;gap:8px;align-items:center;white-space:nowrap}
+.brand span{background:linear-gradient(90deg,var(--p2),var(--p1),var(--p3));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.nav nav{display:flex;gap:6px;align-items:center}
+.nav nav a{padding:7px 13px;border-radius:999px;color:var(--muted);transition:.25s}
+.nav nav a:hover{color:var(--fg);background:var(--panel2);box-shadow:0 0 18px rgba(240,171,252,.35)}
+.icon-btn{border:1px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer;
+  border-radius:999px;width:38px;height:38px;font-size:16px;line-height:1;transition:.25s}
+.icon-btn:hover{transform:translateY(-2px);border-color:var(--p2);box-shadow:0 0 22px rgba(240,171,252,.45)}
+
+main{max-width:1040px;margin:0 auto;padding:0 20px 60px}
+.hero{text-align:center;padding:74px 0 34px}
+@keyframes bob{50%{transform:translateY(-12px) rotate(2deg)}}
+.hero-title{font-size:clamp(26px,5.4vw,44px);margin:0 0 10px;line-height:1.3;font-weight:800}
+.hero-title em{font-style:normal;
+  background:linear-gradient(100deg,var(--p2),var(--p1) 45%,var(--p3));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 24px rgba(240,171,252,.55))}
+.hero-sub{color:var(--muted);margin:0 0 18px}
+.tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.chip{font-size:13px;padding:4px 13px;border-radius:999px;border:1px solid var(--line);
+  color:var(--muted);background:var(--panel);transition:.25s}
+.chip:hover{color:var(--fg);border-color:var(--p2);box-shadow:0 0 18px rgba(240,171,252,.4);transform:translateY(-2px)}
+
+.search-bar{margin:10px auto 28px;max-width:520px}
+.search-bar input{width:100%;padding:13px 18px;border-radius:999px;border:1px solid var(--line);
+  background:var(--panel);color:var(--fg);outline:none;font-size:15px;transition:.25s}
+.search-bar input::placeholder{color:var(--muted)}
+.search-bar input:focus{border-color:var(--p2);box-shadow:0 0 0 4px rgba(240,171,252,.18),0 0 30px rgba(167,139,250,.35)}
+
+.grid{display:grid;gap:22px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.card{position:relative;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);
+  transition:.35s cubic-bezier(.2,.7,.3,1);display:flex;flex-direction:column;isolation:isolate}
+.card::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;opacity:0;transition:.35s;
+  background:linear-gradient(120deg,var(--p2),var(--p1),var(--p3));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.card:hover{transform:translateY(-8px) scale(1.012);box-shadow:var(--glow)}
+.card:hover::after{opacity:1}
+.card-cover{height:136px;display:grid;place-items:center;font-size:46px;position:relative;
+  background:linear-gradient(135deg,var(--g1),var(--g2))}
+.card-cover::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(60% 60% at 70% 20%,rgba(255,255,255,.35),transparent 70%)}
+.card-body{padding:18px 18px 16px}
+.card h2{font-size:18px;margin:0 0 8px;line-height:1.45}
+.card p{color:var(--muted);font-size:14px;margin:0 0 12px}
+.meta{display:flex;gap:8px;color:var(--muted);font-size:13px}
+
+article.post{position:relative;max-width:780px;margin:0 auto;padding:44px 0 20px}
+article.post h1{font-size:clamp(24px,4.6vw,36px);line-height:1.32;
+  background:linear-gradient(100deg,var(--p2),var(--p1),var(--p3));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+article.post h2{margin-top:38px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+article.post h2::before{content:"▍ ";color:var(--p2)}
+article.post blockquote{margin:18px 0;padding:12px 18px;border-left:3px solid var(--p2);
+  background:var(--panel);border-radius:0 14px 14px 0;color:var(--muted)}
+article.post pre{background:rgba(11,7,22,.86);color:#f3ecff;border:1px solid var(--line);
+  border-radius:16px;padding:16px;overflow:auto;box-shadow:0 12px 36px rgba(88,28,135,.4)}
+article.post code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px}
+article.post :not(pre) > code{background:var(--panel2);padding:2px 7px;border-radius:7px;border:1px solid var(--line)}
+article.post table{width:100%;border-collapse:collapse;margin:18px 0}
+article.post th,article.post td{border:1px solid var(--line);padding:9px 12px;text-align:left}
+article.post th{background:var(--panel)}
+.back{display:inline-block;margin-bottom:8px;color:var(--muted);transition:.25s}
+.back:hover{color:var(--p2);transform:translateX(-3px)}
+.footer{text-align:center;color:var(--muted);font-size:14px;padding:44px 20px}
+.top{position:fixed;right:18px;bottom:22px;opacity:0;pointer-events:none;transition:.25s;
+  background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:0;
+  box-shadow:0 12px 34px rgba(240,171,252,.5)}
+.top.show{opacity:1;pointer-events:auto}
+.empty{text-align:center;color:var(--muted)}
+
+@media (max-width:560px){
+  .nav{padding:10px 14px}
+  .nav nav a{padding:6px 8px;font-size:14px}
+  .hero{padding:46px 0 24px}
+}
+@media (prefers-reduced-motion: reduce){  .card:hover{transform:none}
+}
+/* ================= VARIABLE FALLBACK（主题层兜底，勿删）================= */
+:root{--bg:#0b1220;--bg2:#111a2e;--panel:rgba(255,255,255,.06);--panel2:rgba(255,255,255,.1);
+  --line:rgba(255,255,255,.14);--fg:#eef2ff;--muted:#a8b3cf;--p1:#9d2933;--p2:#9d2933;--p3:#7d776c;--p4:#e6e0d3;
+  --radius:16px;--shadow:0 14px 40px rgba(8,10,30,.45);--glow:0 18px 50px rgba(167,139,250,.35)}
+/* ==================== 主题层（布局 / 组件）==================== */
+/* ================= ZY博客 · 主题层（布局 / 组件）================= */
+
+/* ---------- 顶部导航 ---------- */
+.site-header{position:fixed;top:0;left:0;right:0;z-index:80;display:flex;align-items:center;gap:12px;
+  padding:9px 16px;transition:.35s cubic-bezier(.2,.7,.3,1);color:#fff}
+.site-header.solid{background:linear-gradient(90deg,var(--p1),var(--p3));box-shadow:0 6px 24px rgba(30,27,75,.35);
+  backdrop-filter:blur(10px)}
+.site-header .menu-btn{display:inline-flex;flex-direction:column;gap:4px;padding:8px;border-radius:10px;transition:.25s}
+.site-header .menu-btn i{display:block;width:20px;height:2px;background:currentColor;border-radius:2px;transition:.25s}
+.site-header .menu-btn:hover{background:rgba(255,255,255,.18)}
+.site-header .menu-btn:hover i:nth-child(1){width:14px}
+.site-header .menu-btn:hover i:nth-child(3){width:26px}
+.header-brand{font-size:19px;font-weight:800;letter-spacing:.5px;display:flex;align-items:center;gap:8px;
+  text-shadow:0 2px 12px rgba(0,0,0,.35)}
+.brand-dot{width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 0 12px #fff}
+.header-icons{margin-left:auto;display:flex;gap:6px;align-items:center}
+.header-icons a{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:17px;
+  transition:.25s;background:rgba(255,255,255,.10)}
+.header-icons a:hover{background:rgba(255,255,255,.28);transform:translateY(-2px)}
+
+/* ---------- 侧栏 ---------- */
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:288px;z-index:95;background:var(--bg2);
+  border-right:1px solid var(--line);transform:translateX(-102%);transition:transform .38s cubic-bezier(.2,.7,.3,1);
+  overflow-y:auto;box-shadow:12px 0 40px rgba(0,0,0,.35)}
+.sidebar.open{transform:none}
+.sidebar-mask{position:fixed;inset:0;z-index:90;background:rgba(6,4,18,.55);opacity:0;pointer-events:none;transition:.3s}
+.sidebar-mask.show{opacity:1;pointer-events:auto}
+.sidebar-profile{padding:26px 22px 20px;text-align:center;
+  background:linear-gradient(160deg,var(--p1),var(--p3))}
+.scroll-hint{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:3;
+  width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:26px;
+  border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.08);animation:hintBounce 2s ease-in-out infinite}
+.scroll-hint:hover{background:#fff;color:#2c1e45}
+@keyframes hintBounce{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,10px)}}
+.sidebar-profile h3{margin:14px 0 6px;color:#fff;font-size:20px;letter-spacing:.5px}
+.sidebar-profile p{margin:0;color:rgba(255,255,255,.9);font-size:13px}
+.sidebar-menu{padding:12px 0 40px}
+.sidebar-menu a{display:flex;align-items:center;gap:14px;padding:12px 22px;color:var(--muted);
+  font-size:15px;transition:.22s;border-left:3px solid transparent}
+.sidebar-menu a:hover,.sidebar-menu a.active{color:var(--fg);background:var(--panel);
+  border-left-color:var(--p2);padding-left:30px}
+.sidebar-menu .mi{font-size:17px;width:22px;text-align:center}
+
+/* ---------- 首页 banner ---------- */
+.banner{position:relative;min-height:clamp(200px,30vh,300px);display:grid;place-items:center;overflow:hidden;isolation:isolate}
+.banner-media{position:absolute;inset:0;z-index:-2;
+  background-image:var(--bg-img);background-size:cover;background-position:center;
+  animation:kenburns 26s ease-in-out infinite alternate}
+@keyframes kenburns{from{transform:scale(1)}to{transform:scale(1.12) translateY(-1.5%)}}
+.banner::after{content:"";position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(180deg,rgba(10,12,30,.45),rgba(10,12,30,.62) 55%,rgba(10,12,30,.82))}
+.banner-inner{text-align:center;color:#fff;padding:72px 16px 52px;width:100%}
+.banner-inner h1{margin:0 0 8px;font-size:clamp(25px,6.4vw,40px);font-weight:900;letter-spacing:.06em;
+  text-shadow:0 6px 30px rgba(0,0,0,.5)}
+.typed-wrap{min-height:24px;font-size:clamp(12.5px,3.2vw,16px);color:rgba(255,255,255,.94);letter-spacing:.04em}
+.typed-cursor{display:inline-block;width:10px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.banner-btns{margin-top:14px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-round{min-width:106px;padding:9px 18px;font-size:13.5px;border-radius:999px;border:1px solid rgba(255,255,255,.75);
+  color:#fff;font-size:15px;letter-spacing:.08em;transition:.28s;backdrop-filter:blur(6px);
+  background:rgba(255,255,255,.08)}
+.btn-round:hover{background:#fff;color:#2c1e45;transform:translateY(-3px);box-shadow:0 14px 34px rgba(0,0,0,.3)}
+.banner-social{position:absolute;left:0;right:0;bottom:26px;display:flex;gap:20px;justify-content:center;color:rgba(255,255,255,.9)}
+.banner-social a{font-size:19px;opacity:.85;transition:.25s}
+.banner-social a:hover{opacity:1;transform:translateY(-3px)}
+/* ---------- 主体容器 ---------- */
+.container{width:100%;max-width:1080px;margin:0 auto;padding:0 18px}
+.page-main{padding:12px 16px 40px;position:relative;z-index:2}
+.page-head{text-align:center;margin:6px 0 18px}
+.page-head h1{font-size:clamp(24px,5vw,36px);margin:0 0 8px}
+.page-head .tip{color:var(--muted);margin:0}
+
+/* ---------- 分类条 ---------- */
+.cat-strip{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;margin:0 0 12px;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.cat-strip::-webkit-scrollbar{display:none}
+.cat-pill{white-space:nowrap;flex:0 0 auto}
+.cat-pill{padding:6px 15px;border-radius:999px;border:1px solid var(--line);background:var(--panel);
+  color:var(--muted);font-size:14px;cursor:pointer;transition:.25s}
+.cat-pill:hover{color:var(--fg);border-color:var(--p2);transform:translateY(-2px)}
+.cat-pill.on{color:#fff;background:linear-gradient(90deg,var(--p1),var(--p3));border-color:transparent;
+  box-shadow:0 10px 26px rgba(167,139,250,.4)}
+
+/* ---------- 文章卡片 ---------- */
+.post-list{display:grid;gap:14px}
+.post-card{display:grid;grid-template-columns:1fr;border-radius:16px;overflow:hidden;background:var(--panel);
+  border:1px solid var(--line);box-shadow:var(--shadow);transition:.35s cubic-bezier(.2,.7,.3,1)}
+.post-card:hover{transform:translateY(-6px);box-shadow:var(--glow)}
+.post-card .card-img{position:relative;display:block;height:150px;aspect-ratio:16/9;overflow:hidden;background:linear-gradient(135deg,var(--p1),var(--p3))}
+.post-card .card-img img{width:100%;height:100%;object-fit:cover;transition:.5s}
+.post-card:hover .card-img img{transform:scale(1.07)}
+.post-card .cat-badge{position:absolute;left:14px;bottom:14px;padding:5px 14px;border-radius:999px;
+  background:rgba(0,0,0,.55);color:#fff;font-size:13px;backdrop-filter:blur(6px)}
+.post-card .card-body{padding:13px 15px 12px;display:flex;flex-direction:column}
+.post-card h2{margin:0 0 8px;font-size:19px;line-height:1.45;transition:.25s}
+.post-card:hover h2{color:var(--p2)}
+.post-card .excerpt{color:var(--muted);font-size:14.5px;margin:0 0 14px;flex:1;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card-meta{display:flex;align-items:center;gap:14px;color:var(--muted);font-size:13px;flex-wrap:wrap}
+.card-meta .author{display:flex;align-items:center;gap:6px}
+.card-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.tag-pill{font-size:12.5px;padding:3px 12px;border-radius:999px;color:#fff;
+  background:linear-gradient(90deg,var(--p1),var(--p2))}
+.tag-pill.alt{background:linear-gradient(90deg,var(--p3),var(--p1))}
+@media (min-width:880px){
+  .post-list{grid-template-columns:repeat(2,1fr)}
+  .post-card.hero-card{grid-column:span 2;grid-template-columns:1.15fr 1fr;align-items:stretch}
+  .post-card.hero-card .card-img{height:100%;min-height:250px}
+}
+.tip{color:var(--muted)}
+.center{text-align:center}
+
+/* ---------- 归档时间轴 ---------- */
+.timeline{position:relative;margin:0 auto;max-width:760px;padding-left:26px}
+.timeline::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;
+  background:linear-gradient(180deg,var(--p1),var(--p3))}
+.tl-item{position:relative;padding:12px 0 12px 22px}
+.tl-item::before{content:"";position:absolute;left:-24px;top:20px;width:12px;height:12px;border-radius:50%;
+  background:var(--p2);box-shadow:0 0 0 4px rgba(240,171,252,.22)}
+.tl-date{color:var(--muted);font-size:13px}
+.tl-title{font-size:16.5px;font-weight:600}
+.tl-title:hover{color:var(--p2)}
+
+/* ---------- 标签/分类墙 ---------- */
+.wall{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.wall .wall-item{padding:12px 22px;border-radius:14px;background:var(--panel);border:1px solid var(--line);
+  transition:.28s;display:flex;align-items:center;gap:10px}
+.wall .wall-item:hover{transform:translateY(-4px);border-color:var(--p2);box-shadow:var(--glow)}
+.wall .count{font-size:12.5px;color:#fff;background:linear-gradient(90deg,var(--p1),var(--p3));
+  padding:2px 10px;border-radius:999px}
+
+/* ---------- 关于 / 留言 ---------- */
+.about-card,.panel-card{max-width:760px;margin:0 auto;background:var(--panel);border:1px solid var(--line);
+  border-radius:18px;padding:28px 26px;box-shadow:var(--shadow);text-align:center}
+.about-meta{list-style:none;padding:0;margin:20px 0;display:grid;gap:10px;text-align:left;
+  max-width:420px;margin-inline:auto;color:var(--muted)}
+.about-meta a{color:var(--p2)}
+.msg-form{display:grid;gap:12px;text-align:left;max-width:560px;margin:0 auto}
+.msg-form input,.msg-form textarea{width:100%;padding:12px 15px;border-radius:12px;border:1px solid var(--line);
+  background:var(--bg2);color:var(--fg);font:inherit;outline:none}
+.msg-form input:focus,.msg-form textarea:focus{border-color:var(--p2);box-shadow:0 0 0 4px rgba(240,171,252,.16)}
+.msg-form button{padding:12px;border:0;border-radius:12px;cursor:pointer;font:inherit;color:#fff;
+  background:linear-gradient(90deg,var(--p1),var(--p3));transition:.25s}
+.msg-form button:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(167,139,250,.42)}
+.msg-list{margin-top:22px;display:grid;gap:12px;text-align:left}
+.msg-item{padding:14px 16px;border-radius:14px;background:var(--bg2);border:1px solid var(--line)}
+.msg-item .who{font-size:13px;color:var(--p2)}
+.msg-item .when{font-size:12px;color:var(--muted);margin-left:8px}
+
+/* ---------- 页脚 ---------- */
+.site-footer{margin-top:30px;padding:34px 18px 26px;text-align:center;color:rgba(255,255,255,.92);
+  background:linear-gradient(120deg,var(--p1),var(--p3))}
+.site-footer .foot-stats{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;margin:16px 0 10px;
+  font-size:14px;opacity:.95}
+.site-footer .foot-social{display:flex;gap:18px;justify-content:center;margin-bottom:14px;font-size:19px}
+.site-footer a{color:#fff}
+.site-footer .copyright{font-size:13px;opacity:.9;line-height:1.9}
+
+/* ---------- 搜索弹窗 ---------- */
+.search-modal{position:fixed;inset:0;z-index:130;background:rgba(8,6,22,.62);display:grid;place-items:start center;
+  padding:70px 16px;backdrop-filter:blur(6px)}
+.search-modal[hidden]{display:none !important}
+.search-result .sr-item{display:block}
+body.modal-open{overflow:hidden}
+.search-box{width:min(720px,100%);background:var(--bg2);border:1px solid var(--line);border-radius:18px;
+  padding:22px;box-shadow:0 30px 70px rgba(0,0,0,.5);animation:pop .28s cubic-bezier(.2,.7,.3,1)}
+@keyframes pop{from{transform:translateY(-14px) scale(.98);opacity:0}}
+.search-head{display:flex;justify-content:space-between;align-items:center;font-size:19px;font-weight:700;
+  margin-bottom:14px}
+.search-head a{color:var(--muted);font-size:17px}
+#search-input{width:100%;padding:13px 16px;border-radius:12px;border:1px solid var(--line);background:var(--bg);
+  color:var(--fg);font:inherit;outline:none}
+#search-input:focus{border-color:var(--p2);box-shadow:0 0 0 4px rgba(240,171,252,.16)}
+.search-result{margin-top:16px;max-height:52vh;overflow:auto;display:grid;gap:10px}
+.sr-item{display:block;padding:12px 15px;border-radius:12px;background:var(--panel);border:1px solid var(--line);
+  transition:.22s}
+.sr-item:hover{border-color:var(--p2);transform:translateX(4px)}
+.sr-item .sr-t{font-weight:600}
+.sr-item .sr-d{font-size:12.5px;color:var(--muted);margin-top:4px}
+
+/* ---------- 回到顶部 ---------- */
+.to-top{position:fixed;right:18px;bottom:24px;z-index:70;width:46px;height:46px;border:0;border-radius:50%;
+  cursor:pointer;color:#fff;font-size:19px;opacity:0;pointer-events:none;transition:.28s;
+  background:linear-gradient(135deg,var(--p2),var(--p1));box-shadow:0 14px 34px rgba(240,171,252,.5)}
+.to-top.show{opacity:1;pointer-events:auto}
+.to-top:hover{transform:translateY(-3px)}
+
+/* ---------- 文章正文排版 ---------- */
+.post-wrap{max-width:820px;margin:0 auto;padding:22px 0 40px}
+.post-header{text-align:center;padding:120px 18px 26px}
+.post-header h1{font-size:clamp(23px,4.8vw,34px);margin:0 0 14px;line-height:1.35;
+  background:linear-gradient(100deg,var(--p2),var(--p1),var(--p3));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.post-tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.post-meta{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;color:var(--muted);font-size:13.5px;
+  align-items:center}
+.article-body{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px 24px;
+  box-shadow:var(--shadow)}
+.article-body h2{margin:34px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.article-body h2::before{content:"▍ ";color:var(--p2)}
+.article-body h3{margin:26px 0 10px;color:var(--p2)}
+.article-body p{margin:12px 0}
+.article-body blockquote{margin:18px 0;padding:12px 18px;border-left:3px solid var(--p2);
+  background:var(--bg2);border-radius:0 14px 14px 0;color:var(--muted)}
+.article-body ul,.article-body ol{padding-left:24px}
+.article-body li{margin:6px 0}
+.table-wrap{overflow:auto;margin:18px 0;border-radius:12px;border:1px solid var(--line)}
+.article-body table{width:100%;border-collapse:collapse;font-size:14px}
+.article-body th,.article-body td{border:1px solid var(--line);padding:9px 12px;text-align:left}
+.article-body th{background:var(--bg2);white-space:nowrap}
+.code{margin:18px 0;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#0d1020}
+.code figcaption{padding:7px 14px;font-size:12.5px;color:#c9c3f0;background:rgba(255,255,255,.06);
+  letter-spacing:.06em;text-transform:lowercase}
+.code pre{margin:0;padding:15px 16px;overflow:auto}
+.code code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13.5px;line-height:1.72;
+  color:#e9e6ff;white-space:pre}
+.code .k{color:#c084fc;font-weight:700}
+.code .s{color:#86efac}
+.code .c{color:#7c8aa5;font-style:italic}
+.code .n{color:#fbbf24}
+.article-body :not(pre) > code{background:var(--bg2);border:1px solid var(--line);border-radius:7px;
+  padding:2px 6px;font-size:13.5px}
+.prev-next{display:grid;gap:14px;margin-top:26px}
+@media (min-width:720px){.prev-next{grid-template-columns:1fr 1fr}}
+.pn-item{padding:14px 16px;border-radius:14px;background:var(--panel);border:1px solid var(--line);transition:.25s}
+.pn-item:hover{border-color:var(--p2);transform:translateY(-3px)}
+.pn-item .pn-label{font-size:12.5px;color:var(--muted)}
+
+/* ---------- 桌面端固定侧栏 ---------- */
+@media (min-width:1180px){
+  body.fixed-side .sidebar{transform:none;box-shadow:none}
+  body.fixed-side .site-header,body.fixed-side main,body.fixed-side .site-footer,body.fixed-side .banner-inner{
+    margin-left:288px}
+  body.fixed-side .sidebar-mask{display:none}
+  body.fixed-side .menu-btn{display:none}
+}
+@media (prefers-reduced-motion: reduce){
+  .banner-media{animation:none}
+  .scroll-hint{animation:none}
+}
+/* ---------- 超矮屏（<680px 高）再收一档 ---------- */
+@media (max-height:680px){
+  .banner{min-height:min(300px,46vh)}
+  .banner-inner{padding:84px 16px 62px}
+  .banner-inner h1{font-size:clamp(26px,7vw,40px)}
+  .banner-btns{margin-top:16px}
+  .btn-round{min-width:112px;padding:10px 20px;font-size:14px}
+  .page-main{padding-top:14px}
+}
+/* ---------- 首页卡片列表紧凑模式 ---------- */
+@media (max-width:640px){
+  .post-list{gap:16px}
+  .post-card .card-body{padding:14px 15px 13px}
+  .post-card .excerpt{-webkit-line-clamp:2}
+  .card-meta{gap:10px;font-size:12.5px}
+}
+/* ================= 尺寸分层：手机优先紧凑，桌面再放宽 ================= */
+@media (min-width:900px){
+  .banner{min-height:clamp(280px,34vh,340px)}
+  .banner-inner{padding:92px 20px 74px}
+  .banner-inner h1{font-size:clamp(32px,5vw,56px)}
+  .typed-wrap{min-height:30px;font-size:clamp(14px,1.6vw,19px)}
+  .banner-btns{margin-top:20px}
+  .btn-round{min-width:120px;padding:11px 24px;font-size:14.5px}
+  .page-main{padding:18px 18px 48px}
+  .cat-strip{justify-content:center;flex-wrap:wrap;overflow:visible}
+  .post-list{gap:20px}
+  .post-card .card-img{height:196px}
+  .post-card .card-body{padding:18px 20px 16px}
+}
+@media (max-width:700px){
+  .scroll-hint{display:none}
+}
+/* ---------- 筛选提示条 ---------- */
+.filter-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;
+  margin:0 0 12px;padding:9px 15px;border-radius:12px;font-size:14px;color:var(--muted);
+  background:var(--panel);border:1px solid var(--line)}
+.filter-bar b{color:var(--fg)}
+.filter-bar a{color:var(--p2);border-bottom:1px dashed currentColor}
+/* ---------- 渐变封面（替代图片，防止破图）---------- */
+.cover-grad{position:absolute;inset:0;display:grid;place-items:center;font-size:44px;
+  background:linear-gradient(135deg,var(--g1,#9d2933),var(--g2,#7d776c))}
+.cover-grad::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(60% 60% at 72% 18%,rgba(255,255,255,.34),transparent 70%)}
+.post-card .card-img{position:relative}
+/* ---------- 背景画布必须脱离文档流（否则画布会撑出一整屏空白）---------- */
+body > canvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;
+  pointer-events:none;z-index:1}
+#snow-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+#dream-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:60;
+  mix-blend-mode:screen}
+html[data-theme="light"] #dream-canvas{mix-blend-mode:multiply;opacity:.75}
+/* ==================== 古典水墨主题层（覆盖，勿删）==================== */
+:root{
+  --bg:#f6f3ec; --bg2:#efeae0;
+  --panel:rgba(255,255,255,.62); --panel2:#fffdf8;
+  --line:rgba(32,30,26,.16);
+  --fg:#232019; --muted:#6d675c;
+  --p1:#9d2933; --p2:#3d3a34; --p3:#7d776c; --p4:#c9c2b4;
+  --radius:4px;
+  --shadow:0 1px 6px rgba(40,36,28,.06);
+  --glow:0 6px 20px rgba(40,36,28,.10);
+}
+html[data-theme="dark"]{
+  --bg:#131210; --bg2:#1a1815; --panel:rgba(255,255,255,.045); --panel2:rgba(255,255,255,.07);
+  --line:rgba(255,255,255,.14); --fg:#e9e4d9; --muted:#9d968a;
+  --shadow:0 1px 8px rgba(0,0,0,.5); --glow:0 6px 22px rgba(0,0,0,.5);
+}
+body{
+  font:16px/2.05 "Songti SC","Noto Serif SC","Source Han Serif SC",Georgia,"STSong","SimSun",serif;
+  background:var(--bg);
+  background-image:radial-gradient(circle at 20% 12%,rgba(190,182,166,.16),transparent 42%),
+                   radial-gradient(circle at 82% 78%,rgba(190,182,166,.13),transparent 45%);
+}
+h1,h2,h3,.hero-title,.post-card h2,.tl-title,.header-brand{
+  font-family:"STKaiti","Kaiti SC","KaiTi","Songti SC","Noto Serif SC",serif;
+  letter-spacing:.07em; font-weight:600;
+}
+/* 顶栏：宣纸 + 发丝线 */
+.site-header{background:rgba(246,243,236,.94);color:var(--fg);backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--line);box-shadow:none}
+.site-header.solid{background:rgba(246,243,236,.97);box-shadow:0 1px 0 var(--line)}
+html[data-theme="dark"] .site-header{background:rgba(19,18,16,.94)}
+html[data-theme="dark"] .site-header.solid{background:rgba(19,18,16,.97)}
+.header-brand{font-size:20px}
+.brand-dot{width:9px;height:9px;border-radius:1px;background:var(--p1);box-shadow:none;transform:rotate(45deg)}
+.header-icons a{background:transparent;border:0}
+.header-icons a:hover{background:rgba(157,41,51,.10);transform:none}
+/* Banner：水墨远山 */
+.banner::after{background:linear-gradient(180deg,rgba(246,243,236,.04),rgba(246,243,236,.28) 66%,var(--bg))}
+html[data-theme="dark"] .banner::after{background:linear-gradient(180deg,rgba(10,9,7,.30),rgba(10,9,7,.55) 62%,var(--bg))}
+html[data-theme="dark"] .banner-media{filter:brightness(.42) contrast(1.05)}
+.banner-inner h1{color:var(--fg);text-shadow:none;font-weight:600;letter-spacing:.16em}
+.typed-wrap{color:var(--muted);letter-spacing:.14em;font-size:clamp(12.5px,3.2vw,16px)}
+.typed-cursor{display:none}
+.btn-round{border:1px solid var(--fg);border-radius:2px;color:var(--fg);background:transparent;
+  backdrop-filter:none;letter-spacing:.18em;padding:9px 22px}
+.btn-round:hover{background:transparent;border-color:var(--p1);color:var(--p1);transform:none;
+  box-shadow:0 0 0 1px var(--p1) inset}.scroll-hint{border-radius:2px;border-color:var(--line);color:var(--muted);animation:none}
+.banner-social{color:var(--muted)}
+/* 分类/标签：细框，选中为朱砂 */
+.cat-strip{gap:10px}
+.cat-pill{border-radius:2px;background:transparent;border:1px solid var(--line);color:var(--muted);
+  letter-spacing:.08em}
+.cat-pill:hover{transform:none;border-color:var(--fg);color:var(--fg)}
+.cat-pill.on{background:transparent;color:var(--p1);border-color:var(--p1);box-shadow:none;font-weight:600}
+.tag-pill,.tag-pill.alt{background:transparent;border:1px solid var(--line);color:var(--muted);
+  border-radius:2px;letter-spacing:.06em}
+.post-tags a.tag-pill:hover{color:var(--p1);border-color:var(--p1)}
+/* 卡片：宣纸 */
+.post-card{background:var(--panel2);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow)}
+.post-card:hover{transform:none;border-color:var(--p1);box-shadow:var(--glow)}
+.post-card .card-img{border-bottom:1px solid var(--line);width:100%;aspect-ratio:auto}
+.cover-grad{background:linear-gradient(160deg,var(--g1),var(--g2));position:absolute;inset:0;
+  display:grid;place-items:center}
+.cover-grad::after{content:"";position:absolute;inset:0;background:none}
+.cover-grad{font-family:"STKaiti","Kaiti SC","KaiTi",serif;font-size:58px;color:rgba(35,32,26,.17);width:100%;height:100%}
+html[data-theme="dark"] .cover-grad{color:rgba(233,228,217,.16)}
+.cat-badge{background:rgba(35,32,26,.62);border-radius:2px;letter-spacing:.08em}
+.card-meta,.excerpt{letter-spacing:.02em}
+/* 归档时间轴：墨点 + 细线 */
+.timeline::before{background:var(--line);width:1px}
+.tl-item::before{background:var(--p1);border-radius:1px;box-shadow:none;width:8px;height:8px;
+  left:-21px;transform:rotate(45deg)}
+.tl-title:hover{color:var(--p1)}
+/* 筛选条 */
+.filter-bar{border-radius:2px;background:transparent;border:1px dashed var(--line);letter-spacing:.06em}
+.filter-bar a{color:var(--p1);border-bottom:0}
+/* 搜索弹窗：宣纸 */
+.search-box{border-radius:4px;background:var(--panel2);box-shadow:0 18px 50px rgba(30,26,20,.18)}
+#search-input{border-radius:2px;background:transparent;border:1px solid var(--line)}
+.sr-item{border-radius:2px;background:transparent}
+.sr-item:hover{border-color:var(--p1);transform:none;background:rgba(157,41,51,.05)}
+/* 侧栏：卷轴 */
+.sidebar{background:var(--bg2);border-right:1px solid var(--line);box-shadow:8px 0 26px rgba(30,26,20,.10)}
+.sidebar-profile{background:linear-gradient(180deg,rgba(190,182,166,.28),transparent)}
+.sidebar-badge{border-radius:2px;color:var(--fg);background:transparent;border:1px solid var(--line);
+  font-family:"STKaiti","Kaiti SC","KaiTi",serif}
+.sidebar-profile h3{color:var(--fg);letter-spacing:.12em}
+.sidebar-profile p{color:var(--muted)}
+.sidebar-menu a{letter-spacing:.08em}
+.sidebar-menu a:hover,.sidebar-menu a.active{color:var(--p1);border-left-color:var(--p1);background:rgba(157,41,51,.05)}
+.sidebar-menu .mi{opacity:.75;font-size:15px}
+/* 页脚：素纸 + 朱砂点 */
+.site-footer{background:transparent;border-top:1px solid var(--line);color:var(--muted)}
+.site-footer a{color:var(--p1)}
+/* 回到顶部 */
+.to-top{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:2px;box-shadow:none}
+.to-top:hover{background:transparent;color:var(--p1);border-color:var(--p1);transform:none}
+/* 正文：宣纸排版 + 水墨标题 */
+.article-body{background:var(--panel2);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow)}
+.article-body h2{border-bottom:1px solid var(--line)}
+.article-body h2::before{content:"▪ ";color:var(--p1);font-size:.72em}
+.article-body h3{color:var(--fg)}
+.article-body blockquote{border-left:2px solid var(--p1);background:rgba(190,182,166,.14);border-radius:0 2px 2px 0}
+.article-body th{background:rgba(190,182,166,.16)}
+.post-header h1{background:none;color:var(--fg);-webkit-text-fill-color:var(--fg)}
+/* 代码块：淡墨 */
+.code{background:#f4f0e8;border:1px solid var(--line);border-radius:2px}
+html[data-theme="dark"] .code{background:#1c1a17}
+.code figcaption{background:rgba(35,32,26,.05);color:var(--muted);letter-spacing:.12em;text-transform:none}
+.code code{color:#2c2925}
+html[data-theme="dark"] .code code{color:#e6e1d6}
+.code .k{color:#8c2b2b;font-weight:600}
+.code .s{color:#46603f}
+.code .c{color:#8d877a;font-style:italic}
+.code .n{color:#7a5a33}
+html[data-theme="dark"] .code .k{color:#d98b8b}
+html[data-theme="dark"] .code .s{color:#9dbf96}
+html[data-theme="dark"] .code .c{color:#8a8478}
+html[data-theme="dark"] .code .n{color:#d8b98a}
+.article-body :not(pre) > code{background:rgba(190,182,166,.22);border:1px solid var(--line);border-radius:2px}
+/* 进度条：一道朱砂细线 */
+.progress{height:2px;background:var(--p1);box-shadow:none}
+/* 关于/留言卡 */
+.about-card,.panel-card{background:var(--panel2);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow)}
+.msg-form input,.msg-form textarea{border-radius:2px;background:transparent}
+.msg-form button{border-radius:2px;background:transparent;color:var(--fg);border:1px solid var(--fg);letter-spacing:.14em}
+.msg-form button:hover{color:var(--p1);border-color:var(--p1);box-shadow:none;transform:none}
+.msg-item{border-radius:2px;background:transparent}
+.wall .wall-item{border-radius:2px;background:transparent}
+.wall .wall-item:hover{border-color:var(--p1);box-shadow:none;transform:none}
+.wall .count{background:transparent;color:var(--p1);border:1px solid var(--p1);border-radius:2px}
+
+/* ==================== 长文本防越界（关键修复）==================== */
+.article-body,.article-body p,.article-body li,.article-body td,.article-body th,
+.article-body h1,.article-body h2,.article-body h3,.article-body blockquote,
+.post-header h1,.post-header .post-meta,.post-card h2,.post-card .excerpt,
+.card-meta,.card-tags,.tag-pill,.cat-badge,.tl-title,.tl-date,.filter-bar,
+.search-result .sr-item,.about-card,.msg-item,.wall-item{
+  overflow-wrap:anywhere; word-break:break-word; min-width:0;
+}
+.article-body pre{white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word; overflow-x:auto}
+.article-body pre code{white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word}
+.article-body a{word-break:break-all}
+.table-wrap{overflow-x:auto; max-width:100%}
+.article-body table{table-layout:auto}
+.card-img,.post-wrap{min-width:0}
+/* ---------- 特效开关（关闭时画布不显示）---------- */
+/* 兜底：封面/卡片图区一律撑满，禁止被 aspect-ratio 压窄 */
+.post-card .card-img{width:100% !important;aspect-ratio:auto !important}
+.cover-grad{position:absolute;inset:0;width:100%;height:100%}
+/* ==================== 武侠水墨增补 ==================== */
+/* 朱砂印章 */
+.seal{width:58px;height:58px;margin:0 auto;display:grid;place-items:center;border-radius:3px;
+  background:#9d2933;color:#f8f5ef;font-family:"STKaiti","Kaiti SC","KaiTi",serif;font-size:32px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.25),0 2px 8px rgba(120,30,35,.28);
+  transform:rotate(-2.5deg);letter-spacing:0}
+.seal-banner{width:52px;height:52px;font-size:28px;margin:0 auto 14px;opacity:.95}
+.brand-seal{display:inline-grid;place-items:center;width:20px;height:20px;margin-right:7px;
+  border-radius:2px;background:#9d2933;color:#f8f5ef;font-size:12px;font-family:"STKaiti","KaiTi",serif;
+  transform:rotate(-3deg)}
+/* 笔触分隔 */
+.brush-rule{width:132px;height:2px;margin:16px auto 2px;border-radius:2px;
+  background:linear-gradient(90deg,transparent,rgba(35,32,26,.55) 22%,rgba(35,32,26,.55) 78%,transparent)}
+html[data-theme="dark"] .brush-rule{background:linear-gradient(90deg,transparent,rgba(235,229,214,.5) 22%,rgba(235,229,214,.5) 78%,transparent)}
+/* 顶栏图标：单色线条 + 文字符 */
+.header-icons a{display:inline-grid;place-items:center;width:38px;height:38px;color:var(--fg);border-radius:2px;
+  font-family:"STKaiti","KaiTi",serif;font-size:16px;letter-spacing:0}
+.header-icons a svg{display:block}
+.header-icons a:hover{background:rgba(157,41,51,.10);color:var(--p1)}
+/* 侧栏：素纸 + 印章，去掉一切彩色渐变 */
+.sidebar{background:var(--bg2);background-image:none}
+.sidebar-profile{background:transparent;border-bottom:1px solid var(--line);padding:30px 22px 22px}
+.sidebar-profile h3{letter-spacing:.22em;margin:16px 0 6px}
+.sidebar-profile p{letter-spacing:.12em}
+.sidebar-menu .mi{width:20px;height:20px;display:inline-grid;place-items:center;color:var(--muted)}
+.sidebar-menu .mi svg{width:17px;height:17px}
+.sidebar-menu a:hover .mi,.sidebar-menu a.active .mi{color:var(--p1)}
+.sidebar-menu a{letter-spacing:.14em}
+/* Banner：印章居中 + 三个单色图标入流 */
+.banner-inner h1{letter-spacing:.30em;text-indent:.30em;font-weight:500}
+.typed-wrap{letter-spacing:.20em}
+.banner-social{position:static;margin:20px 0 0;display:flex;gap:26px;justify-content:center;color:var(--muted)}
+.banner-social a{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:2px;opacity:.9}
+.banner-social a svg{width:18px;height:18px}
+.banner-social a:hover{opacity:1;color:var(--p1);background:rgba(157,41,51,.08);transform:none}
+/* 正文与页脚的分隔符、说明 */
+.card-meta i,.post-meta i{font-style:normal;color:var(--line)}
+.post-meta{gap:8px}
+.post-meta span{letter-spacing:.06em}
+.back-wrap{text-align:center;margin:26px 0 0}
+.foot-rule{width:58px;height:1px;margin:0 auto 16px;background:var(--line)}
+.foot-note{font-size:12.5px;color:var(--muted);letter-spacing:.08em;margin-top:8px}
+.foot-stats{letter-spacing:.06em}
+.pn-item.disabled{opacity:.42}
+.pn-item{border-radius:2px}
+/* 文章标题的朱砂小点 */
+.article-body h2::before{content:"▍ ";color:var(--p1);font-size:.78em}
+/* 分类角标：方角墨底 */
+.cat-badge{border-radius:2px;letter-spacing:.10em}
+/* 大标题下的笔触 */
+.post-header{padding-top:96px}
+/* ==================== 仙侠层（云海 · 仙山 · 描金）==================== */
+:root{--jin:#b08d57;--qing:#4f7d78;--yun:#eef2f4}
+body{background-image:
+  radial-gradient(circle at 12% 6%,rgba(238,242,244,.95),transparent 44%),
+  radial-gradient(circle at 88% 84%,rgba(238,242,244,.8),transparent 46%)}
+/* 云纹分隔（如意图案） */
+.cloud-rule{height:20px;margin:12px auto 0;max-width:520px;opacity:.55;background-repeat:repeat-x;
+  background-position:center;background-size:auto 20px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='20' viewBox='0 0 96 20'%3E%3Cg fill='none' stroke='%23b08d57' stroke-opacity='.6' stroke-width='1.1'%3E%3Cpath d='M2 14c5 0 7-4 12-4s7 4 12 4 7-4 12-4 7 4 12 4 7-4 12-4 7 4 12 4 7-4 12-4'/%3E%3C/g%3E%3Ccircle cx='14' cy='8' r='2' fill='%23b08d57' fill-opacity='.32'/%3E%3Ccircle cx='62' cy='8' r='2' fill='%23b08d57' fill-opacity='.32'/%3E%3C/svg%3E")}
+.site-footer .cloud-rule{margin-bottom:10px}
+/* 描金发丝线 */
+.site-header{border-bottom:1px solid rgba(176,141,87,.26)}
+.site-footer{border-top:0}
+.foot-rule{width:84px;height:1px;margin:0 auto 12px;
+  background:linear-gradient(90deg,transparent,var(--jin),transparent)}
+/* 玉牌卡片 */
+.post-card{background:#fffdf9;border-color:rgba(176,141,87,.26)}
+.post-card:hover{border-color:var(--jin);box-shadow:0 10px 30px rgba(79,125,120,.15)}
+.post-card .card-img{border-bottom:1px solid rgba(176,141,87,.22)}
+.cover-grad{background:linear-gradient(165deg,#f4f7f6,#eaf0ef)}
+.cover-grad{color:rgba(79,125,120,.22)}
+/* 链接与强调：青碧 / 描金 */
+.site-footer a,.about-meta a,.filter-bar a{color:var(--qing)}
+.tag-pill:hover,.post-tags a.tag-pill:hover{color:var(--jin);border-color:var(--jin)}
+.cat-pill:hover{border-color:var(--qing);color:var(--qing)}
+.cat-pill.on{color:var(--jin);border-color:var(--jin)}
+.header-icons a:hover{color:var(--jin);background:rgba(176,141,87,.10)}
+.sidebar{border-right-color:rgba(176,141,87,.22)}
+.sidebar-menu a:hover,.sidebar-menu a.active{color:var(--qing);border-left-color:var(--jin);background:rgba(176,141,87,.06)}
+.sidebar-profile{border-bottom-color:rgba(176,141,87,.22)}
+.article-body h2::before{content:"▍ ";color:var(--jin)}
+.article-body h2{border-bottom-color:rgba(176,141,87,.22)}
+.article-body blockquote{border-left-color:var(--jin);background:rgba(238,242,244,.6)}
+.wall .wall-item:hover{border-color:var(--jin)}
+.filter-bar{border-color:rgba(176,141,87,.3)}
+.to-top{border-color:rgba(176,141,87,.35)}
+.to-top:hover{color:var(--jin);border-color:var(--jin)}
+/* 夜境：墨夜 + 淡金 */
+html[data-theme="dark"]{--bg:#12131a;--bg2:#191a22;--fg:#e9e6de;--muted:#a09a8e;
+  --line:rgba(200,169,120,.20);--jin:#c8a978;--qing:#7fa8a2}
+html[data-theme="dark"] body{background-image:
+  radial-gradient(circle at 14% 8%,rgba(44,54,74,.75),transparent 45%),
+  radial-gradient(circle at 86% 82%,rgba(58,46,74,.6),transparent 46%)}
+html[data-theme="dark"] .post-card{background:#1b1c24}
+html[data-theme="dark"] .cover-grad{background:linear-gradient(165deg,#232630,#1b1e26);color:rgba(200,169,120,.20)}
+/* 云雾缓动 */
+@keyframes mistdrift{from{transform:translateX(-1.5%) scale(1)}to{transform:translateX(1.5%) scale(1.03)}}
+.banner-media{animation:mistdrift 38s ease-in-out infinite alternate}
+/* ==================== 侧栏重做（仙侠卷轴）==================== */
+.sidebar{width:256px;background:#fbfaf6;background-image:
+  radial-gradient(circle at 20% 4%,rgba(238,242,244,.9),transparent 46%),
+  radial-gradient(circle at 90% 92%,rgba(238,242,244,.7),transparent 44%);
+  border-right:1px solid rgba(176,141,87,.30);box-shadow:10px 0 34px rgba(60,50,30,.10)}
+html[data-theme="dark"] .sidebar{background:#191a22;background-image:
+  radial-gradient(circle at 20% 4%,rgba(44,54,74,.6),transparent 46%)}
+.sidebar-close{position:absolute;top:12px;right:14px;width:30px;height:30px;display:grid;place-items:center;
+  color:var(--muted);font-size:20px;line-height:1;border-radius:2px}
+.sidebar-close:hover{color:var(--p1);background:rgba(157,41,51,.08)}
+.sidebar-profile{position:relative;padding:34px 22px 16px;text-align:center;background:transparent;
+  border-bottom:0}
+.sidebar-profile .seal{width:54px;height:54px;font-size:29px}
+.sidebar-profile h3{margin:15px 0 4px;font-family:"STKaiti","Kaiti SC","KaiTi",serif;
+  font-size:21px;letter-spacing:.26em;text-indent:.26em;color:var(--fg)}
+.sidebar-profile p{margin:0;font-size:12.5px;letter-spacing:.10em;color:var(--muted)}
+.sidebar-profile .cloud-rule{margin:14px auto 0;max-width:none;opacity:.5}
+/* 菜单：单字篆意 + 墨字 */
+.sidebar-menu{padding:10px 0 6px}
+.sidebar-menu a{display:flex;align-items:center;gap:14px;padding:13px 22px;border-left:0;
+  color:var(--fg);opacity:.9;transition:.22s;letter-spacing:.14em}
+.sidebar-menu a .ch{width:26px;height:26px;flex:0 0 26px;display:grid;place-items:center;
+  font-family:"STKaiti","Kaiti SC","KaiTi",serif;font-size:15px;color:#f8f5ef;
+  background:#3d3a34;border-radius:2px;transform:rotate(-2deg);opacity:.88;transition:.22s}
+.sidebar-menu a .lb{font-size:15px}
+.sidebar-menu a:hover{background:linear-gradient(90deg,rgba(176,141,87,.12),transparent);
+  padding-left:26px;opacity:1;border-left:0}
+.sidebar-menu a:hover .ch{background:#9d2933;opacity:1;transform:rotate(0deg)}
+.sidebar-menu a.active .ch{background:#9d2933}
+.sidebar-foot{padding:0 0 30px;text-align:center}
+.sidebar-foot .cloud-rule{margin:6px auto 12px;opacity:.45}
+.sidebar-foot p{margin:0;font-size:11.5px;letter-spacing:.08em;color:var(--muted)}
+
+/* ==================== 封面与图标美化 + 在线留言 ==================== */
+/* 封面：绢本拓片 —— 内描金框 + 云纹底 + 淡墨单字 + 朱砂小印 */
+.post-card .card-img{background:linear-gradient(165deg,#f7f9f8,#eef2f1)}
+.cover-grad{background:linear-gradient(165deg,#f7f9f8,#e9efee);display:grid;place-items:center;overflow:hidden}
+.cover-grad::before{content:"";position:absolute;inset:9px;border:1px solid rgba(176,141,87,.38);border-radius:2px}
+.cover-grad::after{content:"";position:absolute;inset:0;opacity:.5;background-repeat:repeat;background-size:84px 22px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='22' viewBox='0 0 84 22'%3E%3Cg fill='none' stroke='%234f7d78' stroke-opacity='.22' stroke-width='1'%3E%3Cpath d='M2 15c5 0 7-4 12-4s7 4 12 4 7-4 12-4 7 4 12 4'/%3E%3C/g%3E%3C/svg%3E")}
+.cover-ch{position:relative;z-index:2;font-family:"STKaiti","Kaiti SC","KaiTi",serif;font-size:66px;
+  color:rgba(35,32,26,.16);letter-spacing:0;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+html[data-theme="dark"] .cover-ch{color:rgba(200,169,120,.20)}
+.post-card .card-img .cat-badge{background:rgba(35,32,26,.70);border-radius:2px;letter-spacing:.10em}
+/* meta 小图标 */
+.card-meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.card-meta span{display:inline-flex;align-items:center;gap:5px}
+.card-meta svg{width:14px;height:14px;flex:0 0 14px;color:var(--jin);opacity:.85}
+.post-meta span{display:inline-flex;align-items:center;gap:5px}
+/* 在线留言 */
+.panel-head{font-family:"STKaiti","Kaiti SC","KaiTi",serif;font-size:17px;letter-spacing:.18em;
+  color:var(--fg);margin:0 0 12px;padding-left:10px;border-left:2px solid var(--jin)}
+.ut-box{min-height:96px;margin:0 0 18px}
+.ut-box iframe{width:100%;border:1px solid rgba(176,141,87,.25);border-radius:2px;background:#fff}
+#ut-fallback .panel-head{margin-top:20px}
+#ut-fallback{border-top:1px solid rgba(176,141,87,.22);padding-top:6px;margin-top:6px}
+/* 雪常开：清掉旧的关闭规则 */
+
+/* ==================== 水墨山水封面 / 预览图 ==================== */
+.cover-grad{background-size:cover;background-position:center;background-repeat:no-repeat}
+.cover-grad::after{content:"";position:absolute;inset:0;z-index:1;
+  background-image:linear-gradient(180deg,rgba(250,251,250,.22),rgba(250,251,250,.08)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='22' viewBox='0 0 84 22'%3E%3Cg fill='none' stroke='%234f7d78' stroke-opacity='.20' stroke-width='1'%3E%3Cpath d='M2 15c5 0 7-4 12-4s7 4 12 4 7-4 12-4 7 4 12 4'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:auto,84px 22px;background-repeat:no-repeat,repeat}
+html[data-theme="dark"] .cover-grad::after{background-image:
+  linear-gradient(180deg,rgba(20,21,28,.38),rgba(20,21,28,.55)),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='22' viewBox='0 0 84 22'%3E%3Cg fill='none' stroke='%23c8a978' stroke-opacity='.18' stroke-width='1'%3E%3Cpath d='M2 15c5 0 7-4 12-4s7 4 12 4 7-4 12-4 7 4 12 4'/%3E%3C/g%3E%3C/svg%3E")}
+.cover-ch{z-index:2}
+/* 文章页顶部预览图 */
+.post-cover{position:relative;height:clamp(190px,36vh,330px);margin:0 0 -6px;
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+  border-bottom:1px solid rgba(176,141,87,.30)}
+.post-cover::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(248,250,249,.06),rgba(248,250,249,.62))}
+html[data-theme="dark"] .post-cover::after{background:linear-gradient(180deg,rgba(18,19,26,.3),rgba(18,19,26,.86))}
+.post-header{padding-top:26px}
+
+/* ==================== 深色模式对比度修正（审计后补齐）==================== */
+html[data-theme="dark"]{--qing:#8fbdb6;--jin:#c8a978;--p1:#d98b8b;--fg:#eae5da;--muted:#b3ada0}
+html[data-theme="dark"] body{color:#eae5da}
+html[data-theme="dark"] .article-body{background:#1e2029;color:#eae5da}
+html[data-theme="dark"] .article-body p,html[data-theme="dark"] .article-body li,
+html[data-theme="dark"] .article-body td,html[data-theme="dark"] .article-body th{color:#eae5da}
+html[data-theme="dark"] .article-body blockquote{background:rgba(255,255,255,.07);color:#ded9cc}
+html[data-theme="dark"] .article-body h3,html[data-theme="dark"] .post-card:hover h2{color:#eae5da}
+html[data-theme="dark"] .article-body h2::before{color:#d98b8b}
+html[data-theme="dark"] .code .k{color:#e39b9b}
+html[data-theme="dark"] .code .s{color:#9dbf96}
+html[data-theme="dark"] .code .n{color:#d8b98a}
+html[data-theme="dark"] .code .c{color:#9a9488}
+html[data-theme="dark"] .code code{color:#e6e1d6}
+html[data-theme="dark"] .btn-round:hover,html[data-theme="dark"] .scroll-hint:hover{color:#f4efe4;border-color:#d98b8b}
+html[data-theme="dark"] .site-footer a,html[data-theme="dark"] .about-meta a,
+html[data-theme="dark"] .filter-bar a,html[data-theme="dark"] .back,
+html[data-theme="dark"] .tl-title:hover,html[data-theme="dark"] .msg-item .who{color:#8fbdb6}
+html[data-theme="dark"] .post-tags a.tag-pill:hover,html[data-theme="dark"] .cat-pill.on,
+html[data-theme="dark"] .wall .count,html[data-theme="dark"] .header-icons a:hover,
+html[data-theme="dark"] .sidebar-menu a:hover,html[data-theme="dark"] .sidebar-menu a.active,
+html[data-theme="dark"] .to-top:hover,html[data-theme="dark"] .banner-social a:hover,
+html[data-theme="dark"] .msg-form button:hover,html[data-theme="dark"] .sidebar-close:hover{color:#d98b8b}
+html[data-theme="dark"] .card-meta i,html[data-theme="dark"] .post-meta i{color:rgba(200,169,120,.45)}
+html[data-theme="dark"] .cover-ch{color:rgba(200,169,120,.22)}
+
+/* ==================== 深色模式「保险丝」（最后写入，!important 确保生效）==================== */
+html[data-theme="dark"] body,html[data-theme="dark"] .hero-sub,html[data-theme="dark"] .page-head .tip,
+html[data-theme="dark"] .article-body,html[data-theme="dark"] .article-body p,html[data-theme="dark"] .article-body li,
+html[data-theme="dark"] .article-body td,html[data-theme="dark"] .article-body th,
+html[data-theme="dark"] .article-body h1,html[data-theme="dark"] .article-body h2,html[data-theme="dark"] .article-body h3,
+html[data-theme="dark"] .post-header h1,html[data-theme="dark"] .post-card h2,html[data-theme="dark"] .post-card h2 a,
+html[data-theme="dark"] .card-body h2{color:#e9e5da !important}
+html[data-theme="dark"] .article-body blockquote,html[data-theme="dark"] .article-body blockquote p,
+html[data-theme="dark"] .article-body blockquote em,html[data-theme="dark"] .article-body blockquote strong
+{color:#ded9cc !important;background:rgba(255,255,255,.07) !important;border-left-color:#c8a978 !important}
+html[data-theme="dark"] .article-body pre code,html[data-theme="dark"] .code code{color:#e6e1d6 !important}
+html[data-theme="dark"] .article-body .k,html[data-theme="dark"] .code .k{color:#eaa1a1 !important}
+html[data-theme="dark"] .article-body .s,html[data-theme="dark"] .code .s{color:#a6c79d !important}
+html[data-theme="dark"] .article-body .n,html[data-theme="dark"] .code .n{color:#dcbf8f !important}
+html[data-theme="dark"] .article-body .c,html[data-theme="dark"] .code .c{color:#9c968a !important}
+html[data-theme="dark"] .article-body :not(pre) > code{color:#efeae0 !important;background:rgba(255,255,255,.10) !important}
+html[data-theme="dark"] a,html[data-theme="dark"] .back,html[data-theme="dark"] .tl-title,
+html[data-theme="dark"] .site-footer a,html[data-theme="dark"] .about-meta a,html[data-theme="dark"] .filter-bar a,
+html[data-theme="dark"] .msg-item .who{color:#93c0b9 !important}
+html[data-theme="dark"] .tip,html[data-theme="dark"] .card-meta,html[data-theme="dark"] .card-meta span,
+html[data-theme="dark"] .post-meta,html[data-theme="dark"] .post-meta span,html[data-theme="dark"] .excerpt,
+html[data-theme="dark"] .foot-note,html[data-theme="dark"] .copyright,html[data-theme="dark"] .tl-date,
+html[data-theme="dark"] .pn-label,html[data-theme="dark"] .card-meta i,html[data-theme="dark"] .post-meta i
+{color:#b6b0a3 !important}
+html[data-theme="dark"] .cat-pill,html[data-theme="dark"] .tag-pill{color:#cdc7ba !important;border-color:rgba(200,169,120,.35) !important}
+html[data-theme="dark"] .cat-pill.on,html[data-theme="dark"] .tag-pill:hover,html[data-theme="dark"] .post-tags a.tag-pill:hover
+{color:#d98b8b !important;border-color:#d98b8b !important}
+html[data-theme="dark"] .sidebar-menu a{color:#ddd8cc !important}
+html[data-theme="dark"] .sidebar-menu a .ch{background:#2b2e38 !important;color:#e9e5da !important}
+html[data-theme="dark"] .sidebar-menu a:hover,html[data-theme="dark"] .sidebar-menu a.active{color:#93c0b9 !important}
+html[data-theme="dark"] .seal,html[data-theme="dark"] .brand-seal{background:#8f2a33 !important}
+html[data-theme="dark"] .pn-item{color:#ddd8cc !important;background:rgba(255,255,255,.05)}
+html[data-theme="dark"] .pn-item.disabled{color:#8d877c !important}
+html[data-theme="dark"] .header-icons a{color:#e9e5da !important}
+html[data-theme="dark"] .btn-round{color:#e9e5da !important;border-color:rgba(233,229,218,.7) !important}
+html[data-theme="dark"] .btn-round:hover{color:#d98b8b !important;border-color:#d98b8b !important}
+html[data-theme="dark"] .to-top{color:#e9e5da !important;background:#1e2029 !important;border-color:rgba(200,169,120,.35) !important}
+html[data-theme="dark"] .wall .count{color:#d98b8b !important;border-color:#d98b8b !important}
+html[data-theme="dark"] .about-card,html[data-theme="dark"] .panel-card,html[data-theme="dark"] .msg-item{background:#1e2029 !important;color:#e9e5da !important}
+html[data-theme="dark"] .msg-form input,html[data-theme="dark"] .msg-form textarea{background:#15161d !important;color:#e9e5da !important;border-color:rgba(200,169,120,.3) !important}
+html[data-theme="dark"] .search-box{background:#1e2029 !important}
+html[data-theme="dark"] #search-input{background:#15161d !important;color:#e9e5da !important}
+html[data-theme="dark"] .sr-item{color:#e9e5da !important}
+html[data-theme="dark"] .sr-item .sr-d{color:#b6b0a3 !important}
+html[data-theme="dark"] .code{background:#15171f !important;border-color:rgba(200,169,120,.22) !important}
+html[data-theme="dark"] .table-wrap{border-color:rgba(200,169,120,.22) !important}
+html[data-theme="dark"] .article-body th{background:rgba(255,255,255,.06) !important;color:#e9e5da !important}
+html[data-theme="dark"] .article-body h2{border-bottom-color:rgba(200,169,120,.28) !important}
+html[data-theme="dark"] .article-body h2::before{color:#d98b8b !important}
+
+/* ==================== 最终风格：稳重厚实 · 大气优雅 ==================== */
+body{font-size:16.5px;line-height:2.0}
+.container{max-width:1080px}
+.site-header{background:#f4f1ea;color:var(--fg);border-bottom:2px solid rgba(35,32,26,.85);
+  box-shadow:0 2px 0 rgba(176,141,87,.55);backdrop-filter:none}
+.site-header.solid{background:#f4f1ea;box-shadow:0 2px 0 rgba(176,141,87,.55)}
+.header-brand{font-weight:700;letter-spacing:.18em;font-size:21px}
+.brand-seal{width:22px;height:22px;font-size:13px;border-radius:0}
+.header-icons a{width:40px;height:40px;font-size:17px;border-radius:0}
+.banner-inner h1{font-weight:700;letter-spacing:.34em;text-indent:.34em}
+.brush-rule{height:3px;width:190px;background:linear-gradient(90deg,transparent,rgba(35,32,26,.8) 26%,rgba(35,32,26,.8) 74%,transparent)}
+.seal{border-radius:0;box-shadow:0 3px 0 rgba(0,0,0,.20)}
+.btn-round{border:2px solid rgba(35,32,26,.85);border-radius:0;font-weight:700;letter-spacing:.22em;padding:12px 26px}
+.btn-round:hover{background:var(--p1);border-color:var(--p1);color:#fff}
+.post-card{border:2px solid rgba(35,32,26,.55);border-radius:0;background:#fffdf8;
+  box-shadow:7px 7px 0 rgba(176,141,87,.20)}
+.post-card:hover{border-color:var(--p1);box-shadow:11px 11px 0 rgba(157,41,51,.18);transform:none}
+.post-card .card-img{border-bottom:2px solid rgba(35,32,26,.5)}
+.post-card .card-body{border-top:2px solid rgba(35,32,26,.5)}
+.post-card h2{font-weight:700}
+.cat-badge{background:rgba(35,32,26,.88);border-radius:0;font-weight:600;letter-spacing:.14em}
+.cat-pill,.tag-pill{border-width:1.5px;border-radius:0;font-weight:600}
+.cat-pill.on{background:var(--p1);color:#fff;border-color:var(--p1)}
+.tag-pill:hover{border-color:var(--p1)}
+.article-body{border:2px solid rgba(35,32,26,.45);border-radius:0;background:#fffdf8}
+.article-body h2{border-bottom:2px solid rgba(35,32,26,.5);font-weight:700;letter-spacing:.06em}
+.article-body h3{font-weight:700}
+.post-header h1{font-weight:700;letter-spacing:.04em}
+.post-cover{border-bottom:2px solid rgba(35,32,26,.5)}
+.code{border:2px solid rgba(35,32,26,.45);border-radius:0}
+.table-wrap{border:2px solid rgba(35,32,26,.45);border-radius:0}
+.article-body th{font-weight:700}
+.sidebar{border-right:2px solid rgba(35,32,26,.55);box-shadow:10px 0 0 rgba(176,141,87,.14)}
+.sidebar-menu a{border-bottom:1px solid rgba(35,32,26,.14);padding:15px 22px;letter-spacing:.16em}
+.sidebar-menu a .ch{border-radius:0;background:rgba(35,32,26,.9);font-weight:600}
+.sidebar-menu a:hover .ch{background:var(--p1)}
+.site-footer{background:#26241f;color:#e8e3d8;border-top:3px double var(--jin);padding:42px 18px 34px}
+.site-footer .copyright,.site-footer .foot-stats,.site-footer .foot-note{color:#cfc8ba}
+.site-footer a{color:#dcbd91}
+.foot-rule{background:var(--jin);height:2px;width:120px}
+.site-footer .cloud-rule{opacity:.30}
+.panel-card,.about-card{border:2px solid rgba(35,32,26,.45);border-radius:0;box-shadow:7px 7px 0 rgba(176,141,87,.18);background:#fffdf8}
+.panel-head{border-left:4px solid var(--p1);font-weight:700;letter-spacing:.22em;padding-left:12px}
+.ut-box iframe{border:2px solid rgba(35,32,26,.35);border-radius:0;background:#fff}
+.tip.small{font-size:12.5px;opacity:.85}
+.msg-form input,.msg-form textarea{border:2px solid rgba(35,32,26,.35);border-radius:0;background:#fff}
+.msg-form button{background:var(--p1);color:#fff;border:0;border-radius:0;font-weight:700;letter-spacing:.22em;padding:14px}
+.msg-form button:hover{background:#7d1f27;transform:none;box-shadow:none}
+.wall .wall-item{border:2px solid rgba(35,32,26,.4);border-radius:0}
+.timeline::before{width:2px;background:rgba(35,32,26,.4)}
+.tl-item::before{background:var(--p1)}
+.to-top{border:2px solid rgba(35,32,26,.8);border-radius:0;background:#fbfaf6;color:var(--fg);font-size:20px}
+.search-box{border:2px solid rgba(35,32,26,.45);border-radius:0}
+/* 深色镜像（保持高对比） */
+html[data-theme="dark"]{--fg:#eae5da;--muted:#b6b0a3}
+html[data-theme="dark"] .site-header,html[data-theme="dark"] .site-header.solid{background:#171821;border-bottom-color:#eae5da;box-shadow:0 2px 0 rgba(200,169,120,.45)}
+html[data-theme="dark"] .post-card{border-color:rgba(234,229,218,.5);background:#1b1d25;box-shadow:7px 7px 0 rgba(200,169,120,.14)}
+html[data-theme="dark"] .post-card .card-img,html[data-theme="dark"] .post-card .card-body{border-color:rgba(234,229,218,.4)}
+html[data-theme="dark"] .cat-badge{background:#eae5da;color:#171821}
+html[data-theme="dark"] .article-body{border-color:rgba(234,229,218,.4);background:#1e2029}
+html[data-theme="dark"] .article-body h2{border-bottom-color:rgba(234,229,218,.4)}
+html[data-theme="dark"] .code,html[data-theme="dark"] .table-wrap{border-color:rgba(234,229,218,.35)}
+html[data-theme="dark"] .sidebar{border-right-color:rgba(234,229,218,.5);box-shadow:10px 0 0 rgba(200,169,120,.10)}
+html[data-theme="dark"] .sidebar-menu a{border-bottom-color:rgba(234,229,218,.14)}
+html[data-theme="dark"] .sidebar-menu a .ch{background:#eae5da;color:#171821}
+html[data-theme="dark"] .site-footer{background:#0f1015;border-top-color:var(--jin);color:#e8e3d8}
+html[data-theme="dark"] .site-footer .copyright,html[data-theme="dark"] .site-footer .foot-stats,html[data-theme="dark"] .site-footer .foot-note{color:#c8c2b4}
+html[data-theme="dark"] .panel-card,html[data-theme="dark"] .about-card{background:#1e2029;border-color:rgba(234,229,218,.4)}
+html[data-theme="dark"] .msg-form input,html[data-theme="dark"] .msg-form textarea{background:#15161d;color:#eae5da}
+html[data-theme="dark"] .to-top{background:#1e2029;color:#eae5da;border-color:rgba(234,229,218,.7)}
+html[data-theme="dark"] .wall .wall-item{border-color:rgba(234,229,218,.35)}
+html[data-theme="dark"] .btn-round{border-color:rgba(234,229,218,.8);color:#eae5da}
+html[data-theme="dark"] .btn-round:hover{background:#d98b8b;border-color:#d98b8b;color:#171821}
+html[data-theme="dark"] .ut-box iframe{border-color:rgba(234,229,218,.3)}
+
+/* ==================== 终版：稳重厚实 · 大气优雅（强覆盖，最后生效）==================== */
+:root{--paper:#f5f2ea;--ink:#23201a;--seal:#9d2933;--gold:#b08d57;--gold-l:#c8a978}
+body{background:var(--paper) !important;background-image:none !important;color:var(--ink) !important;
+  font:17px/2.05 "Songti SC","Noto Serif SC",Georgia,"STSong",serif !important}
+h1,h2,h3,.hero-title,.post-card h2,.header-brand,.panel-head,.sidebar-profile h3{
+  font-family:"STKaiti","Kaiti SC","KaiTi",serif !important;font-weight:700 !important;letter-spacing:.18em}
+.site-header,.site-header.solid{background:var(--ink) !important;color:#f3efe6 !important;
+  border-bottom:2px solid var(--gold) !important;box-shadow:none !important;backdrop-filter:none !important}
+.header-brand,.header-brand span{color:#f3efe6 !important;text-shadow:none !important}
+.header-icons a{color:#f3efe6 !important;background:transparent !important;border:0 !important}
+.header-icons a:hover{background:rgba(255,255,255,.14) !important;color:#fff !important}
+.brand-seal{background:var(--seal) !important;color:#fff !important;border-radius:0 !important;transform:none !important}
+.banner{display:block !important;min-height:auto !important;padding:24px 0 8px !important;background:var(--paper) !important}
+.banner::after{display:none !important}
+.banner-media{position:relative !important;inset:auto !important;height:clamp(150px,26vh,230px) !important;
+  margin:0 16px !important;border:3px solid var(--ink) !important;
+  box-shadow:9px 9px 0 rgba(176,141,87,.30) !important;animation:none !important;z-index:1 !important}
+.banner-inner{padding:20px 16px 6px !important;color:var(--ink) !important}
+.banner-inner h1{font-size:clamp(30px,7.4vw,54px) !important;color:var(--ink) !important;
+  letter-spacing:.30em !important;text-indent:.30em !important;margin:14px 0 6px !important;text-shadow:none !important}
+.typed-wrap{color:#6b6459 !important;letter-spacing:.18em !important}
+.brush-rule{width:150px !important;height:4px !important;background:var(--seal) !important;margin:12px auto 0 !important}
+.cloud-rule{opacity:.32 !important}
+.seal{border-radius:0 !important;background:var(--seal) !important;color:#fff !important;
+  box-shadow:3px 3px 0 rgba(35,32,26,.26) !important;transform:none !important}
+.seal-banner{width:46px !important;height:46px !important;font-size:23px !important;margin:0 auto !important}
+.btn-round{background:var(--ink) !important;color:#f3efe6 !important;border:2px solid var(--ink) !important;
+  border-radius:0 !important;font-weight:700 !important;letter-spacing:.20em !important;padding:12px 24px !important}
+.btn-round:hover{background:var(--seal) !important;border-color:var(--seal) !important;color:#fff !important}
+.banner-social a{color:#5f594e !important}
+.banner-social a:hover{color:var(--seal) !important;background:transparent !important}
+.page-main{padding:22px 16px 46px !important;max-width:1060px !important}
+.page-head h1{letter-spacing:.26em !important;text-indent:.26em !important}
+.cat-strip{gap:8px !important;margin:0 0 16px !important}
+.cat-pill{background:transparent !important;border:2px solid rgba(35,32,26,.55) !important;border-radius:0 !important;
+  color:#3c372d !important;font-weight:700 !important;letter-spacing:.10em !important;padding:6px 14px !important}
+.cat-pill.on{background:var(--seal) !important;border-color:var(--seal) !important;color:#fff !important}
+.post-card{background:#fffdf7 !important;border:3px solid var(--ink) !important;border-radius:0 !important;
+  box-shadow:10px 10px 0 rgba(176,141,87,.30) !important;overflow:hidden !important}
+.post-card:hover{transform:none !important;border-color:var(--seal) !important;
+  box-shadow:10px 10px 0 rgba(157,41,51,.28) !important}
+.post-card .card-img{border-bottom:3px solid var(--ink) !important;height:170px !important;aspect-ratio:auto !important}
+.post-card .card-body{padding:16px 18px 15px !important;border-top:0 !important}
+.post-card h2{font-size:20px !important;line-height:1.5 !important}
+.cat-badge{background:var(--ink) !important;color:#f6f2e9 !important;border-radius:0 !important;
+  font-weight:700 !important;letter-spacing:.14em !important;padding:5px 12px !important}
+.card-meta{color:#6b6459 !important;font-size:13px !important}
+.tag-pill{background:transparent !important;border:2px solid rgba(35,32,26,.42) !important;border-radius:0 !important;
+  color:#4a4438 !important;font-weight:600 !important}
+.tag-pill:hover{border-color:var(--seal) !important;color:var(--seal) !important}
+.post-cover{height:clamp(170px,30vh,280px) !important;border:3px solid var(--ink) !important;border-radius:0 !important;
+  box-shadow:10px 10px 0 rgba(176,141,87,.28) !important;margin:18px 16px 0 !important}
+.post-header{padding:22px 16px 14px !important}
+.post-header h1{font-size:clamp(23px,4.8vw,34px) !important;letter-spacing:.06em !important}
+.post-meta{color:#6b6459 !important}
+.post-wrap{padding:0 16px !important}
+.article-body{background:#fffdf7 !important;border:3px solid var(--ink) !important;border-radius:0 !important;
+  box-shadow:10px 10px 0 rgba(176,141,87,.24) !important;padding:24px 22px !important}
+.article-body h2{border-bottom:2px solid rgba(35,32,26,.55) !important;padding:0 0 8px 16px !important;
+  position:relative !important;font-weight:700 !important}
+.article-body h2::before{content:"" !important;position:absolute !important;left:0 !important;top:5px !important;
+  width:6px !important;height:22px !important;background:var(--seal) !important}
+.article-body h3{font-weight:700 !important}
+.article-body blockquote{background:#f1ece1 !important;border-left:5px solid var(--seal) !important;
+  border-radius:0 !important;color:#4a4438 !important}
+.code{background:#f4f0e6 !important;border:2px solid rgba(35,32,26,.5) !important;border-radius:0 !important}
+.table-wrap{border:2px solid rgba(35,32,26,.5) !important;border-radius:0 !important}
+.article-body th{background:var(--ink) !important;color:#f6f2e9 !important;font-weight:700 !important}
+.sidebar{background:var(--paper) !important;border-right:3px solid var(--ink) !important;
+  box-shadow:12px 0 0 rgba(176,141,87,.18) !important}
+.sidebar-profile{background:var(--ink) !important;padding:26px 20px 20px !important}
+.sidebar-profile h3,.sidebar-profile p{color:#f3efe6 !important}
+.sidebar-menu a{border-bottom:1px solid rgba(35,32,26,.2) !important;color:#2f2b23 !important;
+  font-weight:600 !important;letter-spacing:.16em !important;padding:14px 20px !important}
+.sidebar-menu a:hover,.sidebar-menu a.active{background:#efe9dc !important;border-left:5px solid var(--seal) !important}
+.sidebar-menu a .ch{background:transparent !important;color:var(--seal) !important;
+  border:1px solid rgba(157,41,51,.45) !important;border-radius:0 !important;transform:none !important;font-weight:700 !important}
+.site-footer{background:var(--ink) !important;color:#e9e3d6 !important;
+  border-top:3px solid var(--gold) !important;padding:34px 18px 28px !important;margin-top:34px !important}
+.site-footer .copyright,.site-footer .foot-stats,.site-footer .foot-note{color:#cdc6b6 !important}
+.site-footer a{color:var(--gold-l) !important}
+.foot-rule{background:var(--gold) !important;height:2px !important;width:110px !important}
+.panel-card,.about-card{background:#fffdf7 !important;border:3px solid var(--ink) !important;border-radius:0 !important;
+  box-shadow:10px 10px 0 rgba(176,141,87,.24) !important}
+.panel-head{border-left:5px solid var(--seal) !important;font-weight:700 !important;letter-spacing:.20em !important}
+.ut-box iframe{border:2px solid rgba(35,32,26,.5) !important;border-radius:0 !important}
+.msg-form input,.msg-form textarea{border:2px solid rgba(35,32,26,.45) !important;border-radius:0 !important;background:#fff !important}
+.msg-form button{background:var(--seal) !important;color:#fff !important;border:0 !important;border-radius:0 !important;
+  font-weight:700 !important;letter-spacing:.20em !important;padding:14px !important}
+.wall .wall-item{border:2px solid rgba(35,32,26,.5) !important;border-radius:0 !important;background:#fffdf7 !important}
+.to-top{background:var(--ink) !important;color:#f6f2e9 !important;border:2px solid var(--gold) !important;border-radius:0 !important}
+.search-box{background:#fffdf7 !important;border:3px solid var(--ink) !important;border-radius:0 !important}
+html[data-theme="dark"]{--paper:#15161d;--ink:#eae5da;--seal:#d98b8b;--gold:#c8a978;--gold-l:#d9b98a}
+html[data-theme="dark"] body{background:#15161d !important;color:#eae5da !important}
+html[data-theme="dark"] .site-header,html[data-theme="dark"] .site-header.solid{background:#0f1015 !important}
+html[data-theme="dark"] .banner{background:#15161d !important}
+html[data-theme="dark"] .banner-media{border-color:#eae5da !important;box-shadow:9px 9px 0 rgba(200,169,120,.18) !important}
+html[data-theme="dark"] .banner-inner,html[data-theme="dark"] .banner-inner h1{color:#eae5da !important}
+html[data-theme="dark"] .typed-wrap{color:#b8b2a5 !important}
+html[data-theme="dark"] .btn-round{background:#eae5da !important;color:#15161d !important;border-color:#eae5da !important}
+html[data-theme="dark"] .btn-round:hover{background:var(--seal) !important;border-color:var(--seal) !important;color:#15161d !important}
+html[data-theme="dark"] .cat-pill{border-color:rgba(234,229,218,.5) !important;color:#ded8cb !important}
+html[data-theme="dark"] .cat-pill.on{background:var(--seal) !important;border-color:var(--seal) !important;color:#15161d !important}
+html[data-theme="dark"] .post-card{background:#1c1e26 !important;border-color:#eae5da !important;box-shadow:10px 10px 0 rgba(200,169,120,.16) !important}
+html[data-theme="dark"] .post-card .card-img{border-bottom-color:#eae5da !important}
+html[data-theme="dark"] .cat-badge{background:#eae5da !important;color:#15161d !important}
+html[data-theme="dark"] .tag-pill{border-color:rgba(234,229,218,.42) !important;color:#ded8cb !important}
+html[data-theme="dark"] .article-body{background:#1c1e26 !important;border-color:#eae5da !important}
+html[data-theme="dark"] .article-body h2{border-bottom-color:rgba(234,229,218,.45) !important}
+html[data-theme="dark"] .article-body blockquote{background:#242732 !important;color:#ded9cc !important}
+html[data-theme="dark"] .code{background:#15171f !important;border-color:rgba(234,229,218,.4) !important}
+html[data-theme="dark"] .table-wrap{border-color:rgba(234,229,218,.4) !important}
+html[data-theme="dark"] .article-body th{background:#eae5da !important;color:#15161d !important}
+html[data-theme="dark"] .sidebar{background:#15161d !important;border-right-color:#eae5da !important}
+html[data-theme="dark"] .sidebar-profile{background:#0f1015 !important}
+html[data-theme="dark"] .sidebar-menu a{color:#ded8cb !important;border-bottom-color:rgba(234,229,218,.18) !important}
+html[data-theme="dark"] .sidebar-menu a:hover,html[data-theme="dark"] .sidebar-menu a.active{background:#1c1e26 !important;border-left-color:var(--seal) !important}
+html[data-theme="dark"] .sidebar-menu a .ch{color:var(--seal) !important;border-color:rgba(217,139,139,.5) !important}
+html[data-theme="dark"] .site-footer{background:#0f1015 !important;color:#e9e3d6 !important}
+html[data-theme="dark"] .panel-card,html[data-theme="dark"] .about-card{background:#1c1e26 !important;border-color:#eae5da !important}
+html[data-theme="dark"] .msg-form input,html[data-theme="dark"] .msg-form textarea{background:#15171f !important;color:#eae5da !important}
+html[data-theme="dark"] .to-top{background:#eae5da !important;color:#15161d !important}
+html[data-theme="dark"] .wall .wall-item{background:#1c1e26 !important;border-color:rgba(234,229,218,.45) !important}
+html[data-theme="dark"] .search-box{background:#1c1e26 !important;border-color:#eae5da !important}
+
+/* ==================== 卡片封面：双剑（剑尖相对）==================== */
+.cover-ch{display:none !important}
+.cover-swords{position:absolute;z-index:2;width:74%;height:50%;left:13%;top:25%;
+  background-repeat:no-repeat;background-position:center;background-size:contain;
+  filter:drop-shadow(0 1px 0 rgba(255,255,255,.5))}
+.cover-swords{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20260%2060%27%3E%3Cg%20transform%3D%27translate(0%2C10)%27%3E%3Cg%3E%3Cpath%20d%3D%27M22%2020%20L104%2016.4%20L112%2020%20L104%2023.6%20Z%27%20fill%3D%27%232b2820%27%2F%3E%3Cpath%20d%3D%27M26%2020%20L104%2018.9%20L108.5%2020%20L104%2021.1%20Z%27%20fill%3D%27%23c8a978%27%20fill-opacity%3D%27.55%27%2F%3E%3Crect%20x%3D%2714%27%20y%3D%279.5%27%20width%3D%277%27%20height%3D%2721%27%20rx%3D%271.5%27%20fill%3D%27%23b08d57%27%20stroke%3D%27%232b2820%27%20stroke-width%3D%271%27%2F%3E%3Crect%20x%3D%272.6%27%20y%3D%2716%27%20width%3D%2712%27%20height%3D%278%27%20rx%3D%272%27%20fill%3D%27%232b2820%27%2F%3E%3Cg%20stroke%3D%27%239d2933%27%20stroke-width%3D%271.3%27%3E%3Cpath%20d%3D%27M5.4%2016.5v7M8.8%2016.5v7M12.2%2016.5v7%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%272.6%27%20cy%3D%2720%27%20r%3D%273.3%27%20fill%3D%27%239d2933%27%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate(260%2C10)%20scale(-1%2C1)%27%3E%3Cg%3E%3Cpath%20d%3D%27M22%2020%20L104%2016.4%20L112%2020%20L104%2023.6%20Z%27%20fill%3D%27%232b2820%27%2F%3E%3Cpath%20d%3D%27M26%2020%20L104%2018.9%20L108.5%2020%20L104%2021.1%20Z%27%20fill%3D%27%23c8a978%27%20fill-opacity%3D%27.55%27%2F%3E%3Crect%20x%3D%2714%27%20y%3D%279.5%27%20width%3D%277%27%20height%3D%2721%27%20rx%3D%271.5%27%20fill%3D%27%23b08d57%27%20stroke%3D%27%232b2820%27%20stroke-width%3D%271%27%2F%3E%3Crect%20x%3D%272.6%27%20y%3D%2716%27%20width%3D%2712%27%20height%3D%278%27%20rx%3D%272%27%20fill%3D%27%232b2820%27%2F%3E%3Cg%20stroke%3D%27%239d2933%27%20stroke-width%3D%271.3%27%3E%3Cpath%20d%3D%27M5.4%2016.5v7M8.8%2016.5v7M12.2%2016.5v7%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%272.6%27%20cy%3D%2720%27%20r%3D%273.3%27%20fill%3D%27%239d2933%27%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3Cpath%20d%3D%27M118%2030h24%27%20stroke%3D%27%23b08d57%27%20stroke-width%3D%271.2%27%20stroke-dasharray%3D%273%204%27%20stroke-opacity%3D%27.75%27%2F%3E%3C%2Fsvg%3E")}
+html[data-theme="dark"] .cover-swords{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20260%2060%27%3E%3Cg%20transform%3D%27translate(0%2C10)%27%3E%3Cg%3E%3Cpath%20d%3D%27M22%2020%20L104%2016.4%20L112%2020%20L104%2023.6%20Z%27%20fill%3D%27%23eae5da%27%2F%3E%3Cpath%20d%3D%27M26%2020%20L104%2018.9%20L108.5%2020%20L104%2021.1%20Z%27%20fill%3D%27%238a7350%27%20fill-opacity%3D%27.55%27%2F%3E%3Crect%20x%3D%2714%27%20y%3D%279.5%27%20width%3D%277%27%20height%3D%2721%27%20rx%3D%271.5%27%20fill%3D%27%23c8a978%27%20stroke%3D%27%23eae5da%27%20stroke-width%3D%271%27%2F%3E%3Crect%20x%3D%272.6%27%20y%3D%2716%27%20width%3D%2712%27%20height%3D%278%27%20rx%3D%272%27%20fill%3D%27%23eae5da%27%2F%3E%3Cg%20stroke%3D%27%23d98b8b%27%20stroke-width%3D%271.3%27%3E%3Cpath%20d%3D%27M5.4%2016.5v7M8.8%2016.5v7M12.2%2016.5v7%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%272.6%27%20cy%3D%2720%27%20r%3D%273.3%27%20fill%3D%27%23d98b8b%27%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate(260%2C10)%20scale(-1%2C1)%27%3E%3Cg%3E%3Cpath%20d%3D%27M22%2020%20L104%2016.4%20L112%2020%20L104%2023.6%20Z%27%20fill%3D%27%23eae5da%27%2F%3E%3Cpath%20d%3D%27M26%2020%20L104%2018.9%20L108.5%2020%20L104%2021.1%20Z%27%20fill%3D%27%238a7350%27%20fill-opacity%3D%27.55%27%2F%3E%3Crect%20x%3D%2714%27%20y%3D%279.5%27%20width%3D%277%27%20height%3D%2721%27%20rx%3D%271.5%27%20fill%3D%27%23c8a978%27%20stroke%3D%27%23eae5da%27%20stroke-width%3D%271%27%2F%3E%3Crect%20x%3D%272.6%27%20y%3D%2716%27%20width%3D%2712%27%20height%3D%278%27%20rx%3D%272%27%20fill%3D%27%23eae5da%27%2F%3E%3Cg%20stroke%3D%27%23d98b8b%27%20stroke-width%3D%271.3%27%3E%3Cpath%20d%3D%27M5.4%2016.5v7M8.8%2016.5v7M12.2%2016.5v7%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%272.6%27%20cy%3D%2720%27%20r%3D%273.3%27%20fill%3D%27%23d98b8b%27%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3Cpath%20d%3D%27M118%2030h24%27%20stroke%3D%27%23c8a978%27%20stroke-width%3D%271.2%27%20stroke-dasharray%3D%273%204%27%20stroke-opacity%3D%27.75%27%2F%3E%3C%2Fsvg%3E")}
+@media (max-width:420px){.cover-swords{width:82%;height:46%;left:9%;top:27%}}
+
+/* ==================== 顶栏配色统一（品牌 / 印章 / 图标同色阶）==================== */
+.site-header,.site-header.solid{background:#1c1a16 !important}
+html[data-theme="dark"] .site-header,html[data-theme="dark"] .site-header.solid{background:#0e1014 !important}
+.header-brand,.header-brand span{color:#ffffff !important}
+.brand-seal{background:#9d2933 !important;color:#ffffff !important;border:1px solid rgba(255,255,255,.35) !important;
+  font-family:"STKaiti","KaiTi",Georgia,serif !important;font-size:14px !important;letter-spacing:0 !important}
+.header-icons a{color:#f2eee6 !important}
+.header-icons a:hover{color:#ffffff !important;background:rgba(255,255,255,.14) !important}
+html[data-theme="dark"] .brand-seal{background:#d98b8b !important;color:#14161a !important}
+/* 侧栏顶部同名色阶 */
+.sidebar-profile{background:#1c1a16 !important}
+html[data-theme="dark"] .sidebar-profile{background:#0e1014 !important}
+.sidebar-profile h3{color:#ffffff !important}
+.sidebar-profile p{color:#cfc8ba !important}
+</style>
+<script>window.__POSTS=[];</script>
 </head>
-<body>
+<body data-depth="1">
 <div class="progress" id="progress"></div>
-<div class="aurora"></div>
-<div class="stars"></div>
-<canvas id="dream-canvas"></canvas>
-<header class="nav glass">
-  <a class="brand" href="../"><span>Felix</span></a>
-  <nav>
-    <a href="../">首页</a>
-    <a href="../archive.html">归档</a>
-    <a href="../about.html">关于</a>
-    <button id="theme-btn" class="icon-btn" aria-label="切换主题">🌙</button>
+<canvas id="snow-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1"></canvas>
+<canvas id="dream-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:60"></canvas>
+<header class="site-header" id="site-header">
+  <a class="menu-btn" id="menu-btn" href="javascript:;" aria-label="菜单"><i></i><i></i><i></i></a>
+  <a class="header-brand" href="../"><span class="brand-seal">Z</span>ZY驿站</a>
+  <nav class="header-icons">
+    <a href="javascript:;" id="search-btn" aria-label="检索"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></a>
+    <a href="javascript:;" id="theme-btn" aria-label="切换昼夜">墨</a>
   </nav>
 </header>
-<main><article class="post">
-<a class="back" href="../">← 返回首页</a>
-<h1>红果短剧（红果免费短剧 / 果短剧）去更新 —— 完整解剖文档（终版）</h1>
-<p class="meta" style="color:var(--muted)">2026-09-19 · 67 分钟 · 13 段代码 · 37 张表格</p>
+<div class="sidebar-mask" id="sidebar-mask"></div>
+<aside class="sidebar" id="sidebar">
+  <a href="javascript:;" class="sidebar-close" id="sidebar-close" aria-label="收起">×</a>
+  <div class="sidebar-profile">
+    <div class="seal">Z</div>
+    <h3>ZY驿站</h3>
+    <p>代码 · 逆向 · 一直在路上</p>
+    <div class="cloud-rule"></div>
+  </div>
+  <nav class="sidebar-menu">
+    <a href="../"><i class="ch">首</i><span class="lb">首页</span></a>
+    <a href="../tags.html"><i class="ch">签</i><span class="lb">标签</span></a>
+    <a href="../categories.html"><i class="ch">类</i><span class="lb">分类</span></a>
+    <a href="../archive.html"><i class="ch">档</i><span class="lb">归档</span></a>
+    <a href="../about.html"><i class="ch">关</i><span class="lb">关于</span></a>
+    <a href="../contact.html"><i class="ch">言</i><span class="lb">留言板</span></a>
+    <a href="../friends.html"><i class="ch">链</i><span class="lb">友情链接</span></a>
+    <a href="https://github.com/JM-919" target="_blank" rel="noopener"><i class="ch">码</i><span class="lb">GitHub</span></a>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="cloud-rule"></div>
+  </div>
+</aside>
+<main>
+  <div class="post-cover" style="background-image:url(data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%201200%20600%27%3E%3Crect%20width%3D%271200%27%20height%3D%27600%27%20fill%3D%27%23f7f4ec%27%2F%3E%3Cpath%20d%3D%27M0%20470%20C%20180%20420%20320%20460%20470%20424%20C%20620%20388%20780%20448%20940%20420%20C%201060%20400%201140%20424%201200%20412%20L1200%20600%20L0%20600%20Z%27%20fill%3D%27%238fa3a6%27%20fill-opacity%3D%27.14%27%2F%3E%3Crect%20x%3D%27376%27%20y%3D%2776%27%20width%3D%27448%27%20height%3D%27448%27%20fill%3D%27%23e8d9b6%27%20stroke%3D%27%23b08d57%27%20stroke-width%3D%273%27%2F%3E%3Cpath%20d%3D%27M402%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%272.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20102H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%272.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M424%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20124H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M446%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20146H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M468%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20168H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M490%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20190H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M512%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20212H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M534%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20234H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M556%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20256H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M578%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20278H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M600%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.9%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20300H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.9%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M622%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20322H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M644%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20344H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M666%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20366H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M688%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20388H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M710%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20410H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M732%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20432H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M754%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20454H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M776%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20476H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M798%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%272.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20498H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%272.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Ccircle%20cx%3D%27468%27%20cy%3D%27168%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27468%27%20cy%3D%27300%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27468%27%20cy%3D%27432%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27168%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27300%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27432%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27732%27%20cy%3D%27168%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27732%27%20cy%3D%27300%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27732%27%20cy%3D%27432%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27300%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27597%27%20cy%3D%27296.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27622%27%20cy%3D%27300%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27619%27%20cy%3D%27296.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27322%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27597%27%20cy%3D%27318.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27622%27%20cy%3D%27322%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27619%27%20cy%3D%27318.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27578%27%20cy%3D%27300%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27575%27%20cy%3D%27296.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27644%27%20cy%3D%27322%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27641%27%20cy%3D%27318.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27278%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27597%27%20cy%3D%27274.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27622%27%20cy%3D%27344%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27619%27%20cy%3D%27340.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27578%27%20cy%3D%27278%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27575%27%20cy%3D%27274.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27644%27%20cy%3D%27344%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27641%27%20cy%3D%27340.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27556%27%20cy%3D%27300%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27553%27%20cy%3D%27296.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27666%27%20cy%3D%27322%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27663%27%20cy%3D%27318.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27256%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27597%27%20cy%3D%27252.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27622%27%20cy%3D%27366%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27619%27%20cy%3D%27362.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27534%27%20cy%3D%27234%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27531%27%20cy%3D%27230.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27666%27%20cy%3D%27366%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27663%27%20cy%3D%27362.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27468%27%20cy%3D%27168%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27465%27%20cy%3D%27164.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Crect%20x%3D%271080%27%20y%3D%27470%27%20width%3D%2752%27%20height%3D%2752%27%20fill%3D%27%239d2933%27%20opacity%3D%27.9%27%2F%3E%3Crect%20x%3D%271084%27%20y%3D%27474%27%20width%3D%2744%27%20height%3D%2744%27%20fill%3D%27none%27%20stroke%3D%27%23f8f5ef%27%20stroke-opacity%3D%27.5%27%2F%3E%3C%2Fsvg%3E)"></div>
+  <div class="post-header">
+    <h1>红果短剧（红果免费短剧 / 果短剧）去更新 —— 完整解剖文档（终版）</h1>
+    <div class="post-meta">
+      <span>作者 ZY</span><i>·</i>
+      <span>2026-09-19</span><i>·</i>
+      <span>补丁改造</span><i>·</i>
+      <span>31988 字</span><i>·</i>
+      <span>约 67 分钟</span>
+    </div>
+    <div class="post-tags"><a class="tag-pill" href="../index.html?tag=%E8%A1%A5%E4%B8%81%E6%94%B9%E9%80%A0">#补丁改造</a><a class="tag-pill" href="../index.html?tag=%E9%80%86%E5%90%91%E5%88%86%E6%9E%90">#逆向分析</a><a class="tag-pill" href="../index.html?tag=Android">#Android</a></div>
+  </div>
+  <div class="post-wrap">
+    <article class="article-body">
 <blockquote>成品：<code>果短剧_7.3.7.32_去更新.apk</code>、<code>红果免费短剧_7.3.7.33_去更新.apk</code><br><strong>本版已真机实测</strong>：7.3.7.32 成品装在 PTP-AN70 上，连续 2 轮冷启 + 进设置页，<strong>升级弹窗 0 出现</strong>。<br>本文档取代此前所有版本（v1/v2）。</blockquote>
 <hr>
 <h2>0. 一句话结论</h2>
-<p>这个魔改包里有 <strong>三套彼此独立</strong> 的"更新/升级"通道并行工作，前两轮各只打掉一套，所以弹窗一直在。&lt;br&gt;本轮把 <strong>全部 4 个注入钩子 + 字节官方升级链路</strong> 一次性清干净，并在真机验证通过。</p>
+<p>这个魔改包里有 <strong>三套彼此独立</strong> 的"更新/升级"通道并行工作，前两轮各只打掉一套，所以弹窗一直在。<br>本轮把 <strong>全部 4 个注入钩子 + 字节官方升级链路</strong> 一次性清干净，并在真机验证通过。</p>
 <hr>
 <h2>1. 三条并行通道（完整清单）</h2>
 <div class="table-wrap"><table><thead><tr><th>#</th><th>通道</th><th>位置</th><th>触发点</th><th>本轮处理</th></tr></thead><tbody><tr><td><strong>A</strong></td><td>字节官方 SSUpdate 升级</td><td><code>classes3</code>（应用层 9 处）+ <code>classes24</code>（<code>com.ss.android.update</code> 8 处）</td><td><code>o0.run()</code> / <code>MainFragmentActivity</code> / 「我的」页</td><td>17 处方法体补丁</td></tr><tr><td><strong>B</strong></td><td>SecCore <strong>native</strong> 注入更新弹窗</td><td><code>classes24</code>：34 个伪装 <code>org.checkerframework.checker.signature.query.security.*</code> 类 + <code>sgcore0.*</code> + <code>lib/arm64-v8a/libseccore.so</code></td><td><code>MainFragmentActivity.onStart()→а.A(...)</code>；<code>AbsActivity.onCreate()→̐.̎(Activity)</code></td><td>摘 2 钩子 + <strong>删除整个载荷</strong> + 删 so</td></tr><tr><td><strong>C</strong></td><td><strong>纯 Java 魔改更新器</strong>（本轮新发现，就是它还在弹）</td><td><code>classes24</code>：<code>com/*</code> 载荷（1082 个类，含内嵌混淆 Gson 与 socket 客户端）</td><td><strong><code>AbsActivity.onStart()→com.o.Call(Activity)</code></strong>（7.3.7.33 里是 <code>com.q</code>）</td><td>摘钩子 + 入口方法置空</td></tr><tr><td><strong>D</strong></td><td>Tinker patch 进程初始化钩子</td><td><code>classes14</code>：<code>com.tencent.tinker.loader.MuteApplication</code></td><td><code>onCreate()→com.b.a.init()</code>（仅 7.3.7.32 版有）</td><td>摘除</td></tr></tbody></table></div>
@@ -69,7 +1147,7 @@
 <hr>
 <h2>4. 工艺与一个必须知道的坑</h2>
 <h3>4.1 <code>/sdcard</code> 是<strong>大小写不敏感</strong>文件系统</h3>
-<p>实测：在工作区 <code>/storage/emulated/0/...</code> 下同时创建 <code>CaseTest.txt</code> 与 <code>casetest.txt</code> → <strong>合并成 1 个文件</strong>。&lt;br&gt;而魔改载荷里有大量 <code>Lcom/aA;</code> 与 <code>Lcom/aa;</code>、<code>Lcom/o;</code> 与 <code>Lcom/O;</code> 这类<strong>仅大小写不同</strong>的类 →&lt;br&gt;在 <code>/sdcard</code> 上反编译会<strong>互相覆盖、静默丢类</strong>。</p>
+<p>实测：在工作区 <code>/storage/emulated/0/...</code> 下同时创建 <code>CaseTest.txt</code> 与 <code>casetest.txt</code> → <strong>合并成 1 个文件</strong>。<br>而魔改载荷里有大量 <code>Lcom/aA;</code> 与 <code>Lcom/aa;</code>、<code>Lcom/o;</code> 与 <code>Lcom/O;</code> 这类<strong>仅大小写不同</strong>的类 →<br>在 <code>/sdcard</code> 上反编译会<strong>互相覆盖、静默丢类</strong>。</p>
 <p><strong>解决</strong>：本轮所有反编译 / 回编译全部改在 <strong>Termux HOME（<code>/data/data/com.dsharnessmobile.shell/files/home</code>，ext4，大小写敏感）</strong> 下进行，并逐个 dex 做类集合校验。</p>
 <h3>4.2 流水线</h3>
 <figure class="code"><figcaption>text</figcaption><pre><code>展开 classes3 / classes14 / classes22 / classes24（只改这 <span class="n">4</span> 个 dex）
@@ -129,12 +1207,12 @@ unzip -o 果短剧_7.<span class="n">3.7</span>.<span class="n">32</span>.apk <s
 <p><strong>以后任何新版本，一条命令搞定，不用改脚本：</strong></p>
 <figure class="code lang-sh"><figcaption>sh</figcaption><pre><code><span class="k">cd</span> 红果去更新工具包
 sh patch_kit.sh ../新版本.apk          <span class="c"># 输出到同目录 &lt;名称&gt;_去更新.apk</span></code></pre></figure>
-<p>工具包自动完成 8 步：展开 dex → 建类索引 → <strong>只反编译需要改的 dex</strong> → 17 处官方链路补丁（缺方法自动 SKIP）&lt;br&gt;→ <strong>自动定位并摘除全部魔改注入钩子</strong>（靠"载荷类特征 + 宿主引用扫描"，不写死类名）→ 魔改更新入口 <code>Call(Activity)</code> 置空&lt;br&gt;→ 删除注入载荷与 <code>lib*secore.so</code> → 逐 dex 类集合校验 → 外科式回填 + v1/v2/v3 重签名，并输出 <code>reports/&lt;名称&gt;_report.txt</code>。</p>
+<p>工具包自动完成 8 步：展开 dex → 建类索引 → <strong>只反编译需要改的 dex</strong> → 17 处官方链路补丁（缺方法自动 SKIP）<br>→ <strong>自动定位并摘除全部魔改注入钩子</strong>（靠"载荷类特征 + 宿主引用扫描"，不写死类名）→ 魔改更新入口 <code>Call(Activity)</code> 置空<br>→ 删除注入载荷与 <code>lib*secore.so</code> → 逐 dex 类集合校验 → 外科式回填 + v1/v2/v3 重签名，并输出 <code>reports/&lt;名称&gt;_report.txt</code>。</p>
 <p><strong>版本差异速查（工具包会自动适配）</strong></p>
 <div class="table-wrap"><table><thead><tr><th>版本</th><th>官方链路 dex</th><th>SecCore 载荷 dex</th><th>魔改更新钩子</th><th>Tinker 钩子</th></tr></thead><tbody><tr><td>7.3.6</td><td>classes3 / classes23</td><td>classes23</td><td><code>AbsActivity.onStart → com/q.Call</code></td><td>无</td></tr><tr><td>7.3.7.32</td><td>classes3 / classes24</td><td>classes24</td><td><code>AbsActivity.onStart → com/o.Call</code></td><td><code>MuteApplication.onCreate → com.b.a.init()</code></td></tr><tr><td>7.3.7.33</td><td>classes3 / classes24</td><td>classes24</td><td><code>AbsActivity.onStart → com/q.Call</code></td><td>无</td></tr></tbody></table></div>
 <blockquote>工具包内含 <code>baksmali/smali 2.5.2</code>、<code>uber-apk-signer 1.3.0</code> 与签名密钥，<br>全部作业固定在 <code>$HOME/rhkit_work</code>（大小写敏感），避免 <code>/sdcard</code> 丢类。</blockquote>
 <h3>9.3 最终真机验证记录</h3>
-<div class="table-wrap"><table><thead><tr><th>版本</th><th>装机</th><th>验证</th><th>结果</th></tr></thead><tbody><tr><td>7.3.7.32</td><td>✅（增量覆盖，数据保留）</td><td>2 轮冷启 + 设置页</td><td><strong>0 弹窗</strong></td></tr><tr><td>7.3.7.33</td><td>✅（增量覆盖，数据保留，当前手机上就是这版）</td><td>3 轮冷启 + 设置页</td><td><strong>0 弹窗</strong>（用 <code>alertTitle</code>+<code>button1</code>+文案精确判定）</td></tr><tr><td>7.3.6</td><td>未装机（7.3.7.33→7.3.6 属大跨度降级，怕动你的数据）</td><td>静态校验（类集合 + 签名）</td><td>待你决定是否装</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>版本</th><th>装机</th><th>验证</th><th>结果</th></tr></thead><tbody><tr><td>7.3.7.32</td><td>✓（增量覆盖，数据保留）</td><td>2 轮冷启 + 设置页</td><td><strong>0 弹窗</strong></td></tr><tr><td>7.3.7.33</td><td>✓（增量覆盖，数据保留，当前手机上就是这版）</td><td>3 轮冷启 + 设置页</td><td><strong>0 弹窗</strong>（用 <code>alertTitle</code>+<code>button1</code>+文案精确判定）</td></tr><tr><td>7.3.6</td><td>未装机（7.3.7.33→7.3.6 属大跨度降级，怕动你的数据）</td><td>静态校验（类集合 + 签名）</td><td>待你决定是否装</td></tr></tbody></table></div>
 <h3>9.4 交付清单（最终）</h3>
 <div class="table-wrap"><table><thead><tr><th>文件</th><th>说明</th></tr></thead><tbody><tr><td><code>果短剧_Ver.7.3.6_去更新.apk</code></td><td>7.3.6 成品（静态校验通过）</td></tr><tr><td><code>果短剧_7.3.7.32_去更新.apk</code></td><td>7.3.7.32 成品（<strong>真机已验证</strong>）</td></tr><tr><td><code>红果免费短剧_7.3.7.33_去更新.apk</code></td><td>7.3.7.33 成品（<strong>真机已验证</strong>，当前装在手机上）</td></tr><tr><td><code>红果去更新工具包/</code></td><td><strong>一键工具包</strong>（脚本 + 工具 + 密钥 + README + 报告），以后升级直接复用</td></tr><tr><td><code>红果短剧_去更新_完整解剖文档.md</code></td><td>本文档</td></tr><tr><td><code>noupdate.keystore</code></td><td>签名密钥（工具包内也有一份，alias <code>noupdate</code> / 口令 <code>123456</code>）★长期保存</td></tr><tr><td><code>果短剧_Ver.7.3.6.apk</code> / <code>果短剧_7.3.7.32.apk</code> / <code>红果免费短剧_7.3.7.33.apk</code></td><td>原始样本（保留未动）</td></tr></tbody></table></div>
 <hr>
@@ -143,7 +1221,7 @@ sh patch_kit.sh ../新版本.apk          <span class="c"># 输出到同目录 &
 <h3>10.1 各版本 versionCode</h3>
 <div class="table-wrap"><table><thead><tr><th>安装包</th><th>versionName</th><th>versionCode</th></tr></thead><tbody><tr><td><code>果短剧_Ver.7.3.6_去更新.apk</code></td><td>7.3.6.32</td><td><strong>73632</strong></td></tr><tr><td><code>果短剧_7.3.7.32_去更新.apk</code></td><td>7.3.7.32</td><td><strong>73732</strong></td></tr><tr><td><code>红果免费短剧_7.3.7.33_去更新.apk</code></td><td>7.3.7.33</td><td><strong>73733</strong></td></tr></tbody></table></div>
 <h3>10.2 实测结果</h3>
-<div class="table-wrap"><table><thead><tr><th>场景</th><th>命令</th><th>结果</th></tr></thead><tbody><tr><td>同签名<strong>升级</strong>（73732 → 73733）</td><td><code>adb install -r -d &lt;apk&gt;</code></td><td>✅ Success，<strong>数据保留</strong></td></tr><tr><td><strong>降级</strong>（73733 → 73632）</td><td><code>adb install -r &lt;apk&gt;</code></td><td>❌ <code>Failure [INSTALL_FAILED_VERSION_DOWNGRADE: Downgrade detected on app uninstalled with DELETE_KEEP_DATA: Update version code 73632 is older than current 73733]</code></td></tr><tr><td>降级（加了 <code>-d</code>）</td><td><code>adb install -r -d &lt;apk&gt;</code></td><td>❌ <strong>同样失败</strong>（<code>-d</code> 只对 <strong>debuggable</strong> 包生效；官方包/魔改包都不是 debuggable）</td></tr><tr><td>降级（推包走 pm）</td><td><code>adb push x.apk /data/local/tmp/</code> + <code>adb shell pm install -r -d /data/local/tmp/x.apk</code></td><td>✅ Success（<strong>前提是旧版已卸载</strong>）</td></tr><tr><td>卸载</td><td><code>adb uninstall com.phoenix.read</code></td><td>✅ Success，<strong>App 数据与登录态一并清除</strong></td></tr><tr><td>全新安装</td><td><code>adb install -r &lt;apk&gt;</code></td><td>✅ Success</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>场景</th><th>命令</th><th>结果</th></tr></thead><tbody><tr><td>同签名<strong>升级</strong>（73732 → 73733）</td><td><code>adb install -r -d &lt;apk&gt;</code></td><td>✓ Success，<strong>数据保留</strong></td></tr><tr><td><strong>降级</strong>（73733 → 73632）</td><td><code>adb install -r &lt;apk&gt;</code></td><td>✗ <code>Failure [INSTALL_FAILED_VERSION_DOWNGRADE: Downgrade detected on app uninstalled with DELETE_KEEP_DATA: Update version code 73632 is older than current 73733]</code></td></tr><tr><td>降级（加了 <code>-d</code>）</td><td><code>adb install -r -d &lt;apk&gt;</code></td><td>✗ <strong>同样失败</strong>（<code>-d</code> 只对 <strong>debuggable</strong> 包生效；官方包/魔改包都不是 debuggable）</td></tr><tr><td>降级（推包走 pm）</td><td><code>adb push x.apk /data/local/tmp/</code> + <code>adb shell pm install -r -d /data/local/tmp/x.apk</code></td><td>✓ Success（<strong>前提是旧版已卸载</strong>）</td></tr><tr><td>卸载</td><td><code>adb uninstall com.phoenix.read</code></td><td>✓ Success，<strong>App 数据与登录态一并清除</strong></td></tr><tr><td>全新安装</td><td><code>adb install -r &lt;apk&gt;</code></td><td>✓ Success</td></tr></tbody></table></div>
 <h3>10.3 正确姿势（复制即用）</h3>
 <p><strong>A. 升版本（保留数据）</strong></p>
 <figure class="code lang-sh"><figcaption>sh</figcaption><pre><code><span class="k">adb</span> connect &lt;IP:端口&gt;
@@ -155,7 +1233,7 @@ sh patch_kit.sh ../新版本.apk          <span class="c"># 输出到同目录 &
 <span class="k">adb</span> push 果短剧_Ver.<span class="n">7.3</span>.6_去更新.apk /data/<span class="k">local</span>/tmp/x.apk
 <span class="k">adb</span> shell pm install -r -d /data/<span class="k">local</span>/tmp/x.apk
 <span class="k">adb</span> shell <span class="k">rm</span> -f /data/<span class="k">local</span>/tmp/x.apk</code></pre></figure>
-<p><strong>C. 用 MT管理器 装为什么会失败</strong>&lt;br&gt;MT管理器 走的是标准 <code>PackageInstaller</code>，没有"允许降级"能力，所以从 7.3.7.33 往 7.3.6 装必然报&lt;br&gt;「<strong>系统已存在较新版本，此安装程式套件无法安装</strong>」。&lt;br&gt;先在 MT管理器里卸载旧版再装即可（同样会清数据）；或者干脆用上面的 B。</p>
+<p><strong>C. 用 MT管理器 装为什么会失败</strong><br>MT管理器 走的是标准 <code>PackageInstaller</code>，没有"允许降级"能力，所以从 7.3.7.33 往 7.3.6 装必然报<br>「<strong>系统已存在较新版本，此安装程式套件无法安装</strong>」。<br>先在 MT管理器里卸载旧版再装即可（同样会清数据）；或者干脆用上面的 B。</p>
 <p><strong>D. 装完自检</strong></p>
 <figure class="code lang-sh"><figcaption>sh</figcaption><pre><code><span class="k">adb</span> shell am force-stop com.phoenix.read
 <span class="k">adb</span> shell am start -n com.phoenix.read/com.dragon.read.pages.splash.SplashActivity
@@ -163,19 +1241,19 @@ sleep <span class="n">14</span>
 <span class="k">adb</span> shell <span class="s">"dumpsys window | grep mCurrentFocus"</span>          <span class="c"># 必须先确认前台是 com.phoenix.read</span>
 <span class="k">adb</span> shell uiautomator dump /sdcard/u.xml &amp;&amp; <span class="k">adb</span> pull /sdcard/u.xml
 <span class="k">grep</span> -c <span class="s">"&gt;&gt;立即更新&lt;&lt;\|会员纯净\|纯净修复版"</span> u.xml        <span class="c"># 期望 0</span></code></pre></figure>
-<blockquote>⚠️ <strong>测试陷阱（我踩过）</strong>：<code>uiautomator dump</code> 抓的是<strong>当前最前台窗口</strong>。<br>如果 App 不在前台（比如你正在看聊天界面），dump 出来的是别的 App，<br>而聊天内容里若出现 "会员纯净 / alertTitle" 等字样就会<strong>误报成弹窗</strong>。<br><strong>必须先 <code>dumpsys window | grep mCurrentFocus</code> 确认前台是 <code>com.phoenix.read</code> 再 dump。</strong></blockquote>
+<blockquote>! <strong>测试陷阱（我踩过）</strong>：<code>uiautomator dump</code> 抓的是<strong>当前最前台窗口</strong>。<br>如果 App 不在前台（比如你正在看聊天界面），dump 出来的是别的 App，<br>而聊天内容里若出现 "会员纯净 / alertTitle" 等字样就会<strong>误报成弹窗</strong>。<br><strong>必须先 <code>dumpsys window | grep mCurrentFocus</code> 确认前台是 <code>com.phoenix.read</code> 再 dump。</strong></blockquote>
 <h3>10.4 本轮实机结论</h3>
-<div class="table-wrap"><table><thead><tr><th>版本</th><th>装机</th><th>验证</th><th>结果</th></tr></thead><tbody><tr><td>7.3.7.32</td><td>✅</td><td>2 轮冷启 + 设置页</td><td>无弹窗</td></tr><tr><td>7.3.7.33</td><td>✅</td><td>3 轮冷启 + 设置页</td><td>无弹窗</td></tr><tr><td><strong>7.3.6</strong></td><td>✅ <strong>本机现已装上（versionCode 73632）</strong></td><td>4 轮冷启，逐轮确认前台为红果后 dump</td><td><strong>无 AlertDialog、无弹窗特征</strong>；截图显示搜索页功能正常</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>版本</th><th>装机</th><th>验证</th><th>结果</th></tr></thead><tbody><tr><td>7.3.7.32</td><td>✓</td><td>2 轮冷启 + 设置页</td><td>无弹窗</td></tr><tr><td>7.3.7.33</td><td>✓</td><td>3 轮冷启 + 设置页</td><td>无弹窗</td></tr><tr><td><strong>7.3.6</strong></td><td>✓ <strong>本机现已装上（versionCode 73632）</strong></td><td>4 轮冷启，逐轮确认前台为红果后 dump</td><td><strong>无 AlertDialog、无弹窗特征</strong>；截图显示搜索页功能正常</td></tr></tbody></table></div>
 <blockquote>7.3.6 是<strong>全新数据</strong>下验证的（旧版已被卸载）—— 即"没有任何历史缓存"的最干净条件，<br>这反过来证明：去掉钩子后，更新器<strong>连一次请求都不会发</strong>。</blockquote>
 <hr>
 <h2>11. 【自查修正】版本号盖章策略 —— 修掉我自己的打包缺陷</h2>
 <h3>11.1 我错在哪</h3>
-<p>前几轮我<strong>直接沿用了原包的 versionCode</strong>（7.3.6=73632、7.3.7.32=73732、7.3.7.33=73733）就打了包。&lt;br&gt;后果是我一开始就该预料到的：<strong>我自己的包之间互相安装也会撞降级墙</strong> ——&lt;br&gt;在 7.3.7.33 上装 7.3.6 必然报&lt;br&gt;<code>INSTALL_FAILED_VERSION_DOWNGRADE: Update version code 73632 is older than current 73733</code>，&lt;br&gt;逼得你只能卸载（清数据）再装。这是<strong>打包策略问题，不是 Android 的限制</strong>。</p>
+<p>前几轮我<strong>直接沿用了原包的 versionCode</strong>（7.3.6=73632、7.3.7.32=73732、7.3.7.33=73733）就打了包。<br>后果是我一开始就该预料到的：<strong>我自己的包之间互相安装也会撞降级墙</strong> ——<br>在 7.3.7.33 上装 7.3.6 必然报<br><code>INSTALL_FAILED_VERSION_DOWNGRADE: Update version code 73632 is older than current 73733</code>，<br>逼得你只能卸载（清数据）再装。这是<strong>打包策略问题，不是 Android 的限制</strong>。</p>
 <h3>11.2 修正方案：统一盖 high 且相同的 versionCode</h3>
 <div class="table-wrap"><table><thead><tr><th>项</th><th>值</th></tr></thead><tbody><tr><td>改法</td><td>改写 <code>AndroidManifest.xml</code>（binary AXML）里 <code>&lt;manifest&gt;</code> 的 <code>versionCode</code></td></tr><tr><td>盖章值</td><td><strong>100000000</strong>（三个包<strong>完全相同</strong>）</td></tr><tr><td>为什么相同</td><td>Android 只在 <code>新 &lt; 旧</code> 时才判降级；<strong>相等 = 普通覆盖</strong>，所以任何一个都能覆盖另一个，双向自由切换</td></tr><tr><td>为什么这么高</td><td>远高于任何官方版本号 → 用 MT管理器/系统安装器装也不会被判"较新版本已存在"；同时也让 App 自认为比官方新，天然压住官方升级判断</td></tr><tr><td>附带好处</td><td><code>versionName</code> <strong>不动</strong>（安装器仍显示 7.3.6.32 / 7.3.7.33），用户看到的版本没错乱</td></tr></tbody></table></div>
 <p>工具包已固化：<code>patch_kit.sh</code> 第 8 步自动盖章（可用 <code>STAMP=xxx sh patch_kit.sh ...</code> 覆盖）。</p>
 <h3>11.3 实机验证（PTP-AN70）</h3>
-<div class="table-wrap"><table><thead><tr><th>步骤</th><th>命令</th><th>结果</th></tr></thead><tbody><tr><td>起始</td><td>已装 7.3.6（73632）</td><td>—</td></tr><tr><td>① 装盖章版 7.3.7.33</td><td><code>adb install -r &lt;apk&gt;</code></td><td>✅ Success → versionCode 100000000 / 7.3.7.33</td></tr><tr><td>② <strong>降级方向</strong>：把 7.3.6 装到 7.3.7.33 上</td><td><code>adb install -r &lt;apk&gt;</code></td><td>⚠️ <code>INSTALL_FAILED_ABORTED: User rejected permissions</code>（<strong>不再是降级错误</strong>，是 Honor 安装器弹了确认框没人点）</td></tr><tr><td>②′ 同一步改用 pm 路径</td><td><code>adb push x.apk /data/local/tmp/</code> + <code>adb shell pm install -r -d /data/local/tmp/x.apk</code></td><td>✅ <strong>Success → versionName 7.3.6.32</strong></td></tr><tr><td>③ 再反向装回 7.3.7.33</td><td>同上 pm 路径</td><td>✅ <strong>Success → versionName 7.3.7.33</strong></td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>步骤</th><th>命令</th><th>结果</th></tr></thead><tbody><tr><td>起始</td><td>已装 7.3.6（73632）</td><td>—</td></tr><tr><td>① 装盖章版 7.3.7.33</td><td><code>adb install -r &lt;apk&gt;</code></td><td>✓ Success → versionCode 100000000 / 7.3.7.33</td></tr><tr><td>② <strong>降级方向</strong>：把 7.3.6 装到 7.3.7.33 上</td><td><code>adb install -r &lt;apk&gt;</code></td><td>! <code>INSTALL_FAILED_ABORTED: User rejected permissions</code>（<strong>不再是降级错误</strong>，是 Honor 安装器弹了确认框没人点）</td></tr><tr><td>②′ 同一步改用 pm 路径</td><td><code>adb push x.apk /data/local/tmp/</code> + <code>adb shell pm install -r -d /data/local/tmp/x.apk</code></td><td>✓ <strong>Success → versionName 7.3.6.32</strong></td></tr><tr><td>③ 再反向装回 7.3.7.33</td><td>同上 pm 路径</td><td>✓ <strong>Success → versionName 7.3.7.33</strong></td></tr></tbody></table></div>
 <p><strong>结论：三个包现在可以任意互相覆盖，全程不卸载、不清数据、登录态保留。</strong></p>
 <h3>11.4 装机命令（最终版，复制即用）</h3>
 <figure class="code lang-sh"><figcaption>sh</figcaption><pre><code><span class="k">adb</span> connect &lt;IP:端口&gt;
@@ -196,7 +1274,7 @@ sleep <span class="n">14</span>
 <div class="table-wrap"><table><thead><tr><th>证据</th><th>内容</th></tr></thead><tbody><tr><td>文案位置</td><td><code>classes6.dex</code>（字面量）+ <code>resources.arsc</code>（完整句「当前版本不安全，请到正规应用市场下载」）</td></tr><tr><td><strong>原包 vs 我的成品</strong></td><td><strong>两处完全一致</strong> → 这条提示不是我引入的</td></tr><tr><td>触发代码</td><td><code>com/dragon/read/reader/services/t.smali</code>：<code>if (ChapterOriginalContentHelper.a.contains(chapterId)) throw new ErrorCodeException(0x6e /*110*/, "当前版本不安全")</code> —— 由 App 自己（或服务端返回的错误码 110）触发</td></tr><tr><td>截图细节</td><td>封面图、视频帧<strong>都加载出来了</strong> → 传输链路没坏，是<strong>应用层被服务端按风险拦截</strong>（返回错误码），不是本地签名校验失败</td></tr></tbody></table></div>
 <blockquote>所以「当前版本不安全」= 字节服务端风控判定客户端不可信后给的通用话术。</blockquote>
 <h3>12.2 我删掉的那个注入模块到底管什么（回答你的问题）</h3>
-<p>被删模块（<code>org.checkerframework.checker.signature.query.security.*</code> 34 类 + <code>sgcore0.*</code> + <code>libseccore.so</code>）&lt;br&gt;的全部 native 方法名（87 个，去重后）：</p>
+<p>被删模块（<code>org.checkerframework.checker.signature.query.security.*</code> 34 类 + <code>sgcore0.*</code> + <code>libseccore.so</code>）<br>的全部 native 方法名（87 个，去重后）：</p>
 <figure class="code"><figcaption>text</figcaption><pre><code>requestUpdateInfo  parseUpdateInfo  queryDialogPlan  shouldShowUpdateDialog
 buildUpdateDisplayMessage  buildVersionText  buildActiveUrl  normalizeConfigUrl
 onCreateDialog  showFragmentInternal  resolveAndShowAsync  shouldShowDeclarationDialog
@@ -206,16 +1284,16 @@ increaseLaunchCount  trackDailyActiveAsync  getOrCreateInstallId  migratePrefsIf
 aesCbcEncrypt/Decrypt  hmacSha256  sha256  randomBytes  getCryptoSecret
 decryptEnvelopeIfNeeded  readSecure*/writeSecure*  encryptPrefValue/decryptPrefValue
 openUrlSafely  dismissSafely  finishHost  canUseActivity  copyText  …</code></pre></figure>
-<p><strong>清一色是「检查更新 + 弹窗渲染 + 本地加密存储 + 埋点上报」</strong>。&lt;br&gt;用 <code>grep -iE "vip|member|pay|order|sign|verify|integrity|licen|auth|account"</code> 过滤 → <strong>零命中</strong>&lt;br&gt;（唯一 <code>writeToken</code> 是它自己 socket 协议用的鉴权 token）。</p>
+<p><strong>清一色是「检查更新 + 弹窗渲染 + 本地加密存储 + 埋点上报」</strong>。<br>用 <code>grep -iE "vip|member|pay|order|sign|verify|integrity|licen|auth|account"</code> 过滤 → <strong>零命中</strong><br>（唯一 <code>writeToken</code> 是它自己 socket 协议用的鉴权 token）。</p>
 <p><strong>⇒ 这个模块与会员/VIP 完全无关；删掉它不会影响会员能力。</strong></p>
-<p>另外说明一下我当时提到的「XP 相关」：<code>org.lsposed.hiddenapibypass</code>（10 个类）<strong>不是 Xposed 模块</strong>，&lt;br&gt;它是 LSPosed 开源的「隐藏 API 绕过」工具库，被字节自家 AOP 框架 <code>com/pandora/core/CreatorProxy</code> 引用，&lt;br&gt;不含任何业务逻辑，同样与会员无关。</p>
+<p>另外说明一下我当时提到的「XP 相关」：<code>org.lsposed.hiddenapibypass</code>（10 个类）<strong>不是 Xposed 模块</strong>，<br>它是 LSPosed 开源的「隐藏 API 绕过」工具库，被字节自家 AOP 框架 <code>com/pandora/core/CreatorProxy</code> 引用，<br>不含任何业务逻辑，同样与会员无关。</p>
 <h3>12.3 为什么只有 PC 模拟器复现</h3>
 <p>本包<strong>只有 <code>arm64-v8a</code> 一个 ABI（117 个 .so），没有任何 x86/x86_64</strong>。</p>
-<div class="table-wrap"><table><thead><tr><th>运行环境</th><th>ABI 执行方式</th><th>实测</th></tr></thead><tbody><tr><td>真机 PTP-AN70（arm64）</td><td>原生 ARM64</td><td>✅ 正常</td></tr><tr><td>VMOS（真机上的安卓虚拟机）</td><td>仍是原生 ARM64</td><td>✅ 正常</td></tr><tr><td>MuMu / 雷电（x86_64 PC 模拟器）</td><td><strong>ARM→x86 转译</strong></td><td>❌ 提示不安全 + 网络出错</td></tr></tbody></table></div>
-<p>这类客户端自带一批安全/校验库：<code>libmetasec_ml.so</code>（请求签名 X-Gorgon/X-Argus 等）、&lt;br&gt;<code>libttmverify.so</code>、<code>libvcnverify.so</code>、<code>libpandora-core.so</code>、<code>libshadowhook.so</code>、<code>libcovode_number.so</code> …&lt;br&gt;在转译环境下这些库的指纹/校验路径与原生不一致 → 服务端判定客户端不可信 → 内容接口返回风控错误。</p>
+<div class="table-wrap"><table><thead><tr><th>运行环境</th><th>ABI 执行方式</th><th>实测</th></tr></thead><tbody><tr><td>真机 PTP-AN70（arm64）</td><td>原生 ARM64</td><td>✓ 正常</td></tr><tr><td>VMOS（真机上的安卓虚拟机）</td><td>仍是原生 ARM64</td><td>✓ 正常</td></tr><tr><td>MuMu / 雷电（x86_64 PC 模拟器）</td><td><strong>ARM→x86 转译</strong></td><td>✗ 提示不安全 + 网络出错</td></tr></tbody></table></div>
+<p>这类客户端自带一批安全/校验库：<code>libmetasec_ml.so</code>（请求签名 X-Gorgon/X-Argus 等）、<br><code>libttmverify.so</code>、<code>libvcnverify.so</code>、<code>libpandora-core.so</code>、<code>libshadowhook.so</code>、<code>libcovode_number.so</code> …<br>在转译环境下这些库的指纹/校验路径与原生不一致 → 服务端判定客户端不可信 → 内容接口返回风控错误。</p>
 <h3>12.4 我引入的改动里，唯一可能被当风控信号的东西</h3>
-<p>为了让「想装哪个版本就装哪个」不撞降级墙，我给成品<strong>盖了 <code>versionCode = 100000000</code></strong>。&lt;br&gt;真机上没事（设备早已注册过，风控没有重新评估），但<strong>模拟器是全新设备注册</strong>，&lt;br&gt;一个「官方根本不存在的版本号」是有可能被风控当成"非正规版本"的。</p>
-<p>因此额外做了一个<strong>诊断包</strong>（补丁完全一样，只把版本号改回官方值 73733）：&lt;br&gt;<code>红果免费短剧_7.3.7.33_去更新_诊断版原版本号.apk</code></p>
+<p>为了让「想装哪个版本就装哪个」不撞降级墙，我给成品<strong>盖了 <code>versionCode = 100000000</code></strong>。<br>真机上没事（设备早已注册过，风控没有重新评估），但<strong>模拟器是全新设备注册</strong>，<br>一个「官方根本不存在的版本号」是有可能被风控当成"非正规版本"的。</p>
+<p>因此额外做了一个<strong>诊断包</strong>（补丁完全一样，只把版本号改回官方值 73733）：<br><code>红果免费短剧_7.3.7.33_去更新_诊断版原版本号.apk</code></p>
 <h3>12.5 请在模拟器里按 A → B → C 顺序实测（每次先卸载清数据）</h3>
 <div class="table-wrap"><table><thead><tr><th>组</th><th>装哪个</th><th>观察</th><th>说明</th></tr></thead><tbody><tr><td><strong>A</strong></td><td><code>红果免费短剧_7.3.7.33_去更新_诊断版原版本号.apk</code></td><td>是否还提示</td><td>若<strong>正常</strong> → 是我盖章惹的，我立刻改盖章策略</td></tr><tr><td><strong>B</strong></td><td><code>红果免费短剧_7.3.7.33_去更新.apk</code>（盖章版）</td><td>是否提示</td><td>与 A 对照，锁定版本号因素</td></tr><tr><td><strong>C</strong></td><td><code>红果免费短剧_7.3.7.33.apk</code>（<strong>渠道原包</strong>）</td><td>是否提示</td><td>若<strong>也提示</strong> → 100% 与我的补丁无关，是模拟器环境/服务端风控</td></tr></tbody></table></div>
 <h3>12.6 结论与建议</h3>
@@ -224,62 +1302,63 @@ openUrlSafely  dismissSafely  finishHost  canUseActivity  copyText  …</code></
 <p>为了让三个版本都能在模拟器里做同一组对照，另出了两个诊断包（<strong>补丁完全一样，只把 versionCode 改回官方值</strong>）：</p>
 <div class="table-wrap"><table><thead><tr><th>诊断包</th><th>versionCode</th><th>说明</th></tr></thead><tbody><tr><td><code>果短剧_Ver.7.3.6_去更新_诊断版原版本号.apk</code></td><td><strong>73632</strong></td><td>对应官方 7.3.6</td></tr><tr><td><code>果短剧_7.3.7.32_去更新_诊断版原版本号.apk</code></td><td><strong>73732</strong></td><td>对应官方 7.3.7.32</td></tr><tr><td><code>红果免费短剧_7.3.7.33_去更新_诊断版原版本号.apk</code></td><td><strong>73733</strong></td><td>对应官方 7.3.7.33</td></tr></tbody></table></div>
 <p>对照测试（模拟器里逐个装，<strong>每次先卸载清数据</strong>）：</p>
-<div class="table-wrap"><table><thead><tr><th>组</th><th>装哪个</th><th>若「当前版本不安全」消失</th><th>结论</th></tr></thead><tbody><tr><td>A</td><td>任一 <strong>诊断版原版本号</strong> 包</td><td>✅</td><td><strong>是我盖 versionCode=100000000 惹的</strong> → 我改掉盖章策略</td></tr><tr><td>B</td><td>对应版本的 <strong>盖章版</strong>（<code>..._去更新.apk</code>）</td><td>❌ 仍提示</td><td>佐证 A</td></tr><tr><td>C</td><td>对应版本的 <strong>渠道原包</strong></td><td>❌ 仍提示</td><td><strong>与我的补丁无关</strong>，是 x86 模拟器 ARM 转译 + 服务端风控</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>组</th><th>装哪个</th><th>若「当前版本不安全」消失</th><th>结论</th></tr></thead><tbody><tr><td>A</td><td>任一 <strong>诊断版原版本号</strong> 包</td><td>✓</td><td><strong>是我盖 versionCode=100000000 惹的</strong> → 我改掉盖章策略</td></tr><tr><td>B</td><td>对应版本的 <strong>盖章版</strong>（<code>..._去更新.apk</code>）</td><td>✗ 仍提示</td><td>佐证 A</td></tr><tr><td>C</td><td>对应版本的 <strong>渠道原包</strong></td><td>✗ 仍提示</td><td><strong>与我的补丁无关</strong>，是 x86 模拟器 ARM 转译 + 服务端风控</td></tr></tbody></table></div>
 <blockquote>三个诊断包的 versionCode 与官方一致，所以它们之间<strong>不能互相降级覆盖</strong>（会报 VERSION_DOWNGRADE）；<br>诊断只用于"装同一个版本做对照"，测完建议装回盖章版（盖章版之间可任意互相覆盖）。</blockquote>
 <p><strong>三版本最终文件对照</strong></p>
 <div class="table-wrap"><table><thead><tr><th>版本</th><th>盖章成品（可任意互装）</th><th>诊断包（原版本号）</th><th>渠道原包</th></tr></thead><tbody><tr><td>7.3.6</td><td><code>果短剧_Ver.7.3.6_去更新.apk</code> (100000000)</td><td><code>果短剧_Ver.7.3.6_去更新_诊断版原版本号.apk</code> (73632)</td><td><code>果短剧_Ver.7.3.6.apk</code></td></tr><tr><td>7.3.7.32</td><td><code>果短剧_7.3.7.32_去更新.apk</code> (100000000)</td><td><code>果短剧_7.3.7.32_去更新_诊断版原版本号.apk</code> (73732)</td><td><code>果短剧_7.3.7.32.apk</code></td></tr><tr><td>7.3.7.33</td><td><code>红果免费短剧_7.3.7.33_去更新.apk</code> (100000000)</td><td><code>红果免费短剧_7.3.7.33_去更新_诊断版原版本号.apk</code> (73733)</td><td><code>红果免费短剧_7.3.7.33.apk</code></td></tr></tbody></table></div>
 <hr>
 <h2>13. 「当前版本不安全」toast 的客户端侧修复</h2>
 <h3>13.1 精确定位（可复核）</h3>
-<div class="table-wrap"><table><thead><tr><th>步骤</th><th>结果</th></tr></thead><tbody><tr><td>文案资源 ID</td><td>解析 <code>resources.arsc</code> 全局字符串池（idx 25941）→ <strong><code>0x7f061254</code></strong> = 「当前版本不安全，请到正规应用市场下载」</td></tr><tr><td>谁引用它</td><td>按 4 字节小端扫全部 dex → <code>classes2</code>(×2)、<code>classes3</code>(×1，误报)、<code>classes8</code>(×1)</td></tr><tr><td>真正的 toast</td><td><code>com/dragon/read/component/base/NsBaseNetworkDependImpl.assertIllegalAccess()</code>：&lt;br&gt;<code>const v0, 0x7f061254</code> + <code>ToastUtils.showCommonToastSafely(0x7f061254, 1)</code> —— <strong>方法体只有这一句，就是专门弹这条 toast 的</strong></td></tr><tr><td>另两处（未改）</td><td>① <code>classes8/ug6/l.o(View,Throwable)</code>：<code>ErrorCodeException.code == 0x6e(110)</code> 时错误页用这条文案&lt;br&gt;② <code>classes2/nl3/z$b.&lt;init&gt;</code>：错误码映射表，<strong>服务端返回 <code>-105</code>(-0x69) 映射到这条文案</strong></td></tr></tbody></table></div>
-<p><strong>⇒ 触发链</strong>：模拟器环境 → 服务端风控判定客户端不可信 → 返回 <code>-105</code>/<code>110</code> → 客户端弹这条 toast。&lt;br&gt;判定权在服务端（x86 模拟器 + ARM 转译），客户端改不了；<strong>能做的就是别再打扰用户</strong>。</p>
+<div class="table-wrap"><table><thead><tr><th>步骤</th><th>结果</th></tr></thead><tbody><tr><td>文案资源 ID</td><td>解析 <code>resources.arsc</code> 全局字符串池（idx 25941）→ <strong><code>0x7f061254</code></strong> = 「当前版本不安全，请到正规应用市场下载」</td></tr><tr><td>谁引用它</td><td>按 4 字节小端扫全部 dex → <code>classes2</code>(×2)、<code>classes3</code>(×1，误报)、<code>classes8</code>(×1)</td></tr></tbody></table></div>
+<p>| 真正的 toast | <code>com/dragon/read/component/base/NsBaseNetworkDependImpl.assertIllegalAccess()</code>：<br><code>const v0, 0x7f061254</code> + <code>ToastUtils.showCommonToastSafely(0x7f061254, 1)</code> —— <strong>方法体只有这一句，就是专门弹这条 toast 的</strong> |<br>| 另两处（未改） | ① <code>classes8/ug6/l.o(View,Throwable)</code>：<code>ErrorCodeException.code == 0x6e(110)</code> 时错误页用这条文案<br>② <code>classes2/nl3/z$b.&lt;init&gt;</code>：错误码映射表，<strong>服务端返回 <code>-105</code>(-0x69) 映射到这条文案</strong> |</p>
+<p><strong>⇒ 触发链</strong>：模拟器环境 → 服务端风控判定客户端不可信 → 返回 <code>-105</code>/<code>110</code> → 客户端弹这条 toast。<br>判定权在服务端（x86 模拟器 + ARM 转译），客户端改不了；<strong>能做的就是别再打扰用户</strong>。</p>
 <h3>13.2 修复动作</h3>
 <p>把 <code>assertIllegalAccess()</code> 的方法体置为 <code>return-void</code>：</p>
 <figure class="code lang-smali"><figcaption>smali</figcaption><pre><code>.method public assertIllegalAccess()V
     .registers <span class="n">3</span>
     return-void
 .end method</code></pre></figure>
-<p>该方法<strong>只做"弹 toast"这一件事</strong>（无返回、无副作用、无其它调用），置空后这条提示<strong>永远不会再出现</strong>，&lt;br&gt;不影响网络、播放、会员等任何功能。</p>
+<p>该方法<strong>只做"弹 toast"这一件事</strong>（无返回、无副作用、无其它调用），置空后这条提示<strong>永远不会再出现</strong>，<br>不影响网络、播放、会员等任何功能。</p>
 <h3>13.3 已应用范围与校验</h3>
 <div class="table-wrap"><table><thead><tr><th>项</th><th>结果</th></tr></thead><tbody><tr><td>三个盖章成品</td><td><code>果短剧_Ver.7.3.6_去更新.apk</code> / <code>果短剧_7.3.7.32_去更新.apk</code> / <code>红果免费短剧_7.3.7.33_去更新.apk</code> 全部重打</td></tr><tr><td>三个诊断包</td><td>已从新成品重新生成（versionCode 73632 / 73732 / 73733）</td></tr><tr><td>工具包</td><td><code>patch_kit.sh</code> 已内置该补丁（第 4 步自动执行，找不到方法会自动 SKIP），以后新版本自动处理</td></tr><tr><td>类集合校验</td><td>classes2：14874→14874（7.3.6）、13009→13009（.32/.33），<strong>0 丢失</strong></td></tr><tr><td>补丁落地复核</td><td>从成品里取回 <code>classes2.dex</code> 反编译 → <code>assertIllegalAccess()</code> 已是 <code>return-void</code> ✓</td></tr><tr><td>签名</td><td>v1 + v2 + v3 全部 verified</td></tr></tbody></table></div>
 <h3>13.4 未改动的地方（有意为之）</h3>
-<p><code>ug6/l.o</code>（错误页文案）与 <code>nl3/z$b</code>（-105 映射表）<strong>保持原样</strong>：&lt;br&gt;它们只在"整个页面加载失败"这种严重场景才显示文字，改动风险大于收益。&lt;br&gt;如果实测发现<strong>仍有某处显示这条文字</strong>，把截图发我，我按同样方法精确定位、单独处理。</p>
+<p><code>ug6/l.o</code>（错误页文案）与 <code>nl3/z$b</code>（-105 映射表）<strong>保持原样</strong>：<br>它们只在"整个页面加载失败"这种严重场景才显示文字，改动风险大于收益。<br>如果实测发现<strong>仍有某处显示这条文字</strong>，把截图发我，我按同样方法精确定位、单独处理。</p>
 <h3>13.5 本次真机验证限制</h3>
-<p>操作期间 ADB 无线调试已断开（<code>192.168.0.100:* → No route to host</code>），所以这一轮<strong>没有做装机 sanity</strong>；&lt;br&gt;但补丁性质是"单方法体替换 + 类集合零丢失 + 签名校验通过"，静态层面无副作用风险。&lt;br&gt;你在雷电/MuMu 里装上后：<strong>弹窗应该彻底不再出现，播放照旧</strong>。</p>
+<p>操作期间 ADB 无线调试已断开（<code>192.168.0.100:* → No route to host</code>），所以这一轮<strong>没有做装机 sanity</strong>；<br>但补丁性质是"单方法体替换 + 类集合零丢失 + 签名校验通过"，静态层面无副作用风险。<br>你在雷电/MuMu 里装上后：<strong>弹窗应该彻底不再出现，播放照旧</strong>。</p>
 <hr>
 <h2>14. 【重要修正】versionCode 盖章被服务端风控识别 —— 已改回官方版本号</h2>
 <h3>14.1 现象与被误判的过程</h3>
-<div class="table-wrap"><table><thead><tr><th>时间</th><th>装的包</th><th>表现</th></tr></thead><tbody><tr><td>23:18</td><td><strong>原版本号</strong>包</td><td>提示"当前版本不安全"仍在，但<strong>内容能正常播放</strong> ✅</td></tr><tr><td>23:38</td><td><strong>盖章 <code>versionCode=100000000</code></strong> 包（提示已修）</td><td>提示没了，但<strong>内容接口被拦死</strong>：首页/剧场都"网络出错，请点击重试"，无法刷新与播放 ❌</td></tr></tbody></table></div>
-<p>之前在第 11 节，我为了让"三个成品能互相覆盖安装、不撞降级墙"，&lt;br&gt;把 versionCode 统一盖成了 <strong>100000000</strong>（官方根本不存在的版本号）。</p>
-<p><strong>结论：服务端会校验客户端上报的 versionCode</strong>，一个远超官方版本体系的值会被判为&lt;br&gt;「非正规版本」，进而返回风控错误码 <strong>-105</strong>（App 内映射的文案正是"当前版本不安全，请到正规应用市场下载"），&lt;br&gt;内容接口于是被拦 —— 这正好解释了第 12/13 节那条提示的真正来源。</p>
+<div class="table-wrap"><table><thead><tr><th>时间</th><th>装的包</th><th>表现</th></tr></thead><tbody><tr><td>23:18</td><td><strong>原版本号</strong>包</td><td>提示"当前版本不安全"仍在，但<strong>内容能正常播放</strong> ✓</td></tr><tr><td>23:38</td><td><strong>盖章 <code>versionCode=100000000</code></strong> 包（提示已修）</td><td>提示没了，但<strong>内容接口被拦死</strong>：首页/剧场都"网络出错，请点击重试"，无法刷新与播放 ✗</td></tr></tbody></table></div>
+<p>之前在第 11 节，我为了让"三个成品能互相覆盖安装、不撞降级墙"，<br>把 versionCode 统一盖成了 <strong>100000000</strong>（官方根本不存在的版本号）。</p>
+<p><strong>结论：服务端会校验客户端上报的 versionCode</strong>，一个远超官方版本体系的值会被判为<br>「非正规版本」，进而返回风控错误码 <strong>-105</strong>（App 内映射的文案正是"当前版本不安全，请到正规应用市场下载"），<br>内容接口于是被拦 —— 这正好解释了第 12/13 节那条提示的真正来源。</p>
 <blockquote>真机上为什么没事：真机是<strong>早先已注册、已被信任</strong>的会话，风控没有重新评估；<br>模拟器是<strong>全新设备注册</strong>，一上来就吃版本校验。</blockquote>
 <h3>14.2 处理</h3>
 <p>三个成品<strong>全部改回官方 versionCode</strong>，其它补丁（去更新 + 隐藏"非法访问"提示）保持不变：</p>
 <div class="table-wrap"><table><thead><tr><th>成品</th><th>versionCode</th></tr></thead><tbody><tr><td><code>果短剧_Ver.7.3.6_去更新.apk</code></td><td><strong>73632</strong>（官方值）</td></tr><tr><td><code>果短剧_7.3.7.32_去更新.apk</code></td><td><strong>73732</strong>（官方值）</td></tr><tr><td><code>红果免费短剧_7.3.7.33_去更新.apk</code></td><td><strong>73733</strong>（官方值）</td></tr></tbody></table></div>
-<p>工具包 <code>patch_kit.sh</code> 也改成<strong>默认不再盖章</strong>（保持官方值）；&lt;br&gt;只有确实需要"任意包互相覆盖"时才显式 <code>STAMP=xxx sh patch_kit.sh ...</code>，脚本会提示风险。</p>
+<p>工具包 <code>patch_kit.sh</code> 也改成<strong>默认不再盖章</strong>（保持官方值）；<br>只有确实需要"任意包互相覆盖"时才显式 <code>STAMP=xxx sh patch_kit.sh ...</code>，脚本会提示风险。</p>
 <h3>14.3 代价（要接受的）</h3>
 <ul><li>官方版本号就代表<strong>不能跨版本降级覆盖安装</strong>： 7.3.7.33 上装 7.3.6 会报 <code>INSTALL_FAILED_VERSION_DOWNGRADE</code>。</li><li>降级装法（二选一，<strong>都会清 App 数据</strong>，见第 10.3 节）： ``<code>sh adb uninstall com.phoenix.read &amp;&amp; adb install -r 果短剧_Ver.7.3.6_去更新.apk # 或 adb push 果短剧_Ver.7.3.6_去更新.apk /data/local/tmp/x.apk adb shell pm install -r -d /data/local/tmp/x.apk &amp;&amp; adb shell rm -f /data/local/tmp/x.apk </code>``</li><li>想升版本就直接装（同签名，数据保留）：<code>adb install -r -d &lt;更高版本&gt;_去更新.apk</code></li></ul>
 <h3>14.4 现在的成品构成</h3>
-<p><code>..._去更新.apk</code> = 去更新补丁 + 摘魔改钩子 + 隐藏"非法访问"提示 + <strong>官方 versionCode</strong> + 重签名(v1/v2/v3)&lt;br&gt;（即之前那份"诊断版原版本号"，诊断包已合并进主成品，不再单独保留）</p>
+<p><code>..._去更新.apk</code> = 去更新补丁 + 摘魔改钩子 + 隐藏"非法访问"提示 + <strong>官方 versionCode</strong> + 重签名(v1/v2/v3)<br>（即之前那份"诊断版原版本号"，诊断包已合并进主成品，不再单独保留）</p>
 <hr>
 <h2>15. 【重新解剖】VMOS 也复现 —— 追到魔改的「运行时注入层」</h2>
 <h3>15.1 先撤回上一轮的结论</h3>
-<p>第 12 节我把模拟器问题归因于"x86 模拟器 + ARM 转译导致安全库异常"。&lt;br&gt;<strong>VMOS 是真机上的 Android 虚拟机、仍是原生 ARM，却也复现了</strong> → 该结论不成立，撤回。&lt;br&gt;同一份包在真机直装正常、在 VMOS/雷电被拦 → 差别在"<strong>运行环境是否被服务端信任</strong>"。</p>
+<p>第 12 节我把模拟器问题归因于"x86 模拟器 + ARM 转译导致安全库异常"。<br><strong>VMOS 是真机上的 Android 虚拟机、仍是原生 ARM，却也复现了</strong> → 该结论不成立，撤回。<br>同一份包在真机直装正常、在 VMOS/雷电被拦 → 差别在"<strong>运行环境是否被服务端信任</strong>"。</p>
 <h3>15.2 重新逐条排查（全部有取证依据）</h3>
 <div class="table-wrap"><table><thead><tr><th>排查项</th><th>方法</th><th>结果</th></tr></thead><tbody><tr><td>提示文案来源</td><td>解析 <code>resources.arsc</code> 全局池 → 资源 ID <code>0x7f061254</code> → 扫全部 dex 引用</td><td><code>NsBaseNetworkDependImpl.assertIllegalAccess()</code>（方法体只有一句 toast，已置空）</td></tr><tr><td>错误码语义</td><td>反编译 <code>nl3/z$b.&lt;init&gt;</code> 映射表</td><td><strong>服务端错误码 <code>-105</code>(-0x69) → 该文案</strong>；同表：-101/-103/-104/-201/-301/-403/-404/-106/-503/-407</td></tr><tr><td>谁触发"非法访问"</td><td>追 <code>assertIllegalAccess</code> 调用链（含 AOP 代理桩 <code>NetReqUtil</code>）</td><td>由 <strong>App 自己的 AOP 代理</strong>调用 → 判定来自<strong>服务端响应</strong>，客户端只负责展示</td></tr><tr><td>魔改载荷 1082 个类到底干什么</td><td>统计用到的敏感 API</td><td>反射 <code>Method/Field/Constructor</code> 350+、<code>Socket</code> 116、<strong><code>DexClassLoader</code> ×9</strong>、<code>Cipher/Mac</code></td></tr><tr><td>运行时加载什么</td><td>反编译 <code>com/fH</code></td><td><strong>下载 APK（校验 HTTP 200–299）→ 写盘 → <code>DexClassLoader</code> 加载</strong>；支持 <code>[sdcard]</code> 自定义路径；字符串含 <code>dalvik.system.BaseDexClassLoader</code> + <strong><code>dexElements</code></strong> = 典型<strong>运行时 dex 注入（合并进 App ClassLoader）</strong></td></tr><tr><td>注入的文件名</td><td>载荷字符串</td><td><strong><code>update.apk</code></strong></td></tr><tr><td>原生库能力</td><td><code>strings libseccore.so</code>（共 7818 条）</td><td><code>JNI_OnLoad</code>、<strong><code>getDeviceId</code></strong>、<strong><code>FINGERPRINT</code></strong>、<code>/proc/version</code>、<code>java.vm.version</code>、<code>android/os/Build$VERSION</code>、<code>versionCode/versionName</code></td></tr></tbody></table></div>
 <h3>15.3 结论（修正）</h3>
-<p><strong>我上一轮把整块魔改载荷删了</strong>（34 个伪 <code>org.checkerframework</code> 类 + <code>sgcore0</code> + <code>libseccore.so</code>）。&lt;br&gt;但证据显示这个载荷<strong>远不止更新弹窗</strong>：</p>
+<p><strong>我上一轮把整块魔改载荷删了</strong>（34 个伪 <code>org.checkerframework</code> 类 + <code>sgcore0</code> + <code>libseccore.so</code>）。<br>但证据显示这个载荷<strong>远不止更新弹窗</strong>：</p>
 <ol><li>它自带<strong>运行时 dex 注入</strong>能力（下载 <code>update.apk</code> → <code>DexClassLoader</code> + <code>dexElements</code> 合并）；</li><li>它的原生库带<strong>设备指纹 / 虚拟环境探测</strong>能力（<code>getDeviceId</code> / <code>FINGERPRINT</code> / <code>/proc/version</code> / <code>java.vm.version</code>）；</li><li>它在 App 内挂了 4 个钩子，其中 <code>com/b/a;-&gt;init()</code> 明确叫"初始化"，<code>̐;-&gt;̎(Activity)</code> 是逐 Activity 钩子 —— <strong>很可能承担初始化/环境适配职责</strong>，我上一轮把这两个和"弹窗触发"一起摘掉了。</li></ol>
 <p><strong>⇒ 高度怀疑：模块被删后 App 失去该注入层，于是在被服务端重点审查的环境（VMOS/雷电）里被判"非法访问"；真机因会话早已被信任而看不出来。</strong></p>
 <h3>15.4 本轮交付：V5「保留魔改模块，只掐弹窗触发」</h3>
 <div class="table-wrap"><table><thead><tr><th>包</th><th>与上一版的区别</th></tr></thead><tbody><tr><td><code>红果免费短剧_7.3.7.33_v5保留魔改模块.apk</code></td><td><strong>载荷与 4 个钩子里的 3 个原样保留</strong>；只摘掉 <code>AbsActivity.onStart() → com/q;-&gt;Call(Activity)</code> 这一句（弹窗触发）并把该方法置空；再加 17 处官方升级补丁 + <code>assertIllegalAccess</code> 置空；官方 versionCode 73733</td></tr><tr><td><code>果短剧_7.3.7.32_v5保留魔改模块.apk</code></td><td>同上（该版触发类为 <code>com/o</code>）</td></tr><tr><td><code>果短剧_Ver.7.3.6_v5保留魔改模块.apk</code></td><td>同上（触发类 <code>com/q</code>）</td></tr></tbody></table></div>
 <p>类集合校验：全部 dex <strong>零丢失</strong>；签名 v1+v2+v3；真机上已装 .33 版验证「无弹窗窗口」。</p>
 <h3>15.5 请在 VMOS / 雷电里按这个顺序测（每次先卸载）</h3>
-<div class="table-wrap"><table><thead><tr><th>组</th><th>装什么</th><th>观察</th><th>结论指向</th></tr></thead><tbody><tr><td><strong>D</strong></td><td><code>红果免费短剧_7.3.7.33_v5保留魔改模块.apk</code></td><td>网络是否恢复</td><td>✅ → 我"删载荷"是元凶，之后全面改用 V5 方案</td></tr><tr><td><strong>E</strong></td><td><code>红果免费短剧_7.3.7.33.apk</code>（<strong>渠道原包</strong>）</td><td>网络是否正常</td><td>它也✗ → 环境被风控，与我们无关；它✅而 D✓/✗ 可进一步定位</td></tr><tr><td><strong>F</strong></td><td><code>红果免费短剧_7.3.7.33_去更新.apk</code>（上轮干净版）</td><td>网络是否✗</td><td>✗ → 佐证 D</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>组</th><th>装什么</th><th>观察</th><th>结论指向</th></tr></thead><tbody><tr><td><strong>D</strong></td><td><code>红果免费短剧_7.3.7.33_v5保留魔改模块.apk</code></td><td>网络是否恢复</td><td>✓ → 我"删载荷"是元凶，之后全面改用 V5 方案</td></tr><tr><td><strong>E</strong></td><td><code>红果免费短剧_7.3.7.33.apk</code>（<strong>渠道原包</strong>）</td><td>网络是否正常</td><td>它也✗ → 环境被风控，与我们无关；它✓而 D✓/✗ 可进一步定位</td></tr><tr><td><strong>F</strong></td><td><code>红果免费短剧_7.3.7.33_去更新.apk</code>（上轮干净版）</td><td>网络是否✗</td><td>✗ → 佐证 D</td></tr></tbody></table></div>
 <hr>
 <h2>16. V5 回归 → v6 修复；以及「多出来的 read 安装包」真相</h2>
 <h3>16.1 V5 暴露的问题：弹窗有<strong>两个独立来源</strong></h3>
-<p>V5（保留模块、只摘 <code>com.o.Call</code>）装到真机后<strong>弹窗又出现了</strong>（截图可见「立即更新」按钮）。&lt;br&gt;原因：V5 为保住模块，把 <code>MainFragmentActivity.onStart() → а.A(..., "…/appUpdate", …)</code> 保留了，&lt;br&gt;而 <strong>SecCore 模块自己也会弹窗</strong>（<code>а</code> 本身就是 DialogFragment）。</p>
+<p>V5（保留模块、只摘 <code>com.o.Call</code>）装到真机后<strong>弹窗又出现了</strong>（截图可见「立即更新」按钮）。<br>原因：V5 为保住模块，把 <code>MainFragmentActivity.onStart() → а.A(..., "…/appUpdate", …)</code> 保留了，<br>而 <strong>SecCore 模块自己也会弹窗</strong>（<code>а</code> 本身就是 DialogFragment）。</p>
 <p>⇒ 弹窗有<strong>两条互不依赖</strong>的路径：</p>
 <ol><li><code>AbsActivity.onStart() → com.o / com.q .Call(Activity)</code>（纯 Java 更新器）</li><li><code>MainFragmentActivity.onStart() → а.A(...)</code>（SecCore 原生模块）</li></ol>
 <p>我上一轮只证明了第 1 条会弹，<strong>漏了第 2 条</strong> —— 这就是 V5 回归的原因。</p>
@@ -302,7 +1381,7 @@ invoke-static/range {v0 .. v6}, Lorg/checkerframework/…/а;-&gt;A(…)Ljava/la
 <figure class="code lang-sh"><figcaption>sh</figcaption><pre><code><span class="k">adb</span> shell pm uninstall com.phoenix.read        <span class="c"># Success</span>
 <span class="c"># 复查：codePath=0、/data/app 残留=0、-u 记录=0</span></code></pre></figure>
 <p>清理后 7.3.6 一次装成功。</p>
-<p><strong>如何避免</strong>：卸载时不要用"删除并保留数据"的方式（MT管理器 卸载若提供该选项就不要勾），&lt;br&gt;或者直接让我用 <code>pm uninstall</code> 来卸；需要保数据时用同签名的<strong>升级覆盖</strong>（<code>pm install -r</code>）而不是卸载重装。</p>
+<p><strong>如何避免</strong>：卸载时不要用"删除并保留数据"的方式（MT管理器 卸载若提供该选项就不要勾），<br>或者直接让我用 <code>pm uninstall</code> 来卸；需要保数据时用同签名的<strong>升级覆盖</strong>（<code>pm install -r</code>）而不是卸载重装。</p>
 <hr>
 <h2>17. 决定性实验 T1：<strong>签名就是触发器</strong> —— 干净包改造路线的终点</h2>
 <h3>17.1 实验设计（把变量压到只剩一个）</h3>
@@ -311,44 +1390,545 @@ invoke-static/range {v0 .. v6}, Lorg/checkerframework/…/а;-&gt;A(…)Ljava/la
 <h3>17.2 结论</h3>
 <ol><li><strong>触发点是签名本身</strong>，与 dex 是否被修改<strong>无关</strong>；</li><li>校验发生在<strong>原生安全层</strong>（<code>libmetasec_ml.so</code> 这类）与服务端，<strong>Java 层没有</strong>：</li><ol><li>全 App 扫描"读签名/证书"的类，命中的全是第三方 SDK —— 支付宝(<code>s7/r</code>,<code>b7/b</code>)、欧珀 OUID(<code>j6/c</code>)、华为 HMS(<code>qp8/a</code>)、androidx(<code>PackageInfoCompat</code>)；</li><li><strong>没有任何一处是 App 自己的校验逻辑</strong>（也就是说 smali 层无处可改）。</li></ol><li>⇒ <strong>干净包 + 重签名 = 必死</strong>。想在 dex 里"改了就完事"是不可能的。</li></ol>
 <h3>17.3 那渠道魔改包为什么能用？</h3>
-<p>因为它拖着一个<strong>原生壳 <code>libseccore.so</code></strong>（SONAME 是随机 UUID、读 <code>/proc/self/maps</code> 自保护）——&lt;br&gt;<strong>这个壳的职责就是绕过签名/完整性校验</strong>（T1 证明了没有它必死）。&lt;br&gt;它同时还在做更新弹窗、设备指纹采集等事。</p>
+<p>因为它拖着一个<strong>原生壳 <code>libseccore.so</code></strong>（SONAME 是随机 UUID、读 <code>/proc/self/maps</code> 自保护）——<br><strong>这个壳的职责就是绕过签名/完整性校验</strong>（T1 证明了没有它必死）。<br>它同时还在做更新弹窗、设备指纹采集等事。</p>
 <h3>17.4 由此确定的可行路线（唯一）</h3>
-<div class="table-wrap"><table><thead><tr><th>底座</th><th>能否改造后可用</th><th>说明</th></tr></thead><tbody><tr><td><strong>渠道魔改包</strong></td><td>✅ <strong>可以</strong></td><td>保留它的原生壳 + 只做"去弹窗/官方版本号"这类改动</td></tr><tr><td>干净原始包</td><td>❌ <strong>不可以</strong></td><td>任何重签名都触发风控（T1 已证）</td></tr></tbody></table></div>
-<p><strong>代价</strong>：<code>libseccore.so</code> 是 <strong>ARM64-only</strong>，x86 模拟器（雷电/MuMu）只能靠 ARM 转译执行它 → 壳自检失败 → <strong>闪退</strong>。&lt;br&gt;⇒ <strong>x86 模拟器上无解</strong>；真机 / VMOS（ARM）可用。</p>
+<div class="table-wrap"><table><thead><tr><th>底座</th><th>能否改造后可用</th><th>说明</th></tr></thead><tbody><tr><td><strong>渠道魔改包</strong></td><td>✓ <strong>可以</strong></td><td>保留它的原生壳 + 只做"去弹窗/官方版本号"这类改动</td></tr><tr><td>干净原始包</td><td>✗ <strong>不可以</strong></td><td>任何重签名都触发风控（T1 已证）</td></tr></tbody></table></div>
+<p><strong>代价</strong>：<code>libseccore.so</code> 是 <strong>ARM64-only</strong>，x86 模拟器（雷电/MuMu）只能靠 ARM 转译执行它 → 壳自检失败 → <strong>闪退</strong>。<br>⇒ <strong>x86 模拟器上无解</strong>；真机 / VMOS（ARM）可用。</p>
 <h3>17.5 文档记录：干净包方案的产物</h3>
 <ul><li><code>红果免费短剧V7.3.7_去广告去升级会员版.apk</code>：在干净包上打了 34 处补丁（去升级 17 + 会员 13 + 去广告 6）， 类集合零丢失、签名 v1+v2+v3 —— <strong>但受 T1 结论限制，实际不可用</strong>，仅作为补丁清单/思路留档：</li><ul><li>会员源头：<code>PrivilegeManager</code>（<code>isAnyVip/b/adVipAvailable/canReadShortStory</code>）+ <code>NsVipImpl</code> 各 gate + <code>Ns*DependImpl.isVip</code></li><li>广告闸门：<code>NsAdImpl</code> 的 <code>checkAdAvailable/canReaderVideoAdShow/canOpenShowSplashShake/checkCanShowTopView*</code></li><li>升级链路：<code>com.ss.android.update.*</code>（classes9）+ <code>NsUpdateServiceImpl/UpdateManager</code>（classes3）</li></ul></ul>
 <hr>
 <h2>18. 决定性实验 M1：<strong>壳才是关键，签名无关</strong> —— 路线最终确定</h2>
 <h3>18.1 两个对称实验的对照</h3>
-<div class="table-wrap"><table><thead><tr><th>包</th><th>底座</th><th>内容改动</th><th>签名</th><th>实测结果</th></tr></thead><tbody><tr><td><strong>T1</strong></td><td>干净原包</td><td><strong>0 处</strong></td><td>我的</td><td>❌ 弹"当前版本不安全" + 剧场"网络出错"</td></tr><tr><td><strong>M1</strong></td><td><strong>魔改包</strong></td><td><strong>0 处</strong></td><td><strong>我的</strong></td><td>✅ <strong>网络正常、内容正常、数据保留</strong></td></tr></tbody></table></div>
-<p>M1 = 魔改包原样不动，<strong>只用我的签名重签</strong>。&lt;br&gt;M1 装到真机后实测（UI dump + 截图）：异常提示 <strong>无</strong>，页面出现真实内容&lt;br&gt;（<code>请输入剧名</code> / <code>1121万热度</code> / <code>先做人后做事</code> / <code>都市日常</code> / <code>打脸反派</code> / <code>1865万热度</code> / <code>巅峰年代</code> / <code>逆袭翻身</code>）。</p>
+<div class="table-wrap"><table><thead><tr><th>包</th><th>底座</th><th>内容改动</th><th>签名</th><th>实测结果</th></tr></thead><tbody><tr><td><strong>T1</strong></td><td>干净原包</td><td><strong>0 处</strong></td><td>我的</td><td>✗ 弹"当前版本不安全" + 剧场"网络出错"</td></tr><tr><td><strong>M1</strong></td><td><strong>魔改包</strong></td><td><strong>0 处</strong></td><td><strong>我的</strong></td><td>✓ <strong>网络正常、内容正常、数据保留</strong></td></tr></tbody></table></div>
+<p>M1 = 魔改包原样不动，<strong>只用我的签名重签</strong>。<br>M1 装到真机后实测（UI dump + 截图）：异常提示 <strong>无</strong>，页面出现真实内容<br>（<code>请输入剧名</code> / <code>1121万热度</code> / <code>先做人后做事</code> / <code>都市日常</code> / <code>打脸反派</code> / <code>1865万热度</code> / <code>巅峰年代</code> / <code>逆袭翻身</code>）。</p>
 <p><strong>⇒ 结论：能否正常联网，取决于"包里有没有魔改的原生壳"，与签名是谁签的无关。</strong></p>
 <h3>18.2 机理</h3>
-<ul><li><strong>干净包</strong>：无壳 → 服务端/原生安全层的校验通过不了 → 返回错误码 <strong>110</strong> → <code>NetReqUtil</code> 里 <code>if (错误码 == 0x6e) assertIllegalAccess()</code> 命中 → 弹提示 + 内容接口被掐（T1 证实）。</li><li><strong>魔改包</strong>：<code>lib/arm64-v8a/libseccore.so</code>（随机 UUID SONAME、读 <code>/proc/self/maps</code> 的商业加固壳） <strong>职责就是绕过签名/完整性校验</strong> → 即使我重新签名，壳照样把校验兜住 ✅</li></ul>
+<ul><li><strong>干净包</strong>：无壳 → 服务端/原生安全层的校验通过不了 → 返回错误码 <strong>110</strong> → <code>NetReqUtil</code> 里 <code>if (错误码 == 0x6e) assertIllegalAccess()</code> 命中 → 弹提示 + 内容接口被掐（T1 证实）。</li><li><strong>魔改包</strong>：<code>lib/arm64-v8a/libseccore.so</code>（随机 UUID SONAME、读 <code>/proc/self/maps</code> 的商业加固壳） <strong>职责就是绕过签名/完整性校验</strong> → 即使我重新签名，壳照样把校验兜住 ✓</li></ul>
 <h3>18.3 最终路线</h3>
 <p><strong>底座 = 渠道魔改包（必须保留壳）+ 只做"去弹窗 / 官方版本号"这类最小改动</strong></p>
-<div class="table-wrap"><table><thead><tr><th>动作</th><th>内容</th></tr></thead><tbody><tr><td><strong>必须保留</strong></td><td><code>lib/arm64-v8a/libseccore.so</code>、<code>libpandora-core.so</code>、classes23/24 里的注入类</td></tr><tr><td><strong>要做</strong></td><td>① 摘掉弹窗触发 <code>AbsActivity.onStart() → com.o.Call(Activity)</code> 并把该方法置空&lt;br&gt;② <code>MainFragmentActivity</code> 里 <code>а.A(...)</code> 的更新 URL 换成死地址（壳仍加载，但拿不到数据 → 不弹）&lt;br&gt;③ 17 处官方升级链路补丁（<code>com.ss.android.update.*</code> + <code>NsUpdateServiceImpl</code>/<code>UpdateManager</code>）&lt;br&gt;④ <code>assertIllegalAccess()</code> 置空</td></tr><tr><td><strong>结果</strong></td><td>魔改自带的"会员纯净 / 去广告"能力全保留 + 不再弹升级窗 + <strong>联网正常</strong></td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>动作</th><th>内容</th></tr></thead><tbody><tr><td><strong>必须保留</strong></td><td><code>lib/arm64-v8a/libseccore.so</code>、<code>libpandora-core.so</code>、classes23/24 里的注入类</td></tr></tbody></table></div>
+<p>| <strong>要做</strong> | ① 摘掉弹窗触发 <code>AbsActivity.onStart() → com.o.Call(Activity)</code> 并把该方法置空<br>② <code>MainFragmentActivity</code> 里 <code>а.A(...)</code> 的更新 URL 换成死地址（壳仍加载，但拿不到数据 → 不弹）<br>③ 17 处官方升级链路补丁（<code>com.ss.android.update.*</code> + <code>NsUpdateServiceImpl</code>/<code>UpdateManager</code>）<br>④ <code>assertIllegalAccess()</code> 置空 |<br>| <strong>结果</strong> | 魔改自带的"会员纯净 / 去广告"能力全保留 + 不再弹升级窗 + <strong>联网正常</strong> |</p>
 <h3>18.4 唯一未解的环境限制</h3>
 <p><code>libseccore.so</code> 是 <strong>ARM64-only</strong>：</p>
-<div class="table-wrap"><table><thead><tr><th>环境</th><th>结果</th></tr></thead><tbody><tr><td>真机 / VMOS（ARM）</td><td>✅ 正常</td></tr><tr><td>雷电 / MuMu（x86，靠 ARM 转译跑该库）</td><td>❌ 壳自检失败 → <strong>闪退</strong>（<code>/proc/self/maps</code> 自保护在转译环境必炸）</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>环境</th><th>结果</th></tr></thead><tbody><tr><td>真机 / VMOS（ARM）</td><td>✓ 正常</td></tr><tr><td>雷电 / MuMu（x86，靠 ARM 转译跑该库）</td><td>✗ 壳自检失败 → <strong>闪退</strong>（<code>/proc/self/maps</code> 自保护在转译环境必炸）</td></tr></tbody></table></div>
 <p>⇒ <strong>x86 模拟器上无解</strong>：带壳必崩，不带壳必断网。这一点已用实验闭环，不再猜测。</p>
 <hr>
 <h2>19. 最终可用配方 + 工具包 v2（已实验闭环）</h2>
 <h3>19.1 最终结论（一句话）</h3>
-<p><strong>以渠道魔改包为底座，只做三类最小改动：App 自身升级链路置空、<code>assertIllegalAccess</code> 置空、&lt;br&gt;把魔改的两个域名换成死地址。</strong> 壳与载荷一律保留 ⇒ 弹窗不再来 + 联网正常 + 会员/去广告能力保留。</p>
+<p>**以渠道魔改包为底座，只做三类最小改动：App 自身升级链路置空、<code>assertIllegalAccess</code> 置空、<br>把魔改的两个域名换成死地址。** 壳与载荷一律保留 ⇒ 弹窗不再来 + 联网正常 + 会员/去广告能力保留。</p>
 <h3>19.2 实测证据</h3>
-<div class="table-wrap"><table><thead><tr><th>版本</th><th>成品</th><th>实测</th></tr></thead><tbody><tr><td>7.3.6</td><td><code>果短剧_Ver.7.3.6_v9_死地址.apk</code></td><td>160 秒观察：弹窗窗口 <strong>0</strong>、崩溃 <strong>0</strong>、能搜索/进设置 ✅</td></tr><tr><td>7.3.7.33</td><td><code>红果免费短剧_7.3.7.33_v9_死地址.apk</code></td><td>45 秒截图：「我的」显示 <strong>VIP 徽章 + 已开通会员，有效期至 7888-08-08</strong>、无弹窗 ✅</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>版本</th><th>成品</th><th>实测</th></tr></thead><tbody><tr><td>7.3.6</td><td><code>果短剧_Ver.7.3.6_v9_死地址.apk</code></td><td>160 秒观察：弹窗窗口 <strong>0</strong>、崩溃 <strong>0</strong>、能搜索/进设置 ✓</td></tr><tr><td>7.3.7.33</td><td><code>红果免费短剧_7.3.7.33_v9_死地址.apk</code></td><td>45 秒截图：「我的」显示 <strong>VIP 徽章 + 已开通会员，有效期至 7888-08-08</strong>、无弹窗 ✓</td></tr></tbody></table></div>
 <h3>19.3 为什么是"死地址"而不是"摘钩子"</h3>
-<ul><li>摘钩子 = 模块不加载 = 壳不生效 = <strong>断网</strong>（T1 对照）</li><li>改死地址 = 模块照常加载（壳生效）+ 拿不到弹窗数据 = <strong>两全</strong> ✅</li><li>弹窗显示动作在 native（<code>resolveAndShowAsync</code>/<code>showFragmentInternal</code>），Java 层无调用点， 所以"只掐显示"在 dex 层做不到 —— 这是把 <code>DialogFragment.show</code>、Glide <code>com/dT</code>、 androidx <code>com/hX</code> 全部排除后的结论。</li></ul>
+<ul><li>摘钩子 = 模块不加载 = 壳不生效 = <strong>断网</strong>（T1 对照）</li><li>改死地址 = 模块照常加载（壳生效）+ 拿不到弹窗数据 = <strong>两全</strong> ✓</li><li>弹窗显示动作在 native（<code>resolveAndShowAsync</code>/<code>showFragmentInternal</code>），Java 层无调用点， 所以"只掐显示"在 dex 层做不到 —— 这是把 <code>DialogFragment.show</code>、Glide <code>com/dT</code>、 androidx <code>com/hX</code> 全部排除后的结论。</li></ul>
 <h3>19.4 工具包 v2</h3>
-<p><code>红果去更新工具包/patch_kit.sh</code> 已重写为正确配方（9 步）：&lt;br&gt;展开 dex → 建索引 → 定位 dex（含魔改名域的也算）→ 升级链路 17 处 → <code>assertIllegalAccess</code> 置空&lt;br&gt;→ <strong>域名换死地址</strong> → 回编译+类集合校验（丢类即终止）→ 版本号（默认官方）→ 回填+签名。&lt;br&gt;README 同步重写，写明"底座必须是魔改包"及 T1/M1 依据。</p>
-<p>试跑验证（拿 7.3.6 魔改底座跑一遍）：类集合 0 丢失、<code>oneseeker</code> 残留 0、壳保留 1、签名 v1+v2+v3 ✅</p>
+<p><code>红果去更新工具包/patch_kit.sh</code> 已重写为正确配方（9 步）：<br>展开 dex → 建索引 → 定位 dex（含魔改名域的也算）→ 升级链路 17 处 → <code>assertIllegalAccess</code> 置空<br>→ <strong>域名换死地址</strong> → 回编译+类集合校验（丢类即终止）→ 版本号（默认官方）→ 回填+签名。<br>README 同步重写，写明"底座必须是魔改包"及 T1/M1 依据。</p>
+<p>试跑验证（拿 7.3.6 魔改底座跑一遍）：类集合 0 丢失、<code>oneseeker</code> 残留 0、壳保留 1、签名 v1+v2+v3 ✓</p>
 <h3>19.5 环境限制（未变）</h3>
-<p><code>libseccore.so</code> 为 ARM64；真机 / VMOS 正常。x86 模拟器（雷电/MuMu）需靠 ARM 转译执行该库，&lt;br&gt;能否稳定运行需以你那边的实测为准（用户实测：原魔改包在雷电可正常运行）。</p>
-</article></main>
-<footer class="footer"><p>© <span id="year"></span> Felix · Powered by GitHub Pages</p></footer>
-<button id="top" class="icon-btn top" aria-label="回到顶部">↑</button>
-<script src="../assets/js/main.js"></script>
-<script src="../assets/js/dream.js"></script>
+<p><code>libseccore.so</code> 为 ARM64；真机 / VMOS 正常。x86 模拟器（雷电/MuMu）需靠 ARM 转译执行该库，<br>能否稳定运行需以你那边的实测为准（用户实测：原魔改包在雷电可正常运行）。</p>
+    </article>
+    <div class="prev-next"><a class="pn-item" href="p-03-Safengine_验证服务器解剖报告.html"><div class="pn-label">上一篇</div><div>Safengine Shielden 2.4 —— 验证服务器地址解剖报告</div></a><a class="pn-item" href="p-01-CodeRunner4.5_授权算法解剖与验证报告.html"><div class="pn-label">下一篇</div><div>CodeRunner 4.5 授权机制解剖 · 算法定位与实现验证报告</div></a></div>
+    <p class="back-wrap"><a class="back" href="../">← 返回首页</a></p>
+    <section class="comments">
+      <div class="panel-head">评论</div>
+      <div class="ut-box" id="ut-box"></div>
+    </section>
+  </div>
+</main>
+<footer class="site-footer">
+  <div class="cloud-rule"></div>
+  <div class="foot-rule"></div>
+  <div class="copyright">© 2026 - <span id="year"></span> ZY驿站 · 保留所有权利</div>
+  <div class="foot-stats">
+    <span>浏览量 <b id="visit-pv">—</b></span>
+    <span>访客数 <b id="visit-uv">—</b></span>
+    <span>本站已运行 <b id="runtime" data-start="2026-09-22">—</b></span>
+  </div>
+  <div class="foot-note">felixdsh2.eu.cc</div>
+</footer>
+<div class="search-modal" id="search-modal" hidden style="display:none">
+  <div class="search-box">
+    <div class="search-head"><span>检 索</span> <a href="javascript:;" id="search-close">×</a></div>
+    <input id="search-input" type="search" placeholder="输入关键词，如 授权 / 补丁 / Android" autocomplete="off">
+    <div class="search-result" id="search-result"><p class="tip">输入关键词开始检索</p></div>
+  </div>
+</div>
+<button id="top" class="to-top" aria-label="回到顶部"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6"/><path d="M6.5 11.5L12 6l5.5 5.5"/></svg></button>
+<script>/* app.js —— 墨雪 / 墨迹拖尾 / 侧栏 / 搜索 / 列表 / 统计 / 留言板（零依赖） */
+/* 特效开关（记忆在 localStorage，可在顶栏一键关闭） */
+/* 特效常开：墨雪与墨迹一直运行（不再提供开关） */
+window.__FX = { on: true, snowResume: null, dreamResume: null };
+/* app.js —— 飘雪 / 指针流光 / 侧栏 / 搜索 / 列表渲染 / 统计 / 留言板（合并版，零依赖） */
+/* snow.js —— 飘雪氛围层（系统减少动态时自动关闭） */
+(function () {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var cv = document.getElementById('snow-canvas');
+  if (!cv) return;
+  var ctx = cv.getContext('2d'), DPR = Math.min(devicePixelRatio || 1, 2);
+  var W = 0, H = 0, flakes = [], raf = 0, running = true;
+  function resize() {
+    W = innerWidth; H = innerHeight;
+    cv.width = W * DPR; cv.height = H * DPR;
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    var n = Math.min(42, Math.round(W / 26));
+    flakes = [];
+    for (var i = 0; i < n; i++) flakes.push({
+      x: Math.random() * W, y: Math.random() * H,
+      r: 0.8 + Math.random() * 1.6, sp: 0.18 + Math.random() * 0.5,
+      sw: Math.random() * 2 - 1, o: 0.16 + Math.random() * 0.22
+    });
+  }
+  resize();
+  addEventListener('resize', resize, { passive: true });
+  function frame() {
+    if (!running) return;
+    if (window.__FX && !window.__FX.on) { ctx.clearRect(0, 0, W, H); raf = 0; return; }
+    ctx.clearRect(0, 0, W, H);
+    for (var i = 0; i < flakes.length; i++) {
+      var f = flakes[i];
+      f.y += f.sp; f.x += Math.sin((f.y + i * 20) / 60) * 0.5 + f.sw * 0.2;
+      if (f.y > H + 6) { f.y = -6; f.x = Math.random() * W; }
+      if (f.x < -6) f.x = W + 6; else if (f.x > W + 6) f.x = -6;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, 6.2832);
+      ctx.fillStyle = (document.documentElement.getAttribute('data-theme') === 'dark')
+        ? 'rgba(232,226,210,' + f.o + ')' : 'rgba(58,54,48,' + f.o + ')';
+      ctx.fill();
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  raf = requestAnimationFrame(frame);
+  if (window.__FX) window.__FX.snowResume = function () { if (running && !raf) raf = requestAnimationFrame(frame); };
+  document.addEventListener('visibilitychange', function () {
+    running = !document.hidden;
+    if (running) raf = requestAnimationFrame(frame); else cancelAnimationFrame(raf);
+  });
+})();
+/* dream.js —— 全局指针流光拖尾 + 星尘（Canvas 2D，无依赖） */
+(function () {
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var canvas = document.getElementById('dream-canvas');
+  if (!canvas || reduce) return;
+
+  var ctx = canvas.getContext('2d');
+  var DPR = Math.min(devicePixelRatio || 1, 2);
+  var W = 0, H = 0, raf = 0, last = performance.now(), idleSince = performance.now();
+  var pointer = { x: innerWidth / 2, y: innerHeight * 0.35, has: false, amt: 0 };
+  var parts = [];
+  var DARK = document.documentElement.getAttribute('data-theme') === 'dark';
+  var HALO = DARK ? ['236,230,214', '214,206,190', '190,182,166', '222,216,200']
+                  : ['58,54,48', '96,90,80', '128,120,106', '78,72,64'];
+
+  function resize() {
+    W = innerWidth; H = innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  resize();
+  addEventListener('resize', resize, { passive: true });
+
+  function spawn(n, x, y, power) {
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * Math.PI * 2, s = Math.random() * 1.1;
+      parts.push({
+        x: x + Math.cos(a) * 8, y: y + Math.sin(a) * 8,
+        vx: Math.cos(a) * s * (power || 1), vy: Math.sin(a) * s * (power || 1) - 0.25,
+        r: 6 + Math.random() * 22,
+        life: 1, decay: 0.008 + Math.random() * 0.012,
+        c: HALO[(Math.random() * HALO.length) | 0]
+      });
+    }
+    if (parts.length > 320) parts.splice(0, parts.length - 320);
+    idleSince = 0;
+  }
+
+  function move(x, y) {
+    var dx = x - pointer.x, dy = y - pointer.y, d = Math.hypot(dx, dy);
+    pointer.x = x; pointer.y = y; pointer.has = true;
+    pointer.amt = Math.min(1, pointer.amt + 0.35);
+    spawn(Math.max(1, Math.min(3, (d / 22) | 0) + 1), x, y, 1);
+    idleSince = 0;
+  }
+
+  addEventListener('pointermove', function (e) { move(e.clientX, e.clientY); }, { passive: true });
+  addEventListener('touchmove', function (e) { var t = e.touches[0]; if (t) move(t.clientX, t.clientY); }, { passive: true });
+  addEventListener('pointerdown', function (e) { spawn(18, e.clientX, e.clientY, 2.2); }, { passive: true });
+  addEventListener('pointerleave', function () { pointer.has = false; }, { passive: true });
+
+  function frame(now) {
+    if (window.__FX && !window.__FX.on) { ctx.clearRect(0, 0, W, H); raf = 0; return; }
+    var dt = Math.min(2.5, (now - last) / 16.667); last = now;
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+
+    for (var i = parts.length - 1; i >= 0; i--) {
+      var p = parts[i];
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vx *= 0.985; p.vy = p.vy * 0.985 - 0.006 * dt;
+      p.life -= p.decay * dt;
+      if (p.life <= 0) { parts.splice(i, 1); continue; }
+      var r = p.r * (1.25 - p.life * 0.5);
+      var g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+      g.addColorStop(0, 'rgba(' + p.c + ',' + (0.16 * p.life).toFixed(3) + ')');
+      g.addColorStop(0.45, 'rgba(' + p.c + ',' + (0.06 * p.life).toFixed(3) + ')');
+      g.addColorStop(1, 'rgba(' + p.c + ',0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.2832); ctx.fill();
+    }
+
+    if (pointer.has) {
+      var size = 190 + pointer.amt * 70;
+      var g2 = ctx.createRadialGradient(pointer.x, pointer.y, 0, pointer.x, pointer.y, size);
+      g2.addColorStop(0, 'rgba(' + (DARK ? '236,230,214' : '58,54,48') + ',' + (0.07 * pointer.amt).toFixed(3) + ')');
+      g2.addColorStop(0.4, 'rgba(' + (DARK ? '200,192,176' : '104,98,88') + ',' + (0.04 * pointer.amt).toFixed(3) + ')');
+      g2.addColorStop(1, 'rgba(124,92,255,0)');
+      ctx.fillStyle = g2;
+      ctx.beginPath(); ctx.arc(pointer.x, pointer.y, size, 0, 6.2832); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    pointer.amt *= 0.94;
+
+    if (!parts.length && !pointer.has) {
+      if (!idleSince) idleSince = now;
+      if (now - idleSince > 700) { raf = 0; return; }
+    }
+    raf = requestAnimationFrame(frame);
+  }
+
+  function ensure() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } }
+  if (window.__FX) window.__FX.dreamResume = function () { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
+  addEventListener('pointermove', ensure, { passive: true });
+  addEventListener('touchmove', ensure, { passive: true });
+  addEventListener('pointerdown', ensure, { passive: true });
+  addEventListener('visibilitychange', function () {
+    if (document.hidden) { cancelAnimationFrame(raf); raf = 0; } else ensure();
+  });
+
+  var lastScroll = scrollY;
+  addEventListener('scroll', function () {
+    var d = Math.abs(scrollY - lastScroll); lastScroll = scrollY;
+    if (d > 40) { spawn(1, Math.random() * W, scrollY > 0 ? H * 0.85 : H * 0.2, 0.6); ensure(); }
+  }, { passive: true });
+})();
+/* ui.js —— 侧栏 / 顶栏 / 打字机 / 搜索 / 文章列表 / 归档 / 计时 */
+(function () {
+  var SVm = function (p) { return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
+  var MG = {
+    date: SVm('<rect x="4" y="6" width="16" height="14" rx="1.5"/><path d="M4 10h16"/><path d="M8.5 4v3M15.5 4v3"/>'),
+    time: SVm('<circle cx="12" cy="12" r="7.5"/><path d="M12 7.5V12l3.2 2"/>'),
+    chars: SVm('<path d="M4 6h16M4 12h16M4 18h16"/><path d="M9 4v16"/>')
+  };
+  var CAT_ART = {
+    '授权算法': ['#efe9dd','#e3dccd','授'], '补丁改造': ['#f1ece2','#e5ded0','补'],
+    '逆向分析': ['#eee9de','#e0d9ca','逆'], '技术笔记': ['#f2eee6','#e6e0d3','笔'],
+    '安全研究': ['#f0ebe1','#e4ddce','安']
+  };
+  function catArt(c) { return CAT_ART[c] || ['#f2eee6', '#e6e0d3', '文']; }
+  var depth = document.body.getAttribute('data-depth') === '1';
+  var UP = depth ? '../' : './';
+
+  /* ---- 侧栏抽屉 ---- */
+  var side = document.getElementById('sidebar'), mask = document.getElementById('sidebar-mask');
+  function toggleSide(on) {
+    if (!side) return;
+    var willOpen = (on === undefined) ? !side.classList.contains('open') : on;
+    side.classList.toggle('open', willOpen);
+    if (mask) mask.classList.toggle('show', willOpen);
+    try { localStorage.setItem('side', willOpen ? '1' : '0'); } catch (e) {}
+  }
+  var mb = document.getElementById('menu-btn');
+  if (mb) mb.addEventListener('click', function () { toggleSide(); });
+  if (mask) mask.addEventListener('click', function () { toggleSide(false); });
+  var sc2 = document.getElementById('sidebar-close');
+  if (sc2) sc2.addEventListener('click', function () { toggleSide(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { toggleSide(false); closeSearch(); } });
+  if (location.hash === '#search') setTimeout(function () { openSearch(); }, 120);
+  if (innerWidth >= 1180) { try { if (localStorage.getItem('side') === '1') document.body.classList.add('fixed-side'); } catch (e) {} }
+
+  /* ---- 顶栏滚动变实心 ---- */
+  var header = document.getElementById('site-header');
+  var onScroll = function () {
+    if (header) header.classList.toggle('solid', scrollY > 60);
+    var t = document.getElementById('top');
+    if (t) t.classList.toggle('show', scrollY > 420);
+    var bar = document.getElementById('progress');
+    if (bar) { var h = document.body.scrollHeight - innerHeight; bar.style.width = (h > 0 ? (scrollY / h) * 100 : 0) + '%'; }
+  };
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  var topBtn = document.getElementById('top');
+  if (topBtn) topBtn.addEventListener('click', function () { scrollTo({ top: 0, behavior: 'smooth' }); });
+
+  /* ---- 主题 ---- */
+  var root = document.documentElement, tb = document.getElementById('theme-btn');
+  var cur = localStorage.getItem('theme');
+  if (cur) root.dataset.theme = cur;
+  var paint = function () { if (tb) tb.textContent = root.dataset.theme === 'dark' ? '纸' : '墨'; };
+  paint();
+  if (tb) tb.addEventListener('click', function () {
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', root.dataset.theme); paint();
+  });
+
+  /* ---- 打字机 ---- */
+  var typed = document.getElementById('typed');
+  if (typed) {
+    var lines = (typed.getAttribute('data-lines') || '').split('|').filter(Boolean);
+    var li = 0, ci = 0, del = false;
+    (function tick() {
+      var s = lines[li] || '';
+      typed.textContent = del ? s.slice(0, ci--) : s.slice(0, ci++);
+      var wait = del ? 45 : 105;
+      if (!del && ci > s.length + 6) { del = true; wait = 1400; }
+      if (del && ci < 0) { del = false; li = (li + 1) % lines.length; wait = 320; }
+      setTimeout(tick, wait);
+    })();
+  }
+
+  /* ---- 数据：文章清单 ---- */
+  var posts = window.__POSTS || [];
+  function loadPosts(cb) { cb(posts); }
+
+  /* ---- 首页列表 + 分类筛选 ---- */
+  var list = document.getElementById('post-list');
+  if (list) {
+    var strip = document.getElementById('cat-strip');
+    var empty = document.getElementById('list-empty');
+    var Q = (typeof URLSearchParams === 'function') ? new URLSearchParams(location.search) : { get: function () { return null; } };
+    var fCat = Q.get('cat') || '', fTag = Q.get('tag') || '';
+    loadPosts(function (all) {
+      var cats = {};
+      all.forEach(function (p) { cats[p.category] = (cats[p.category] || 0) + 1; });
+      if (strip) {
+        var html = '<button class="cat-pill' + (!fCat && !fTag ? ' on' : '') + '" data-cat="">全部 <b>' + all.length + '</b></button>';
+        Object.keys(cats).forEach(function (c) {
+          html += '<button class="cat-pill' + (fCat === c ? ' on' : '') + '" data-cat="' + c + '">' + c + ' <b>' + cats[c] + '</b></button>';
+        });
+        strip.innerHTML = html;
+        strip.addEventListener('click', function (e) {
+          var b = e.target.closest ? e.target.closest('.cat-pill') : null;
+          if (!b) return;
+          [].forEach.call(strip.querySelectorAll('.cat-pill'), function (x) { x.classList.remove('on'); });
+          b.classList.add('on');
+          if (history.replaceState) history.replaceState(null, '', location.pathname);
+          var fb = document.getElementById('filter-bar'); if (fb) fb.parentNode.removeChild(fb);
+          render(b.getAttribute('data-cat'), '');
+        });
+      }
+      if ((fCat || fTag) && strip && strip.parentNode) {
+        var bar = document.createElement('div');
+        bar.className = 'filter-bar';
+        bar.id = 'filter-bar';
+        bar.innerHTML = '当前筛选：<b>' + (fCat ? '分类 · ' + fCat : '标签 · #' + fTag) + '</b>' +
+          '　<a href="' + UP + 'index.html">清除 ×</a>';
+        strip.parentNode.insertBefore(bar, strip);
+      }
+      render(fCat, fTag);
+      function render(cat, tag) {
+        var arr = all.filter(function (p) {
+          if (cat && p.category !== cat) return false;
+          if (tag && (p.tags || []).indexOf(tag) < 0) return false;
+          return true;
+        });
+        var filtered = !!(cat || tag);
+        if (!arr.length) {
+          list.innerHTML = '';
+          if (empty) { empty.hidden = false; empty.textContent = filtered ? '这个筛选下还没有文章' : '没有找到匹配的文章'; }
+          return;
+        }
+        if (empty) empty.hidden = true;
+        list.innerHTML = arr.map(function (p, i) {
+          return '<article class="post-card' + (i === 0 && !filtered ? ' hero-card' : '') + '">' +
+            '<a class="card-img" href="' + UP + 'posts/' + p.slug + '.html">' +
+            '<span class="cover-grad" style="background-image:url(' + p.cover + ')"><i class="cover-swords"></i></span>' +
+            '<span class="cat-badge">' + p.category + '</span></a>' +
+            '<div class="card-body"><h2><a href="' + UP + 'posts/' + p.slug + '.html">' + p.title + '</a></h2>' +
+            '<p class="excerpt">' + p.desc + '</p>' +
+            '<div class="card-meta"><span class="author">ZY</span>' +
+            '<span>' + MG.date + p.date + '</span><span>' + MG.time + '约 ' + p.readMins + ' 分钟</span><span>' + MG.chars + p.chars + ' 字</span></div>' +
+            '<div class="card-tags">' + (p.tags || []).map(function (t, k) {
+              return '<a class="tag-pill' + (k % 2 ? ' alt' : '') + '" href="' + UP + 'index.html?tag=' + encodeURIComponent(t) + '">#' + t + '</a>';
+            }).join('') + '</div></div></article>';
+        }).join('');
+      }
+    });
+  }
+
+  /* ---- 归档时间轴 ---- */
+  var tl = document.getElementById('timeline');
+  if (tl) {
+    loadPosts(function (all) {
+      var c = document.getElementById('archive-count');
+      if (c) c.textContent = '共 ' + all.length + ' 篇文章';
+      var byYear = {};
+      all.forEach(function (p) { (byYear[p.date.slice(0, 4)] = byYear[p.date.slice(0, 4)] || []).push(p); });
+      var out = '';
+      Object.keys(byYear).sort().reverse().forEach(function (y) {
+        out += '<h2 style="margin:26px 0 6px;font-size:20px">' + y + ' 年 <span class="tip" style="font-size:13px">（' + byYear[y].length + ' 篇）</span></h2>';
+        byYear[y].forEach(function (p) {
+          out += '<div class="tl-item"><div class="tl-date">' + p.date + ' · ' + p.category + '</div>' +
+            '<a class="tl-title" href="' + UP + 'posts/' + p.slug + '.html">' + p.title + '</a></div>';
+        });
+      });
+      tl.innerHTML = out || '<p class="tip center">还没有文章</p>';
+    });
+  }
+
+  /* ---- 标签墙 / 分类墙 ---- */
+  var tagWall = document.getElementById('tag-wall'), catWall = document.getElementById('cat-wall');
+  if (tagWall || catWall) {
+    loadPosts(function (all) {
+      var tags = {}, cats = {};
+      all.forEach(function (p) {
+        (p.tags || []).forEach(function (t) { tags[t] = (tags[t] || 0) + 1; });
+        cats[p.category] = (cats[p.category] || 0) + 1;
+      });
+      var paintWall = function (el, obj, kind) {
+        if (!el) return;
+        el.innerHTML = Object.keys(obj).sort(function (a, b) { return obj[b] - obj[a]; }).map(function (k) {
+          var href = UP + 'index.html?' + kind + '=' + encodeURIComponent(k);
+          var label = (kind === 'tag') ? '#' + k : k;
+          return '<a class="wall-item" href="' + href + '"><span>' + label + '</span><span class="count">' + obj[k] + '</span></a>';
+        }).join('');
+      };
+      paintWall(tagWall, tags, 'tag');
+      paintWall(catWall, cats, 'cat');
+    });
+  }
+
+  /* ---- 搜索弹窗（显式 style 控制，避免 hidden 失效导致遮挡）---- */
+  var modal = document.getElementById('search-modal'), input = document.getElementById('search-input'),
+      result = document.getElementById('search-result');
+  function toggleSearch(on) {
+    if (!modal) return;
+    var show = (on === undefined) ? (modal.style.display !== 'block') : on;
+    modal.style.display = show ? 'block' : 'none';
+    modal.hidden = !show;
+    document.body.classList.toggle('modal-open', show);
+    if (show) {
+      if (input) { input.value = ''; setTimeout(function () { input.focus(); }, 30); }
+      if (result) result.innerHTML = '<p class="tip">输入关键词开始检索</p>';
+      if (history.replaceState) history.replaceState(null, '', location.pathname + '#search');
+    } else if (location.hash === '#search' && history.replaceState) {
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+  }
+  function openSearch() { toggleSearch(true); }
+  function closeSearch() { toggleSearch(false); }
+  var sb = document.getElementById('search-btn');
+  if (sb) sb.addEventListener('click', openSearch);
+  var sc = document.getElementById('search-close');
+  if (sc) sc.addEventListener('click', closeSearch);
+  if (modal) modal.addEventListener('click', function (e) { if (e.target === modal) closeSearch(); });
+  if (result) result.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a.sr-item') : null;
+    if (a) closeSearch();            // 允许默认跳转，仅关闭弹窗
+  });
+  if (input) input.addEventListener('input', function () {
+    var kw = input.value.trim().toLowerCase();
+    if (!kw) { result.innerHTML = '<p class="tip">输入关键词检索全部文章…</p>'; return; }
+    loadPosts(function (all) {
+      var hit = all.filter(function (p) {
+        return (p.title + p.desc + (p.tags || []).join(' ') + p.category).toLowerCase().indexOf(kw) > -1;
+      });
+      result.innerHTML = hit.length ? hit.map(function (p) {
+        return '<a class="sr-item" href="' + UP + 'posts/' + p.slug + '.html"><div class="sr-t">' + p.title +
+          '</div><div class="sr-d">' + p.date + ' · ' + p.category + ' · ' + p.desc + '</div></a>';
+      }).join('') : '<p class="tip">没有匹配的文章</p>';
+    });
+  });
+
+  /* ---- 页脚运行时间 ---- */
+  var rt = document.getElementById('runtime');
+  if (rt) {
+    var start = new Date(rt.getAttribute('data-start') + 'T00:00:00');
+    (function up() {
+      var d = Date.now() - start.getTime();
+      var day = Math.floor(d / 864e5), h = Math.floor(d % 864e5 / 36e5), m = Math.floor(d % 36e5 / 6e4), s = Math.floor(d % 6e4 / 1000);
+      rt.textContent = day + ' 天 ' + h + ' 小时 ' + m + ' 分 ' + s + ' 秒';
+      setTimeout(up, 1000);
+    })();
+  }
+})();
+/* main.js —— 访问统计 / 留言板 / year / 进度条兜底 */
+(function () {
+  var y = document.getElementById('year'), y2 = document.getElementById('year2');
+  if (y) y.textContent = new Date().getFullYear();
+  if (y2) y2.textContent = new Date().getFullYear();
+
+  /* ---- 真实统计：不蒜子（busuanzi）---- */
+  var pe = document.getElementById('visit-pv'), ue = document.getElementById('visit-uv');
+  function busuanzi() {
+    var pv = document.getElementById('busuanzi_value_site_pv');
+    var uv = document.getElementById('busuanzi_value_site_uv');
+    var ok = false;
+    if (pv && /^\d/.test(pv.textContent || '')) { pe.textContent = (+pv.textContent).toLocaleString() + ' 次'; ok = true; }
+    if (uv && /^\d/.test(uv.textContent || '')) { ue.textContent = (+uv.textContent).toLocaleString() + ' 人'; ok = true; }
+    return ok;
+  }
+  var bs = document.createElement('script');
+  bs.async = true;
+  bs.src = 'https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js';
+  bs.onload = function () { setTimeout(busuanzi, 900); setTimeout(function () { if (!busuanzi()) fallback(); }, 3200); };
+  bs.onerror = function () { fallback(); };
+  document.head.appendChild(bs);
+  setTimeout(function () { if (!busuanzi()) fallback(); }, 4500);   // 脚本被墙/超时兜底
+  function fallback() {
+    try {
+      var n = parseInt(localStorage.getItem('felix_pv') || '0', 10) + 1;
+      localStorage.setItem('felix_pv', String(n));
+      if (pe) pe.textContent = '—';
+      if (ue) ue.textContent = '—';
+    } catch (e) { if (pe) pe.textContent = '—'; if (ue) ue.textContent = '—'; }
+  }
+
+  /* ---- 在线留言 ---- */
+  var ut = document.getElementById('ut-box');
+  if (ut) {
+    var sc = document.createElement('script');
+    sc.src = 'https://utteranc.es/client.js';
+    sc.setAttribute('repo', 'JM-919/jm-919.github.io');
+    sc.setAttribute('issue-term', 'pathname');
+    sc.setAttribute('theme', document.documentElement.getAttribute('data-theme') === 'dark' ? 'github-dark' : 'github-light');
+    sc.setAttribute('crossorigin', 'anonymous');
+    sc.async = true;
+    sc.onerror = function () { var f = document.getElementById('ut-fallback'); if (f) f.hidden = false; };
+    ut.appendChild(sc);
+    setTimeout(function () { if (!ut.querySelector('iframe')) { var f = document.getElementById('ut-fallback'); if (f) f.hidden = false; } }, 7000);
+  }
+
+  /* ---- 留言板（本地）---- */
+  var form = document.getElementById('msg-form');
+  if (form) {
+    var KEY = 'felix_msgs';
+    var read = function () { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } };
+    var wrap = document.getElementById('msg-list');
+    function paint() {
+      var list = read();
+      if (!wrap) return;
+      wrap.innerHTML = list.length ? list.map(function (m) {
+        return '<div class="msg-item"><span class="who">' + m.who + '</span><span class="when">' + m.when +
+          '</span><p style="margin:6px 0 0">' + m.text.replace(/</g, '&lt;') + '</p></div>';
+      }).join('') : '<p class="tip center">还没有留言，来做第一个吧</p>';
+    }
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var who = (document.getElementById('msg-who').value || '').trim() || '匿名同学';
+      var text = (document.getElementById('msg-text').value || '').trim();
+      if (!text) return;
+      var list = read();
+      list.unshift({ who: who, text: text, when: new Date().toLocaleString() });
+      localStorage.setItem(KEY, JSON.stringify(list.slice(0, 50)));
+      document.getElementById('msg-text').value = '';
+      paint();
+    });
+    paint();
+  }
+
+  /* ---- 首页 banner 底部"回到顶部"图标 ---- */
+  var bt = document.getElementById('banner-top');
+  if (bt) bt.addEventListener('click', function (e) { e.preventDefault(); scrollTo({ top: 0, behavior: 'smooth' }); });
+})();</script>
 </body>
 </html>
