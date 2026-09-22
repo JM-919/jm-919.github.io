@@ -1,37 +1,47 @@
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Markdown 演示 · 秋秋小窝</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Markdown 演示 · Felix</title>
+<meta name="description" content="梦幻流光 · 记录代码与折腾的小站">
+<meta name="theme-color" content="#0b0716">
 <link rel="stylesheet" href="../assets/css/style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
 </head>
 <body>
-<div class="progress" id="progress"></div><div class="aurora"></div>
+<div class="progress" id="progress"></div>
+<div class="aurora"></div>
+<div class="stars"></div>
+<canvas id="dream-canvas"></canvas>
 <header class="nav glass">
-  <a class="brand" href="../">⚡ <span>秋秋小窝</span></a>
-  <nav><a href="../">首页</a><a href="../archive.html">归档</a><a href="../about.html">关于</a>
-  <button id="theme-btn" class="icon-btn" aria-label="切换主题">🌙</button></nav>
+  <a class="brand" href="../"><span>Felix</span></a>
+  <nav>
+    <a href="../">首页</a>
+    <a href="../archive.html">归档</a>
+    <a href="../about.html">关于</a>
+    <button id="theme-btn" class="icon-btn" aria-label="切换主题">🌙</button>
+  </nav>
 </header>
 <main><article class="post">
-
 <a class="back" href="../">← 返回首页</a>
-<h1>Markdown 排版与代码高亮演示</h1>
+<h1>Markdown 排版与代码展示</h1>
 <p class="meta" style="color:var(--muted)">2026-01-02 · 3 分钟</p>
 <h2>代码块</h2>
 <pre><code>function greet(name) {
   return "Hello, " + name + "!";
 }
-console.log(greet("秋秋"));</code></pre>
+console.log(greet("Felix"));</code></pre>
 <h2>引用</h2>
-<blockquote>好的排版让读者愿意多停留 30 秒。</blockquote>
+<blockquote>排版是留白，流光让页面有呼吸感。</blockquote>
 <h2>列表</h2>
 <ul><li>无序项一</li><li>无序项二<ul><li>嵌套项</li></ul></li></ul>
 <h2>行内元素</h2>
 <p>这是 <strong>加粗</strong>、<em>斜体</em>、<code>行内代码</code> 与 <a href="#">链接</a>。</p>
-
 </article></main>
-<footer class="footer"><p>© <span id="year"></span> 秋秋 · Powered by GitHub Pages</p></footer>
+<footer class="footer"><p>© <span id="year"></span> Felix · Powered by GitHub Pages</p></footer>
 <button id="top" class="icon-btn top" aria-label="回到顶部">↑</button>
 <script src="../assets/js/main.js"></script>
-</body></html>
+<script src="../assets/js/dream.js"></script>
+</body>
+</html>
