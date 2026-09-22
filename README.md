@@ -1,4 +1,4 @@
-# PH_BLOG_TITLE
+# 秋秋小窝
 
 零依赖、可直接部署到 GitHub Pages 的静态博客。
 
@@ -14,13 +14,19 @@
 ```bash
 git init && git add . && git commit -m "init blog"
 git branch -M main
-git remote add origin https://github.com/TARGET_USER/TARGET_USER.github.io.git
+git remote add origin https://github.com/JM-919/jm-919.github.io.git
 git push -u origin main
 ```
 Settings → Pages → Source: main / (root)。
 
 ## 个性化
-全局替换占位符：PH_BLOG_TITLE、PH_BLOG_DESC、ROLE_A、TARGET_USER、xxx@xxx.com。
+本地一键替换（站名 / 描述 / 作者名 / GitHub 用户名 / 邮箱）：
+
+```bash
+bash personalize.sh "秋秋小窝" "记录代码、折腾与灵感的小站" "秋秋" "JM-919" "xyxf13@gmail.com"
+```
+
+当前站点：**秋秋小窝** · 作者 **秋秋** · 账号 [JM-919](https://github.com/JM-919) · xyxf13@gmail.com
 
 ## 目录
 index.html / archive.html / about.html / posts/ / assets/css/style.css / assets/js/main.js
