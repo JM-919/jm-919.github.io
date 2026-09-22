@@ -20,7 +20,7 @@ git push -u origin main
 Settings → Pages → Source: main / (root)。
 
 ## 个性化
-全局替换占位符：PH_BLOG_TITLE、PH_BLOG_DESC、ROLE_A、TARGET_USER、EMAIL@example.com。
+全局替换占位符：PH_BLOG_TITLE、PH_BLOG_DESC、ROLE_A、TARGET_USER、xxx@xxx.com。
 
 ## 目录
 index.html / archive.html / about.html / posts/ / assets/css/style.css / assets/js/main.js
