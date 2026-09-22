@@ -1,24 +1,70 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <title>Document</title>
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
-  <meta name="description" content="Description">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
-  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PH_BLOG_TITLE</title>
+<meta name="description" content="PH_BLOG_DESC">
+<link rel="stylesheet" href="./assets/css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 </head>
 <body>
-  <div id="app"></div>
-  <script>
-    window.$docsify = {
-      name: '',
-      repo: '',
-      coverpage:true,
-      loadNavbar:true
-    }
-  </script>
-  <!-- Docsify v4 -->
-  <script src="//cdn.jsdelivr.net/npm/docsify@4"></script>
+<div class="progress" id="progress"></div>
+<div class="aurora"></div>
+<header class="nav glass">
+  <a class="brand" href="./">⚡ <span>PH_BLOG_TITLE</span></a>
+  <nav>
+    <a href="./">首页</a>
+    <a href="./archive.html">归档</a>
+    <a href="./about.html">关于</a>
+    <button id="theme-btn" class="icon-btn" aria-label="切换主题">🌙</button>
+  </nav>
+</header>
+<main>
+  <section class="hero">
+    <div class="avatar">⚡</div>
+    <h1 class="hero-title">你好，我是 <em>ROLE_A</em></h1>
+    <p class="hero-sub">记录代码、折腾与灵感。这里是我的数字花园 🌱</p>
+    <div class="tags">
+      <span class="chip">#Android</span><span class="chip">#Node</span>
+      <span class="chip">#逆向</span><span class="chip">#折腾</span>
+    </div>
+  </section>
+  <section class="search-bar">
+    <input id="q" type="search" placeholder="搜索文章…" autocomplete="off">
+  </section>
+  <section class="grid" id="posts">
+    <a class="card glass" href="./posts/hello-world.html" data-title="从零搭建一个漂亮的 GitHub Pages 博客">
+      <div class="card-cover" style="--g1:#7c5cff;--g2:#22d3ee">⚡</div>
+      <div class="card-body">
+        <h2>从零搭建一个漂亮的 GitHub Pages 博客</h2>
+        <p>用最少的依赖，做一个有设计感的静态站点。</p>
+        <div class="meta"><time>2026-01-01</time><span>·</span><span>5 分钟</span></div>
+      </div>
+    </a>
+    <a class="card glass" href="./posts/markdown-demo.html" data-title="Markdown 排版与代码高亮演示">
+      <div class="card-cover" style="--g1:#f472b6;--g2:#f59e0b">✍️</div>
+      <div class="card-body">
+        <h2>Markdown 排版与代码高亮演示</h2>
+        <p>标题、引用、表格、代码块一网打尽。</p>
+        <div class="meta"><time>2026-01-02</time><span>·</span><span>3 分钟</span></div>
+      </div>
+    </a>
+    <a class="card glass" href="./posts/theme-tips.html" data-title="让博客好看 10 倍的 CSS 小技巧">
+      <div class="card-cover" style="--g1:#34d399;--g2:#3b82f6">🎨</div>
+      <div class="card-body">
+        <h2>让博客好看 10 倍的 CSS 小技巧</h2>
+        <p>渐变、玻璃拟态、动效与暗黑模式。</p>
+        <div class="meta"><time>2026-01-03</time><span>·</span><span>4 分钟</span></div>
+      </div>
+    </a>
+  </section>
+  <p class="empty" id="empty" hidden>没有匹配的文章 🤔</p>
+</main>
+<footer class="footer">
+  <p>© <span id="year"></span> ROLE_A · Powered by GitHub Pages</p>
+</footer>
+<button id="top" class="icon-btn top" aria-label="回到顶部">↑</button>
+<script src="./assets/js/main.js"></script>
 </body>
 </html>
