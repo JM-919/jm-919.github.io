@@ -1,44 +1,1122 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Safengine Shielden 2.4 —— 验证服务器地址解剖报告 · Felix</title>
-<meta name="description" content="分析环境：aarch64 / Android，无 wine / mono / mysql / php / docker。&amp;lt;br&amp;gt;Shield…">
-<meta name="theme-color" content="#0b0716">
-<link rel="stylesheet" href="../assets/css/style.css">
+<title>Safengine Shielden 2.4 —— 验证服务器地址解剖报告 · ZY驿站</title>
+<meta name="description" content="代码 · 逆向 · 一直在路上">
+<meta name="theme-color" content="#f6f3ec">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="robots" content="noindex, nofollow, noarchive">
-<link rel="robots" href="../robots.txt">
-<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%225%22%20fill%3D%22%239d2933%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2245%22%20font-family%3D%22STKaiti%2CKaiTi%2CGeorgia%2Cserif%22%20font-size%3D%2238%22%20text-anchor%3D%22middle%22%20fill%3D%22%23fdfaf4%22%3EZ%3C%2Ftext%3E%3C%2Fsvg%3E">
+<style>/* ZY · 古典水墨主题 */
+:root{
+  --bg:#0b0716; --bg2:#150c2b;
+  --panel:rgba(255,255,255,.06); --panel2:rgba(255,255,255,.10);
+  --line:rgba(216,180,254,.18);
+  --fg:#f3ecff; --muted:#b9a8d8;
+  --p1:#9d2933; --p2:#9d2933; --p3:#7d776c; --p4:#e6e0d3;
+  --brand:#9d2933; --brand2:#7d776c;
+  --radius:20px;
+  --shadow:0 18px 50px rgba(88,28,135,.45);
+  --glow:0 22px 60px rgba(240,171,252,.28);
+}
+html[data-theme="light"]{
+  --bg:#fdf7ff; --bg2:#f3e8ff;
+  --panel:rgba(255,255,255,.72); --panel2:rgba(255,255,255,.9);
+  --line:rgba(139,92,246,.18);
+  --fg:#2c1e45; --muted:#6d5a95;
+  --shadow:0 16px 40px rgba(139,92,246,.18);
+  --glow:0 20px 50px rgba(236,72,153,.18);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);overflow-x:hidden;
+  font:16px/1.8 -apple-system,"PingFang SC","Noto Sans SC",system-ui,sans-serif}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;border-radius:16px}
+::selection{background:rgba(240,171,252,.35)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--p1),var(--p2));border-radius:9px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* 流光画布：全局跟随鼠标/手指 */
+#dream-canvas{position:fixed;inset:0;z-index:60;pointer-events:none;mix-blend-mode:screen}
+html[data-theme="light"] #dream-canvas{mix-blend-mode:multiply;opacity:.75}  to{transform:translate3d(4%,-5%,0) scale(1.14)}
+}to{opacity:.9}}
+.glass{background:var(--panel);backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);
+  border:1px solid var(--line)}
+.progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:99;
+  background:linear-gradient(90deg,var(--p1),var(--p2),var(--p3));transition:width .1s linear;
+  box-shadow:0 0 14px rgba(240,171,252,.7)}
+
+.nav{position:sticky;top:0;z-index:70;display:flex;align-items:center;justify-content:space-between;
+  padding:12px 22px;border-left:0;border-right:0;border-top:0;border-radius:0}
+.brand{font-weight:800;letter-spacing:.4px;display:flex;gap:8px;align-items:center;white-space:nowrap}
+.brand span{background:linear-gradient(90deg,var(--p2),var(--p1),var(--p3));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.nav nav{display:flex;gap:6px;align-items:center}
+.nav nav a{padding:7px 13px;border-radius:999px;color:var(--muted);transition:.25s}
+.nav nav a:hover{color:var(--fg);background:var(--panel2);box-shadow:0 0 18px rgba(240,171,252,.35)}
+.icon-btn{border:1px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer;
+  border-radius:999px;width:38px;height:38px;font-size:16px;line-height:1;transition:.25s}
+.icon-btn:hover{transform:translateY(-2px);border-color:var(--p2);box-shadow:0 0 22px rgba(240,171,252,.45)}
+
+main{max-width:1040px;margin:0 auto;padding:0 20px 60px}
+.hero{text-align:center;padding:74px 0 34px}
+@keyframes bob{50%{transform:translateY(-12px) rotate(2deg)}}
+.hero-title{font-size:clamp(26px,5.4vw,44px);margin:0 0 10px;line-height:1.3;font-weight:800}
+.hero-title em{font-style:normal;
+  background:linear-gradient(100deg,var(--p2),var(--p1) 45%,var(--p3));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 24px rgba(240,171,252,.55))}
+.hero-sub{color:var(--muted);margin:0 0 18px}
+.tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.chip{font-size:13px;padding:4px 13px;border-radius:999px;border:1px solid var(--line);
+  color:var(--muted);background:var(--panel);transition:.25s}
+.chip:hover{color:var(--fg);border-color:var(--p2);box-shadow:0 0 18px rgba(240,171,252,.4);transform:translateY(-2px)}
+
+.search-bar{margin:10px auto 28px;max-width:520px}
+.search-bar input{width:100%;padding:13px 18px;border-radius:999px;border:1px solid var(--line);
+  background:var(--panel);color:var(--fg);outline:none;font-size:15px;transition:.25s}
+.search-bar input::placeholder{color:var(--muted)}
+.search-bar input:focus{border-color:var(--p2);box-shadow:0 0 0 4px rgba(240,171,252,.18),0 0 30px rgba(167,139,250,.35)}
+
+.grid{display:grid;gap:22px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.card{position:relative;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);
+  transition:.35s cubic-bezier(.2,.7,.3,1);display:flex;flex-direction:column;isolation:isolate}
+.card::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;opacity:0;transition:.35s;
+  background:linear-gradient(120deg,var(--p2),var(--p1),var(--p3));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.card:hover{transform:translateY(-8px) scale(1.012);box-shadow:var(--glow)}
+.card:hover::after{opacity:1}
+.card-cover{height:136px;display:grid;place-items:center;font-size:46px;position:relative;
+  background:linear-gradient(135deg,var(--g1),var(--g2))}
+.card-cover::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(60% 60% at 70% 20%,rgba(255,255,255,.35),transparent 70%)}
+.card-body{padding:18px 18px 16px}
+.card h2{font-size:18px;margin:0 0 8px;line-height:1.45}
+.card p{color:var(--muted);font-size:14px;margin:0 0 12px}
+.meta{display:flex;gap:8px;color:var(--muted);font-size:13px}
+
+article.post{position:relative;max-width:780px;margin:0 auto;padding:44px 0 20px}
+article.post h1{font-size:clamp(24px,4.6vw,36px);line-height:1.32;
+  background:linear-gradient(100deg,var(--p2),var(--p1),var(--p3));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+article.post h2{margin-top:38px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+article.post h2::before{content:"▍ ";color:var(--p2)}
+article.post blockquote{margin:18px 0;padding:12px 18px;border-left:3px solid var(--p2);
+  background:var(--panel);border-radius:0 14px 14px 0;color:var(--muted)}
+article.post pre{background:rgba(11,7,22,.86);color:#f3ecff;border:1px solid var(--line);
+  border-radius:16px;padding:16px;overflow:auto;box-shadow:0 12px 36px rgba(88,28,135,.4)}
+article.post code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px}
+article.post :not(pre) > code{background:var(--panel2);padding:2px 7px;border-radius:7px;border:1px solid var(--line)}
+article.post table{width:100%;border-collapse:collapse;margin:18px 0}
+article.post th,article.post td{border:1px solid var(--line);padding:9px 12px;text-align:left}
+article.post th{background:var(--panel)}
+.back{display:inline-block;margin-bottom:8px;color:var(--muted);transition:.25s}
+.back:hover{color:var(--p2);transform:translateX(-3px)}
+.footer{text-align:center;color:var(--muted);font-size:14px;padding:44px 20px}
+.top{position:fixed;right:18px;bottom:22px;opacity:0;pointer-events:none;transition:.25s;
+  background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:0;
+  box-shadow:0 12px 34px rgba(240,171,252,.5)}
+.top.show{opacity:1;pointer-events:auto}
+.empty{text-align:center;color:var(--muted)}
+
+@media (max-width:560px){
+  .nav{padding:10px 14px}
+  .nav nav a{padding:6px 8px;font-size:14px}
+  .hero{padding:46px 0 24px}
+}
+@media (prefers-reduced-motion: reduce){  .card:hover{transform:none}
+}
+/* ================= VARIABLE FALLBACK（主题层兜底，勿删）================= */
+:root{--bg:#0b1220;--bg2:#111a2e;--panel:rgba(255,255,255,.06);--panel2:rgba(255,255,255,.1);
+  --line:rgba(255,255,255,.14);--fg:#eef2ff;--muted:#a8b3cf;--p1:#9d2933;--p2:#9d2933;--p3:#7d776c;--p4:#e6e0d3;
+  --radius:16px;--shadow:0 14px 40px rgba(8,10,30,.45);--glow:0 18px 50px rgba(167,139,250,.35)}
+/* ==================== 主题层（布局 / 组件）==================== */
+/* ================= ZY博客 · 主题层（布局 / 组件）================= */
+
+/* ---------- 顶部导航 ---------- */
+.site-header{position:fixed;top:0;left:0;right:0;z-index:80;display:flex;align-items:center;gap:12px;
+  padding:9px 16px;transition:.35s cubic-bezier(.2,.7,.3,1);color:#fff}
+.site-header.solid{background:linear-gradient(90deg,var(--p1),var(--p3));box-shadow:0 6px 24px rgba(30,27,75,.35);
+  backdrop-filter:blur(10px)}
+.site-header .menu-btn{display:inline-flex;flex-direction:column;gap:4px;padding:8px;border-radius:10px;transition:.25s}
+.site-header .menu-btn i{display:block;width:20px;height:2px;background:currentColor;border-radius:2px;transition:.25s}
+.site-header .menu-btn:hover{background:rgba(255,255,255,.18)}
+.site-header .menu-btn:hover i:nth-child(1){width:14px}
+.site-header .menu-btn:hover i:nth-child(3){width:26px}
+.header-brand{font-size:19px;font-weight:800;letter-spacing:.5px;display:flex;align-items:center;gap:8px;
+  text-shadow:0 2px 12px rgba(0,0,0,.35)}
+.brand-dot{width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 0 12px #fff}
+.header-icons{margin-left:auto;display:flex;gap:6px;align-items:center}
+.header-icons a{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:17px;
+  transition:.25s;background:rgba(255,255,255,.10)}
+.header-icons a:hover{background:rgba(255,255,255,.28);transform:translateY(-2px)}
+
+/* ---------- 侧栏 ---------- */
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:288px;z-index:95;background:var(--bg2);
+  border-right:1px solid var(--line);transform:translateX(-102%);transition:transform .38s cubic-bezier(.2,.7,.3,1);
+  overflow-y:auto;box-shadow:12px 0 40px rgba(0,0,0,.35)}
+.sidebar.open{transform:none}
+.sidebar-mask{position:fixed;inset:0;z-index:90;background:rgba(6,4,18,.55);opacity:0;pointer-events:none;transition:.3s}
+.sidebar-mask.show{opacity:1;pointer-events:auto}
+.sidebar-profile{padding:26px 22px 20px;text-align:center;
+  background:linear-gradient(160deg,var(--p1),var(--p3))}
+.scroll-hint{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:3;
+  width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:26px;
+  border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.08);animation:hintBounce 2s ease-in-out infinite}
+.scroll-hint:hover{background:#fff;color:#2c1e45}
+@keyframes hintBounce{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,10px)}}
+.sidebar-profile h3{margin:14px 0 6px;color:#fff;font-size:20px;letter-spacing:.5px}
+.sidebar-profile p{margin:0;color:rgba(255,255,255,.9);font-size:13px}
+.sidebar-menu{padding:12px 0 40px}
+.sidebar-menu a{display:flex;align-items:center;gap:14px;padding:12px 22px;color:var(--muted);
+  font-size:15px;transition:.22s;border-left:3px solid transparent}
+.sidebar-menu a:hover,.sidebar-menu a.active{color:var(--fg);background:var(--panel);
+  border-left-color:var(--p2);padding-left:30px}
+.sidebar-menu .mi{font-size:17px;width:22px;text-align:center}
+
+/* ---------- 首页 banner ---------- */
+.banner{position:relative;min-height:clamp(200px,30vh,300px);display:grid;place-items:center;overflow:hidden;isolation:isolate}
+.banner-media{position:absolute;inset:0;z-index:-2;
+  background-image:var(--bg-img);background-size:cover;background-position:center;
+  animation:kenburns 26s ease-in-out infinite alternate}
+@keyframes kenburns{from{transform:scale(1)}to{transform:scale(1.12) translateY(-1.5%)}}
+.banner::after{content:"";position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(180deg,rgba(10,12,30,.45),rgba(10,12,30,.62) 55%,rgba(10,12,30,.82))}
+.banner-inner{text-align:center;color:#fff;padding:72px 16px 52px;width:100%}
+.banner-inner h1{margin:0 0 8px;font-size:clamp(25px,6.4vw,40px);font-weight:900;letter-spacing:.06em;
+  text-shadow:0 6px 30px rgba(0,0,0,.5)}
+.typed-wrap{min-height:24px;font-size:clamp(12.5px,3.2vw,16px);color:rgba(255,255,255,.94);letter-spacing:.04em}
+.typed-cursor{display:inline-block;width:10px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.banner-btns{margin-top:14px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-round{min-width:106px;padding:9px 18px;font-size:13.5px;border-radius:999px;border:1px solid rgba(255,255,255,.75);
+  color:#fff;font-size:15px;letter-spacing:.08em;transition:.28s;backdrop-filter:blur(6px);
+  background:rgba(255,255,255,.08)}
+.btn-round:hover{background:#fff;color:#2c1e45;transform:translateY(-3px);box-shadow:0 14px 34px rgba(0,0,0,.3)}
+.banner-social{position:absolute;left:0;right:0;bottom:26px;display:flex;gap:20px;justify-content:center;color:rgba(255,255,255,.9)}
+.banner-social a{font-size:19px;opacity:.85;transition:.25s}
+.banner-social a:hover{opacity:1;transform:translateY(-3px)}
+/* ---------- 主体容器 ---------- */
+.container{width:100%;max-width:1080px;margin:0 auto;padding:0 18px}
+.page-main{padding:12px 16px 40px;position:relative;z-index:2}
+.page-head{text-align:center;margin:6px 0 18px}
+.page-head h1{font-size:clamp(24px,5vw,36px);margin:0 0 8px}
+.page-head .tip{color:var(--muted);margin:0}
+
+/* ---------- 分类条 ---------- */
+.cat-strip{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;margin:0 0 12px;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.cat-strip::-webkit-scrollbar{display:none}
+.cat-pill{white-space:nowrap;flex:0 0 auto}
+.cat-pill{padding:6px 15px;border-radius:999px;border:1px solid var(--line);background:var(--panel);
+  color:var(--muted);font-size:14px;cursor:pointer;transition:.25s}
+.cat-pill:hover{color:var(--fg);border-color:var(--p2);transform:translateY(-2px)}
+.cat-pill.on{color:#fff;background:linear-gradient(90deg,var(--p1),var(--p3));border-color:transparent;
+  box-shadow:0 10px 26px rgba(167,139,250,.4)}
+
+/* ---------- 文章卡片 ---------- */
+.post-list{display:grid;gap:14px}
+.post-card{display:grid;grid-template-columns:1fr;border-radius:16px;overflow:hidden;background:var(--panel);
+  border:1px solid var(--line);box-shadow:var(--shadow);transition:.35s cubic-bezier(.2,.7,.3,1)}
+.post-card:hover{transform:translateY(-6px);box-shadow:var(--glow)}
+.post-card .card-img{position:relative;display:block;height:150px;aspect-ratio:16/9;overflow:hidden;background:linear-gradient(135deg,var(--p1),var(--p3))}
+.post-card .card-img img{width:100%;height:100%;object-fit:cover;transition:.5s}
+.post-card:hover .card-img img{transform:scale(1.07)}
+.post-card .cat-badge{position:absolute;left:14px;bottom:14px;padding:5px 14px;border-radius:999px;
+  background:rgba(0,0,0,.55);color:#fff;font-size:13px;backdrop-filter:blur(6px)}
+.post-card .card-body{padding:13px 15px 12px;display:flex;flex-direction:column}
+.post-card h2{margin:0 0 8px;font-size:19px;line-height:1.45;transition:.25s}
+.post-card:hover h2{color:var(--p2)}
+.post-card .excerpt{color:var(--muted);font-size:14.5px;margin:0 0 14px;flex:1;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card-meta{display:flex;align-items:center;gap:14px;color:var(--muted);font-size:13px;flex-wrap:wrap}
+.card-meta .author{display:flex;align-items:center;gap:6px}
+.card-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.tag-pill{font-size:12.5px;padding:3px 12px;border-radius:999px;color:#fff;
+  background:linear-gradient(90deg,var(--p1),var(--p2))}
+.tag-pill.alt{background:linear-gradient(90deg,var(--p3),var(--p1))}
+@media (min-width:880px){
+  .post-list{grid-template-columns:repeat(2,1fr)}
+  .post-card.hero-card{grid-column:span 2;grid-template-columns:1.15fr 1fr;align-items:stretch}
+  .post-card.hero-card .card-img{height:100%;min-height:250px}
+}
+.tip{color:var(--muted)}
+.center{text-align:center}
+
+/* ---------- 归档时间轴 ---------- */
+.timeline{position:relative;margin:0 auto;max-width:760px;padding-left:26px}
+.timeline::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;
+  background:linear-gradient(180deg,var(--p1),var(--p3))}
+.tl-item{position:relative;padding:12px 0 12px 22px}
+.tl-item::before{content:"";position:absolute;left:-24px;top:20px;width:12px;height:12px;border-radius:50%;
+  background:var(--p2);box-shadow:0 0 0 4px rgba(240,171,252,.22)}
+.tl-date{color:var(--muted);font-size:13px}
+.tl-title{font-size:16.5px;font-weight:600}
+.tl-title:hover{color:var(--p2)}
+
+/* ---------- 标签/分类墙 ---------- */
+.wall{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.wall .wall-item{padding:12px 22px;border-radius:14px;background:var(--panel);border:1px solid var(--line);
+  transition:.28s;display:flex;align-items:center;gap:10px}
+.wall .wall-item:hover{transform:translateY(-4px);border-color:var(--p2);box-shadow:var(--glow)}
+.wall .count{font-size:12.5px;color:#fff;background:linear-gradient(90deg,var(--p1),var(--p3));
+  padding:2px 10px;border-radius:999px}
+
+/* ---------- 关于 / 留言 ---------- */
+.about-card,.panel-card{max-width:760px;margin:0 auto;background:var(--panel);border:1px solid var(--line);
+  border-radius:18px;padding:28px 26px;box-shadow:var(--shadow);text-align:center}
+.about-meta{list-style:none;padding:0;margin:20px 0;display:grid;gap:10px;text-align:left;
+  max-width:420px;margin-inline:auto;color:var(--muted)}
+.about-meta a{color:var(--p2)}
+.msg-form{display:grid;gap:12px;text-align:left;max-width:560px;margin:0 auto}
+.msg-form input,.msg-form textarea{width:100%;padding:12px 15px;border-radius:12px;border:1px solid var(--line);
+  background:var(--bg2);color:var(--fg);font:inherit;outline:none}
+.msg-form input:focus,.msg-form textarea:focus{border-color:var(--p2);box-shadow:0 0 0 4px rgba(240,171,252,.16)}
+.msg-form button{padding:12px;border:0;border-radius:12px;cursor:pointer;font:inherit;color:#fff;
+  background:linear-gradient(90deg,var(--p1),var(--p3));transition:.25s}
+.msg-form button:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(167,139,250,.42)}
+.msg-list{margin-top:22px;display:grid;gap:12px;text-align:left}
+.msg-item{padding:14px 16px;border-radius:14px;background:var(--bg2);border:1px solid var(--line)}
+.msg-item .who{font-size:13px;color:var(--p2)}
+.msg-item .when{font-size:12px;color:var(--muted);margin-left:8px}
+
+/* ---------- 页脚 ---------- */
+.site-footer{margin-top:30px;padding:34px 18px 26px;text-align:center;color:rgba(255,255,255,.92);
+  background:linear-gradient(120deg,var(--p1),var(--p3))}
+.site-footer .foot-stats{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;margin:16px 0 10px;
+  font-size:14px;opacity:.95}
+.site-footer .foot-social{display:flex;gap:18px;justify-content:center;margin-bottom:14px;font-size:19px}
+.site-footer a{color:#fff}
+.site-footer .copyright{font-size:13px;opacity:.9;line-height:1.9}
+
+/* ---------- 搜索弹窗 ---------- */
+.search-modal{position:fixed;inset:0;z-index:130;background:rgba(8,6,22,.62);display:grid;place-items:start center;
+  padding:70px 16px;backdrop-filter:blur(6px)}
+.search-modal[hidden]{display:none !important}
+.search-result .sr-item{display:block}
+body.modal-open{overflow:hidden}
+.search-box{width:min(720px,100%);background:var(--bg2);border:1px solid var(--line);border-radius:18px;
+  padding:22px;box-shadow:0 30px 70px rgba(0,0,0,.5);animation:pop .28s cubic-bezier(.2,.7,.3,1)}
+@keyframes pop{from{transform:translateY(-14px) scale(.98);opacity:0}}
+.search-head{display:flex;justify-content:space-between;align-items:center;font-size:19px;font-weight:700;
+  margin-bottom:14px}
+.search-head a{color:var(--muted);font-size:17px}
+#search-input{width:100%;padding:13px 16px;border-radius:12px;border:1px solid var(--line);background:var(--bg);
+  color:var(--fg);font:inherit;outline:none}
+#search-input:focus{border-color:var(--p2);box-shadow:0 0 0 4px rgba(240,171,252,.16)}
+.search-result{margin-top:16px;max-height:52vh;overflow:auto;display:grid;gap:10px}
+.sr-item{display:block;padding:12px 15px;border-radius:12px;background:var(--panel);border:1px solid var(--line);
+  transition:.22s}
+.sr-item:hover{border-color:var(--p2);transform:translateX(4px)}
+.sr-item .sr-t{font-weight:600}
+.sr-item .sr-d{font-size:12.5px;color:var(--muted);margin-top:4px}
+
+/* ---------- 回到顶部 ---------- */
+.to-top{position:fixed;right:18px;bottom:24px;z-index:70;width:46px;height:46px;border:0;border-radius:50%;
+  cursor:pointer;color:#fff;font-size:19px;opacity:0;pointer-events:none;transition:.28s;
+  background:linear-gradient(135deg,var(--p2),var(--p1));box-shadow:0 14px 34px rgba(240,171,252,.5)}
+.to-top.show{opacity:1;pointer-events:auto}
+.to-top:hover{transform:translateY(-3px)}
+
+/* ---------- 文章正文排版 ---------- */
+.post-wrap{max-width:820px;margin:0 auto;padding:22px 0 40px}
+.post-header{text-align:center;padding:120px 18px 26px}
+.post-header h1{font-size:clamp(23px,4.8vw,34px);margin:0 0 14px;line-height:1.35;
+  background:linear-gradient(100deg,var(--p2),var(--p1),var(--p3));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.post-tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.post-meta{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;color:var(--muted);font-size:13.5px;
+  align-items:center}
+.article-body{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px 24px;
+  box-shadow:var(--shadow)}
+.article-body h2{margin:34px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.article-body h2::before{content:"▍ ";color:var(--p2)}
+.article-body h3{margin:26px 0 10px;color:var(--p2)}
+.article-body p{margin:12px 0}
+.article-body blockquote{margin:18px 0;padding:12px 18px;border-left:3px solid var(--p2);
+  background:var(--bg2);border-radius:0 14px 14px 0;color:var(--muted)}
+.article-body ul,.article-body ol{padding-left:24px}
+.article-body li{margin:6px 0}
+.table-wrap{overflow:auto;margin:18px 0;border-radius:12px;border:1px solid var(--line)}
+.article-body table{width:100%;border-collapse:collapse;font-size:14px}
+.article-body th,.article-body td{border:1px solid var(--line);padding:9px 12px;text-align:left}
+.article-body th{background:var(--bg2);white-space:nowrap}
+.code{margin:18px 0;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#0d1020}
+.code figcaption{padding:7px 14px;font-size:12.5px;color:#c9c3f0;background:rgba(255,255,255,.06);
+  letter-spacing:.06em;text-transform:lowercase}
+.code pre{margin:0;padding:15px 16px;overflow:auto}
+.code code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13.5px;line-height:1.72;
+  color:#e9e6ff;white-space:pre}
+.code .k{color:#c084fc;font-weight:700}
+.code .s{color:#86efac}
+.code .c{color:#7c8aa5;font-style:italic}
+.code .n{color:#fbbf24}
+.article-body :not(pre) > code{background:var(--bg2);border:1px solid var(--line);border-radius:7px;
+  padding:2px 6px;font-size:13.5px}
+.prev-next{display:grid;gap:14px;margin-top:26px}
+@media (min-width:720px){.prev-next{grid-template-columns:1fr 1fr}}
+.pn-item{padding:14px 16px;border-radius:14px;background:var(--panel);border:1px solid var(--line);transition:.25s}
+.pn-item:hover{border-color:var(--p2);transform:translateY(-3px)}
+.pn-item .pn-label{font-size:12.5px;color:var(--muted)}
+
+/* ---------- 桌面端固定侧栏 ---------- */
+@media (min-width:1180px){
+  body.fixed-side .sidebar{transform:none;box-shadow:none}
+  body.fixed-side .site-header,body.fixed-side main,body.fixed-side .site-footer,body.fixed-side .banner-inner{
+    margin-left:288px}
+  body.fixed-side .sidebar-mask{display:none}
+  body.fixed-side .menu-btn{display:none}
+}
+@media (prefers-reduced-motion: reduce){
+  .banner-media{animation:none}
+  .scroll-hint{animation:none}
+}
+/* ---------- 超矮屏（<680px 高）再收一档 ---------- */
+@media (max-height:680px){
+  .banner{min-height:min(300px,46vh)}
+  .banner-inner{padding:84px 16px 62px}
+  .banner-inner h1{font-size:clamp(26px,7vw,40px)}
+  .banner-btns{margin-top:16px}
+  .btn-round{min-width:112px;padding:10px 20px;font-size:14px}
+  .page-main{padding-top:14px}
+}
+/* ---------- 首页卡片列表紧凑模式 ---------- */
+@media (max-width:640px){
+  .post-list{gap:16px}
+  .post-card .card-body{padding:14px 15px 13px}
+  .post-card .excerpt{-webkit-line-clamp:2}
+  .card-meta{gap:10px;font-size:12.5px}
+}
+/* ================= 尺寸分层：手机优先紧凑，桌面再放宽 ================= */
+@media (min-width:900px){
+  .banner{min-height:clamp(280px,34vh,340px)}
+  .banner-inner{padding:92px 20px 74px}
+  .banner-inner h1{font-size:clamp(32px,5vw,56px)}
+  .typed-wrap{min-height:30px;font-size:clamp(14px,1.6vw,19px)}
+  .banner-btns{margin-top:20px}
+  .btn-round{min-width:120px;padding:11px 24px;font-size:14.5px}
+  .page-main{padding:18px 18px 48px}
+  .cat-strip{justify-content:center;flex-wrap:wrap;overflow:visible}
+  .post-list{gap:20px}
+  .post-card .card-img{height:196px}
+  .post-card .card-body{padding:18px 20px 16px}
+}
+@media (max-width:700px){
+  .scroll-hint{display:none}
+}
+/* ---------- 筛选提示条 ---------- */
+.filter-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;
+  margin:0 0 12px;padding:9px 15px;border-radius:12px;font-size:14px;color:var(--muted);
+  background:var(--panel);border:1px solid var(--line)}
+.filter-bar b{color:var(--fg)}
+.filter-bar a{color:var(--p2);border-bottom:1px dashed currentColor}
+/* ---------- 渐变封面（替代图片，防止破图）---------- */
+.cover-grad{position:absolute;inset:0;display:grid;place-items:center;font-size:44px;
+  background:linear-gradient(135deg,var(--g1,#9d2933),var(--g2,#7d776c))}
+.cover-grad::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(60% 60% at 72% 18%,rgba(255,255,255,.34),transparent 70%)}
+.post-card .card-img{position:relative}
+/* ---------- 背景画布必须脱离文档流（否则画布会撑出一整屏空白）---------- */
+body > canvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;
+  pointer-events:none;z-index:1}
+#snow-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+#dream-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:60;
+  mix-blend-mode:screen}
+html[data-theme="light"] #dream-canvas{mix-blend-mode:multiply;opacity:.75}
+/* ==================== 古典水墨主题层（覆盖，勿删）==================== */
+:root{
+  --bg:#f6f3ec; --bg2:#efeae0;
+  --panel:rgba(255,255,255,.62); --panel2:#fffdf8;
+  --line:rgba(32,30,26,.16);
+  --fg:#232019; --muted:#6d675c;
+  --p1:#9d2933; --p2:#3d3a34; --p3:#7d776c; --p4:#c9c2b4;
+  --radius:4px;
+  --shadow:0 1px 6px rgba(40,36,28,.06);
+  --glow:0 6px 20px rgba(40,36,28,.10);
+}
+html[data-theme="dark"]{
+  --bg:#131210; --bg2:#1a1815; --panel:rgba(255,255,255,.045); --panel2:rgba(255,255,255,.07);
+  --line:rgba(255,255,255,.14); --fg:#e9e4d9; --muted:#9d968a;
+  --shadow:0 1px 8px rgba(0,0,0,.5); --glow:0 6px 22px rgba(0,0,0,.5);
+}
+body{
+  font:16px/2.05 "Songti SC","Noto Serif SC","Source Han Serif SC",Georgia,"STSong","SimSun",serif;
+  background:var(--bg);
+  background-image:radial-gradient(circle at 20% 12%,rgba(190,182,166,.16),transparent 42%),
+                   radial-gradient(circle at 82% 78%,rgba(190,182,166,.13),transparent 45%);
+}
+h1,h2,h3,.hero-title,.post-card h2,.tl-title,.header-brand{
+  font-family:"STKaiti","Kaiti SC","KaiTi","Songti SC","Noto Serif SC",serif;
+  letter-spacing:.07em; font-weight:600;
+}
+/* 顶栏：宣纸 + 发丝线 */
+.site-header{background:rgba(246,243,236,.94);color:var(--fg);backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--line);box-shadow:none}
+.site-header.solid{background:rgba(246,243,236,.97);box-shadow:0 1px 0 var(--line)}
+html[data-theme="dark"] .site-header{background:rgba(19,18,16,.94)}
+html[data-theme="dark"] .site-header.solid{background:rgba(19,18,16,.97)}
+.header-brand{font-size:20px}
+.brand-dot{width:9px;height:9px;border-radius:1px;background:var(--p1);box-shadow:none;transform:rotate(45deg)}
+.header-icons a{background:transparent;border:0}
+.header-icons a:hover{background:rgba(157,41,51,.10);transform:none}
+/* Banner：水墨远山 */
+.banner::after{background:linear-gradient(180deg,rgba(246,243,236,.04),rgba(246,243,236,.28) 66%,var(--bg))}
+html[data-theme="dark"] .banner::after{background:linear-gradient(180deg,rgba(10,9,7,.30),rgba(10,9,7,.55) 62%,var(--bg))}
+html[data-theme="dark"] .banner-media{filter:brightness(.42) contrast(1.05)}
+.banner-inner h1{color:var(--fg);text-shadow:none;font-weight:600;letter-spacing:.16em}
+.typed-wrap{color:var(--muted);letter-spacing:.14em;font-size:clamp(12.5px,3.2vw,16px)}
+.typed-cursor{display:none}
+.btn-round{border:1px solid var(--fg);border-radius:2px;color:var(--fg);background:transparent;
+  backdrop-filter:none;letter-spacing:.18em;padding:9px 22px}
+.btn-round:hover{background:transparent;border-color:var(--p1);color:var(--p1);transform:none;
+  box-shadow:0 0 0 1px var(--p1) inset}.scroll-hint{border-radius:2px;border-color:var(--line);color:var(--muted);animation:none}
+.banner-social{color:var(--muted)}
+/* 分类/标签：细框，选中为朱砂 */
+.cat-strip{gap:10px}
+.cat-pill{border-radius:2px;background:transparent;border:1px solid var(--line);color:var(--muted);
+  letter-spacing:.08em}
+.cat-pill:hover{transform:none;border-color:var(--fg);color:var(--fg)}
+.cat-pill.on{background:transparent;color:var(--p1);border-color:var(--p1);box-shadow:none;font-weight:600}
+.tag-pill,.tag-pill.alt{background:transparent;border:1px solid var(--line);color:var(--muted);
+  border-radius:2px;letter-spacing:.06em}
+.post-tags a.tag-pill:hover{color:var(--p1);border-color:var(--p1)}
+/* 卡片：宣纸 */
+.post-card{background:var(--panel2);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow)}
+.post-card:hover{transform:none;border-color:var(--p1);box-shadow:var(--glow)}
+.post-card .card-img{border-bottom:1px solid var(--line);width:100%;aspect-ratio:auto}
+.cover-grad{background:linear-gradient(160deg,var(--g1),var(--g2));position:absolute;inset:0;
+  display:grid;place-items:center}
+.cover-grad::after{content:"";position:absolute;inset:0;background:none}
+.cover-grad{font-family:"STKaiti","Kaiti SC","KaiTi",serif;font-size:58px;color:rgba(35,32,26,.17);width:100%;height:100%}
+html[data-theme="dark"] .cover-grad{color:rgba(233,228,217,.16)}
+.cat-badge{background:rgba(35,32,26,.62);border-radius:2px;letter-spacing:.08em}
+.card-meta,.excerpt{letter-spacing:.02em}
+/* 归档时间轴：墨点 + 细线 */
+.timeline::before{background:var(--line);width:1px}
+.tl-item::before{background:var(--p1);border-radius:1px;box-shadow:none;width:8px;height:8px;
+  left:-21px;transform:rotate(45deg)}
+.tl-title:hover{color:var(--p1)}
+/* 筛选条 */
+.filter-bar{border-radius:2px;background:transparent;border:1px dashed var(--line);letter-spacing:.06em}
+.filter-bar a{color:var(--p1);border-bottom:0}
+/* 搜索弹窗：宣纸 */
+.search-box{border-radius:4px;background:var(--panel2);box-shadow:0 18px 50px rgba(30,26,20,.18)}
+#search-input{border-radius:2px;background:transparent;border:1px solid var(--line)}
+.sr-item{border-radius:2px;background:transparent}
+.sr-item:hover{border-color:var(--p1);transform:none;background:rgba(157,41,51,.05)}
+/* 侧栏：卷轴 */
+.sidebar{background:var(--bg2);border-right:1px solid var(--line);box-shadow:8px 0 26px rgba(30,26,20,.10)}
+.sidebar-profile{background:linear-gradient(180deg,rgba(190,182,166,.28),transparent)}
+.sidebar-badge{border-radius:2px;color:var(--fg);background:transparent;border:1px solid var(--line);
+  font-family:"STKaiti","Kaiti SC","KaiTi",serif}
+.sidebar-profile h3{color:var(--fg);letter-spacing:.12em}
+.sidebar-profile p{color:var(--muted)}
+.sidebar-menu a{letter-spacing:.08em}
+.sidebar-menu a:hover,.sidebar-menu a.active{color:var(--p1);border-left-color:var(--p1);background:rgba(157,41,51,.05)}
+.sidebar-menu .mi{opacity:.75;font-size:15px}
+/* 页脚：素纸 + 朱砂点 */
+.site-footer{background:transparent;border-top:1px solid var(--line);color:var(--muted)}
+.site-footer a{color:var(--p1)}
+/* 回到顶部 */
+.to-top{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:2px;box-shadow:none}
+.to-top:hover{background:transparent;color:var(--p1);border-color:var(--p1);transform:none}
+/* 正文：宣纸排版 + 水墨标题 */
+.article-body{background:var(--panel2);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow)}
+.article-body h2{border-bottom:1px solid var(--line)}
+.article-body h2::before{content:"▪ ";color:var(--p1);font-size:.72em}
+.article-body h3{color:var(--fg)}
+.article-body blockquote{border-left:2px solid var(--p1);background:rgba(190,182,166,.14);border-radius:0 2px 2px 0}
+.article-body th{background:rgba(190,182,166,.16)}
+.post-header h1{background:none;color:var(--fg);-webkit-text-fill-color:var(--fg)}
+/* 代码块：淡墨 */
+.code{background:#f4f0e8;border:1px solid var(--line);border-radius:2px}
+html[data-theme="dark"] .code{background:#1c1a17}
+.code figcaption{background:rgba(35,32,26,.05);color:var(--muted);letter-spacing:.12em;text-transform:none}
+.code code{color:#2c2925}
+html[data-theme="dark"] .code code{color:#e6e1d6}
+.code .k{color:#8c2b2b;font-weight:600}
+.code .s{color:#46603f}
+.code .c{color:#8d877a;font-style:italic}
+.code .n{color:#7a5a33}
+html[data-theme="dark"] .code .k{color:#d98b8b}
+html[data-theme="dark"] .code .s{color:#9dbf96}
+html[data-theme="dark"] .code .c{color:#8a8478}
+html[data-theme="dark"] .code .n{color:#d8b98a}
+.article-body :not(pre) > code{background:rgba(190,182,166,.22);border:1px solid var(--line);border-radius:2px}
+/* 进度条：一道朱砂细线 */
+.progress{height:2px;background:var(--p1);box-shadow:none}
+/* 关于/留言卡 */
+.about-card,.panel-card{background:var(--panel2);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow)}
+.msg-form input,.msg-form textarea{border-radius:2px;background:transparent}
+.msg-form button{border-radius:2px;background:transparent;color:var(--fg);border:1px solid var(--fg);letter-spacing:.14em}
+.msg-form button:hover{color:var(--p1);border-color:var(--p1);box-shadow:none;transform:none}
+.msg-item{border-radius:2px;background:transparent}
+.wall .wall-item{border-radius:2px;background:transparent}
+.wall .wall-item:hover{border-color:var(--p1);box-shadow:none;transform:none}
+.wall .count{background:transparent;color:var(--p1);border:1px solid var(--p1);border-radius:2px}
+
+/* ==================== 长文本防越界（关键修复）==================== */
+.article-body,.article-body p,.article-body li,.article-body td,.article-body th,
+.article-body h1,.article-body h2,.article-body h3,.article-body blockquote,
+.post-header h1,.post-header .post-meta,.post-card h2,.post-card .excerpt,
+.card-meta,.card-tags,.tag-pill,.cat-badge,.tl-title,.tl-date,.filter-bar,
+.search-result .sr-item,.about-card,.msg-item,.wall-item{
+  overflow-wrap:anywhere; word-break:break-word; min-width:0;
+}
+.article-body pre{white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word; overflow-x:auto}
+.article-body pre code{white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word}
+.article-body a{word-break:break-all}
+.table-wrap{overflow-x:auto; max-width:100%}
+.article-body table{table-layout:auto}
+.card-img,.post-wrap{min-width:0}
+/* ---------- 特效开关（关闭时画布不显示）---------- */
+/* 兜底：封面/卡片图区一律撑满，禁止被 aspect-ratio 压窄 */
+.post-card .card-img{width:100% !important;aspect-ratio:auto !important}
+.cover-grad{position:absolute;inset:0;width:100%;height:100%}
+/* ==================== 武侠水墨增补 ==================== */
+/* 朱砂印章 */
+.seal{width:58px;height:58px;margin:0 auto;display:grid;place-items:center;border-radius:3px;
+  background:#9d2933;color:#f8f5ef;font-family:"STKaiti","Kaiti SC","KaiTi",serif;font-size:32px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.25),0 2px 8px rgba(120,30,35,.28);
+  transform:rotate(-2.5deg);letter-spacing:0}
+.seal-banner{width:52px;height:52px;font-size:28px;margin:0 auto 14px;opacity:.95}
+.brand-seal{display:inline-grid;place-items:center;width:20px;height:20px;margin-right:7px;
+  border-radius:2px;background:#9d2933;color:#f8f5ef;font-size:12px;font-family:"STKaiti","KaiTi",serif;
+  transform:rotate(-3deg)}
+/* 笔触分隔 */
+.brush-rule{width:132px;height:2px;margin:16px auto 2px;border-radius:2px;
+  background:linear-gradient(90deg,transparent,rgba(35,32,26,.55) 22%,rgba(35,32,26,.55) 78%,transparent)}
+html[data-theme="dark"] .brush-rule{background:linear-gradient(90deg,transparent,rgba(235,229,214,.5) 22%,rgba(235,229,214,.5) 78%,transparent)}
+/* 顶栏图标：单色线条 + 文字符 */
+.header-icons a{display:inline-grid;place-items:center;width:38px;height:38px;color:var(--fg);border-radius:2px;
+  font-family:"STKaiti","KaiTi",serif;font-size:16px;letter-spacing:0}
+.header-icons a svg{display:block}
+.header-icons a:hover{background:rgba(157,41,51,.10);color:var(--p1)}
+/* 侧栏：素纸 + 印章，去掉一切彩色渐变 */
+.sidebar{background:var(--bg2);background-image:none}
+.sidebar-profile{background:transparent;border-bottom:1px solid var(--line);padding:30px 22px 22px}
+.sidebar-profile h3{letter-spacing:.22em;margin:16px 0 6px}
+.sidebar-profile p{letter-spacing:.12em}
+.sidebar-menu .mi{width:20px;height:20px;display:inline-grid;place-items:center;color:var(--muted)}
+.sidebar-menu .mi svg{width:17px;height:17px}
+.sidebar-menu a:hover .mi,.sidebar-menu a.active .mi{color:var(--p1)}
+.sidebar-menu a{letter-spacing:.14em}
+/* Banner：印章居中 + 三个单色图标入流 */
+.banner-inner h1{letter-spacing:.30em;text-indent:.30em;font-weight:500}
+.typed-wrap{letter-spacing:.20em}
+.banner-social{position:static;margin:20px 0 0;display:flex;gap:26px;justify-content:center;color:var(--muted)}
+.banner-social a{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:2px;opacity:.9}
+.banner-social a svg{width:18px;height:18px}
+.banner-social a:hover{opacity:1;color:var(--p1);background:rgba(157,41,51,.08);transform:none}
+/* 正文与页脚的分隔符、说明 */
+.card-meta i,.post-meta i{font-style:normal;color:var(--line)}
+.post-meta{gap:8px}
+.post-meta span{letter-spacing:.06em}
+.back-wrap{text-align:center;margin:26px 0 0}
+.foot-rule{width:58px;height:1px;margin:0 auto 16px;background:var(--line)}
+.foot-note{font-size:12.5px;color:var(--muted);letter-spacing:.08em;margin-top:8px}
+.foot-stats{letter-spacing:.06em}
+.pn-item.disabled{opacity:.42}
+.pn-item{border-radius:2px}
+/* 文章标题的朱砂小点 */
+.article-body h2::before{content:"▍ ";color:var(--p1);font-size:.78em}
+/* 分类角标：方角墨底 */
+.cat-badge{border-radius:2px;letter-spacing:.10em}
+/* 大标题下的笔触 */
+.post-header{padding-top:96px}
+/* ==================== 仙侠层（云海 · 仙山 · 描金）==================== */
+:root{--jin:#b08d57;--qing:#4f7d78;--yun:#eef2f4}
+body{background-image:
+  radial-gradient(circle at 12% 6%,rgba(238,242,244,.95),transparent 44%),
+  radial-gradient(circle at 88% 84%,rgba(238,242,244,.8),transparent 46%)}
+/* 云纹分隔（如意图案） */
+.cloud-rule{height:20px;margin:12px auto 0;max-width:520px;opacity:.55;background-repeat:repeat-x;
+  background-position:center;background-size:auto 20px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='20' viewBox='0 0 96 20'%3E%3Cg fill='none' stroke='%23b08d57' stroke-opacity='.6' stroke-width='1.1'%3E%3Cpath d='M2 14c5 0 7-4 12-4s7 4 12 4 7-4 12-4 7 4 12 4 7-4 12-4 7 4 12 4 7-4 12-4'/%3E%3C/g%3E%3Ccircle cx='14' cy='8' r='2' fill='%23b08d57' fill-opacity='.32'/%3E%3Ccircle cx='62' cy='8' r='2' fill='%23b08d57' fill-opacity='.32'/%3E%3C/svg%3E")}
+.site-footer .cloud-rule{margin-bottom:10px}
+/* 描金发丝线 */
+.site-header{border-bottom:1px solid rgba(176,141,87,.26)}
+.site-footer{border-top:0}
+.foot-rule{width:84px;height:1px;margin:0 auto 12px;
+  background:linear-gradient(90deg,transparent,var(--jin),transparent)}
+/* 玉牌卡片 */
+.post-card{background:#fffdf9;border-color:rgba(176,141,87,.26)}
+.post-card:hover{border-color:var(--jin);box-shadow:0 10px 30px rgba(79,125,120,.15)}
+.post-card .card-img{border-bottom:1px solid rgba(176,141,87,.22)}
+.cover-grad{background:linear-gradient(165deg,#f4f7f6,#eaf0ef)}
+.cover-grad{color:rgba(79,125,120,.22)}
+/* 链接与强调：青碧 / 描金 */
+.site-footer a,.about-meta a,.filter-bar a{color:var(--qing)}
+.tag-pill:hover,.post-tags a.tag-pill:hover{color:var(--jin);border-color:var(--jin)}
+.cat-pill:hover{border-color:var(--qing);color:var(--qing)}
+.cat-pill.on{color:var(--jin);border-color:var(--jin)}
+.header-icons a:hover{color:var(--jin);background:rgba(176,141,87,.10)}
+.sidebar{border-right-color:rgba(176,141,87,.22)}
+.sidebar-menu a:hover,.sidebar-menu a.active{color:var(--qing);border-left-color:var(--jin);background:rgba(176,141,87,.06)}
+.sidebar-profile{border-bottom-color:rgba(176,141,87,.22)}
+.article-body h2::before{content:"▍ ";color:var(--jin)}
+.article-body h2{border-bottom-color:rgba(176,141,87,.22)}
+.article-body blockquote{border-left-color:var(--jin);background:rgba(238,242,244,.6)}
+.wall .wall-item:hover{border-color:var(--jin)}
+.filter-bar{border-color:rgba(176,141,87,.3)}
+.to-top{border-color:rgba(176,141,87,.35)}
+.to-top:hover{color:var(--jin);border-color:var(--jin)}
+/* 夜境：墨夜 + 淡金 */
+html[data-theme="dark"]{--bg:#12131a;--bg2:#191a22;--fg:#e9e6de;--muted:#a09a8e;
+  --line:rgba(200,169,120,.20);--jin:#c8a978;--qing:#7fa8a2}
+html[data-theme="dark"] body{background-image:
+  radial-gradient(circle at 14% 8%,rgba(44,54,74,.75),transparent 45%),
+  radial-gradient(circle at 86% 82%,rgba(58,46,74,.6),transparent 46%)}
+html[data-theme="dark"] .post-card{background:#1b1c24}
+html[data-theme="dark"] .cover-grad{background:linear-gradient(165deg,#232630,#1b1e26);color:rgba(200,169,120,.20)}
+/* 云雾缓动 */
+@keyframes mistdrift{from{transform:translateX(-1.5%) scale(1)}to{transform:translateX(1.5%) scale(1.03)}}
+.banner-media{animation:mistdrift 38s ease-in-out infinite alternate}
+/* ==================== 侧栏重做（仙侠卷轴）==================== */
+.sidebar{width:256px;background:#fbfaf6;background-image:
+  radial-gradient(circle at 20% 4%,rgba(238,242,244,.9),transparent 46%),
+  radial-gradient(circle at 90% 92%,rgba(238,242,244,.7),transparent 44%);
+  border-right:1px solid rgba(176,141,87,.30);box-shadow:10px 0 34px rgba(60,50,30,.10)}
+html[data-theme="dark"] .sidebar{background:#191a22;background-image:
+  radial-gradient(circle at 20% 4%,rgba(44,54,74,.6),transparent 46%)}
+.sidebar-close{position:absolute;top:12px;right:14px;width:30px;height:30px;display:grid;place-items:center;
+  color:var(--muted);font-size:20px;line-height:1;border-radius:2px}
+.sidebar-close:hover{color:var(--p1);background:rgba(157,41,51,.08)}
+.sidebar-profile{position:relative;padding:34px 22px 16px;text-align:center;background:transparent;
+  border-bottom:0}
+.sidebar-profile .seal{width:54px;height:54px;font-size:29px}
+.sidebar-profile h3{margin:15px 0 4px;font-family:"STKaiti","Kaiti SC","KaiTi",serif;
+  font-size:21px;letter-spacing:.26em;text-indent:.26em;color:var(--fg)}
+.sidebar-profile p{margin:0;font-size:12.5px;letter-spacing:.10em;color:var(--muted)}
+.sidebar-profile .cloud-rule{margin:14px auto 0;max-width:none;opacity:.5}
+/* 菜单：单字篆意 + 墨字 */
+.sidebar-menu{padding:10px 0 6px}
+.sidebar-menu a{display:flex;align-items:center;gap:14px;padding:13px 22px;border-left:0;
+  color:var(--fg);opacity:.9;transition:.22s;letter-spacing:.14em}
+.sidebar-menu a .ch{width:26px;height:26px;flex:0 0 26px;display:grid;place-items:center;
+  font-family:"STKaiti","Kaiti SC","KaiTi",serif;font-size:15px;color:#f8f5ef;
+  background:#3d3a34;border-radius:2px;transform:rotate(-2deg);opacity:.88;transition:.22s}
+.sidebar-menu a .lb{font-size:15px}
+.sidebar-menu a:hover{background:linear-gradient(90deg,rgba(176,141,87,.12),transparent);
+  padding-left:26px;opacity:1;border-left:0}
+.sidebar-menu a:hover .ch{background:#9d2933;opacity:1;transform:rotate(0deg)}
+.sidebar-menu a.active .ch{background:#9d2933}
+.sidebar-foot{padding:0 0 30px;text-align:center}
+.sidebar-foot .cloud-rule{margin:6px auto 12px;opacity:.45}
+.sidebar-foot p{margin:0;font-size:11.5px;letter-spacing:.08em;color:var(--muted)}
+
+/* ==================== 封面与图标美化 + 在线留言 ==================== */
+/* 封面：绢本拓片 —— 内描金框 + 云纹底 + 淡墨单字 + 朱砂小印 */
+.post-card .card-img{background:linear-gradient(165deg,#f7f9f8,#eef2f1)}
+.cover-grad{background:linear-gradient(165deg,#f7f9f8,#e9efee);display:grid;place-items:center;overflow:hidden}
+.cover-grad::before{content:"";position:absolute;inset:9px;border:1px solid rgba(176,141,87,.38);border-radius:2px}
+.cover-grad::after{content:"";position:absolute;inset:0;opacity:.5;background-repeat:repeat;background-size:84px 22px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='22' viewBox='0 0 84 22'%3E%3Cg fill='none' stroke='%234f7d78' stroke-opacity='.22' stroke-width='1'%3E%3Cpath d='M2 15c5 0 7-4 12-4s7 4 12 4 7-4 12-4 7 4 12 4'/%3E%3C/g%3E%3C/svg%3E")}
+.cover-ch{position:relative;z-index:2;font-family:"STKaiti","Kaiti SC","KaiTi",serif;font-size:66px;
+  color:rgba(35,32,26,.16);letter-spacing:0;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+html[data-theme="dark"] .cover-ch{color:rgba(200,169,120,.20)}
+.post-card .card-img .cat-badge{background:rgba(35,32,26,.70);border-radius:2px;letter-spacing:.10em}
+/* meta 小图标 */
+.card-meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.card-meta span{display:inline-flex;align-items:center;gap:5px}
+.card-meta svg{width:14px;height:14px;flex:0 0 14px;color:var(--jin);opacity:.85}
+.post-meta span{display:inline-flex;align-items:center;gap:5px}
+/* 在线留言 */
+.panel-head{font-family:"STKaiti","Kaiti SC","KaiTi",serif;font-size:17px;letter-spacing:.18em;
+  color:var(--fg);margin:0 0 12px;padding-left:10px;border-left:2px solid var(--jin)}
+.ut-box{min-height:96px;margin:0 0 18px}
+.ut-box iframe{width:100%;border:1px solid rgba(176,141,87,.25);border-radius:2px;background:#fff}
+#ut-fallback .panel-head{margin-top:20px}
+#ut-fallback{border-top:1px solid rgba(176,141,87,.22);padding-top:6px;margin-top:6px}
+/* 雪常开：清掉旧的关闭规则 */
+
+/* ==================== 水墨山水封面 / 预览图 ==================== */
+.cover-grad{background-size:cover;background-position:center;background-repeat:no-repeat}
+.cover-grad::after{content:"";position:absolute;inset:0;z-index:1;
+  background-image:linear-gradient(180deg,rgba(250,251,250,.22),rgba(250,251,250,.08)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='22' viewBox='0 0 84 22'%3E%3Cg fill='none' stroke='%234f7d78' stroke-opacity='.20' stroke-width='1'%3E%3Cpath d='M2 15c5 0 7-4 12-4s7 4 12 4 7-4 12-4 7 4 12 4'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:auto,84px 22px;background-repeat:no-repeat,repeat}
+html[data-theme="dark"] .cover-grad::after{background-image:
+  linear-gradient(180deg,rgba(20,21,28,.38),rgba(20,21,28,.55)),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='22' viewBox='0 0 84 22'%3E%3Cg fill='none' stroke='%23c8a978' stroke-opacity='.18' stroke-width='1'%3E%3Cpath d='M2 15c5 0 7-4 12-4s7 4 12 4 7-4 12-4 7 4 12 4'/%3E%3C/g%3E%3C/svg%3E")}
+.cover-ch{z-index:2}
+/* 文章页顶部预览图 */
+.post-cover{position:relative;height:clamp(190px,36vh,330px);margin:0 0 -6px;
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+  border-bottom:1px solid rgba(176,141,87,.30)}
+.post-cover::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(248,250,249,.06),rgba(248,250,249,.62))}
+html[data-theme="dark"] .post-cover::after{background:linear-gradient(180deg,rgba(18,19,26,.3),rgba(18,19,26,.86))}
+.post-header{padding-top:26px}
+
+/* ==================== 深色模式对比度修正（审计后补齐）==================== */
+html[data-theme="dark"]{--qing:#8fbdb6;--jin:#c8a978;--p1:#d98b8b;--fg:#eae5da;--muted:#b3ada0}
+html[data-theme="dark"] body{color:#eae5da}
+html[data-theme="dark"] .article-body{background:#1e2029;color:#eae5da}
+html[data-theme="dark"] .article-body p,html[data-theme="dark"] .article-body li,
+html[data-theme="dark"] .article-body td,html[data-theme="dark"] .article-body th{color:#eae5da}
+html[data-theme="dark"] .article-body blockquote{background:rgba(255,255,255,.07);color:#ded9cc}
+html[data-theme="dark"] .article-body h3,html[data-theme="dark"] .post-card:hover h2{color:#eae5da}
+html[data-theme="dark"] .article-body h2::before{color:#d98b8b}
+html[data-theme="dark"] .code .k{color:#e39b9b}
+html[data-theme="dark"] .code .s{color:#9dbf96}
+html[data-theme="dark"] .code .n{color:#d8b98a}
+html[data-theme="dark"] .code .c{color:#9a9488}
+html[data-theme="dark"] .code code{color:#e6e1d6}
+html[data-theme="dark"] .btn-round:hover,html[data-theme="dark"] .scroll-hint:hover{color:#f4efe4;border-color:#d98b8b}
+html[data-theme="dark"] .site-footer a,html[data-theme="dark"] .about-meta a,
+html[data-theme="dark"] .filter-bar a,html[data-theme="dark"] .back,
+html[data-theme="dark"] .tl-title:hover,html[data-theme="dark"] .msg-item .who{color:#8fbdb6}
+html[data-theme="dark"] .post-tags a.tag-pill:hover,html[data-theme="dark"] .cat-pill.on,
+html[data-theme="dark"] .wall .count,html[data-theme="dark"] .header-icons a:hover,
+html[data-theme="dark"] .sidebar-menu a:hover,html[data-theme="dark"] .sidebar-menu a.active,
+html[data-theme="dark"] .to-top:hover,html[data-theme="dark"] .banner-social a:hover,
+html[data-theme="dark"] .msg-form button:hover,html[data-theme="dark"] .sidebar-close:hover{color:#d98b8b}
+html[data-theme="dark"] .card-meta i,html[data-theme="dark"] .post-meta i{color:rgba(200,169,120,.45)}
+html[data-theme="dark"] .cover-ch{color:rgba(200,169,120,.22)}
+
+/* ==================== 深色模式「保险丝」（最后写入，!important 确保生效）==================== */
+html[data-theme="dark"] body,html[data-theme="dark"] .hero-sub,html[data-theme="dark"] .page-head .tip,
+html[data-theme="dark"] .article-body,html[data-theme="dark"] .article-body p,html[data-theme="dark"] .article-body li,
+html[data-theme="dark"] .article-body td,html[data-theme="dark"] .article-body th,
+html[data-theme="dark"] .article-body h1,html[data-theme="dark"] .article-body h2,html[data-theme="dark"] .article-body h3,
+html[data-theme="dark"] .post-header h1,html[data-theme="dark"] .post-card h2,html[data-theme="dark"] .post-card h2 a,
+html[data-theme="dark"] .card-body h2{color:#e9e5da !important}
+html[data-theme="dark"] .article-body blockquote,html[data-theme="dark"] .article-body blockquote p,
+html[data-theme="dark"] .article-body blockquote em,html[data-theme="dark"] .article-body blockquote strong
+{color:#ded9cc !important;background:rgba(255,255,255,.07) !important;border-left-color:#c8a978 !important}
+html[data-theme="dark"] .article-body pre code,html[data-theme="dark"] .code code{color:#e6e1d6 !important}
+html[data-theme="dark"] .article-body .k,html[data-theme="dark"] .code .k{color:#eaa1a1 !important}
+html[data-theme="dark"] .article-body .s,html[data-theme="dark"] .code .s{color:#a6c79d !important}
+html[data-theme="dark"] .article-body .n,html[data-theme="dark"] .code .n{color:#dcbf8f !important}
+html[data-theme="dark"] .article-body .c,html[data-theme="dark"] .code .c{color:#9c968a !important}
+html[data-theme="dark"] .article-body :not(pre) > code{color:#efeae0 !important;background:rgba(255,255,255,.10) !important}
+html[data-theme="dark"] a,html[data-theme="dark"] .back,html[data-theme="dark"] .tl-title,
+html[data-theme="dark"] .site-footer a,html[data-theme="dark"] .about-meta a,html[data-theme="dark"] .filter-bar a,
+html[data-theme="dark"] .msg-item .who{color:#93c0b9 !important}
+html[data-theme="dark"] .tip,html[data-theme="dark"] .card-meta,html[data-theme="dark"] .card-meta span,
+html[data-theme="dark"] .post-meta,html[data-theme="dark"] .post-meta span,html[data-theme="dark"] .excerpt,
+html[data-theme="dark"] .foot-note,html[data-theme="dark"] .copyright,html[data-theme="dark"] .tl-date,
+html[data-theme="dark"] .pn-label,html[data-theme="dark"] .card-meta i,html[data-theme="dark"] .post-meta i
+{color:#b6b0a3 !important}
+html[data-theme="dark"] .cat-pill,html[data-theme="dark"] .tag-pill{color:#cdc7ba !important;border-color:rgba(200,169,120,.35) !important}
+html[data-theme="dark"] .cat-pill.on,html[data-theme="dark"] .tag-pill:hover,html[data-theme="dark"] .post-tags a.tag-pill:hover
+{color:#d98b8b !important;border-color:#d98b8b !important}
+html[data-theme="dark"] .sidebar-menu a{color:#ddd8cc !important}
+html[data-theme="dark"] .sidebar-menu a .ch{background:#2b2e38 !important;color:#e9e5da !important}
+html[data-theme="dark"] .sidebar-menu a:hover,html[data-theme="dark"] .sidebar-menu a.active{color:#93c0b9 !important}
+html[data-theme="dark"] .seal,html[data-theme="dark"] .brand-seal{background:#8f2a33 !important}
+html[data-theme="dark"] .pn-item{color:#ddd8cc !important;background:rgba(255,255,255,.05)}
+html[data-theme="dark"] .pn-item.disabled{color:#8d877c !important}
+html[data-theme="dark"] .header-icons a{color:#e9e5da !important}
+html[data-theme="dark"] .btn-round{color:#e9e5da !important;border-color:rgba(233,229,218,.7) !important}
+html[data-theme="dark"] .btn-round:hover{color:#d98b8b !important;border-color:#d98b8b !important}
+html[data-theme="dark"] .to-top{color:#e9e5da !important;background:#1e2029 !important;border-color:rgba(200,169,120,.35) !important}
+html[data-theme="dark"] .wall .count{color:#d98b8b !important;border-color:#d98b8b !important}
+html[data-theme="dark"] .about-card,html[data-theme="dark"] .panel-card,html[data-theme="dark"] .msg-item{background:#1e2029 !important;color:#e9e5da !important}
+html[data-theme="dark"] .msg-form input,html[data-theme="dark"] .msg-form textarea{background:#15161d !important;color:#e9e5da !important;border-color:rgba(200,169,120,.3) !important}
+html[data-theme="dark"] .search-box{background:#1e2029 !important}
+html[data-theme="dark"] #search-input{background:#15161d !important;color:#e9e5da !important}
+html[data-theme="dark"] .sr-item{color:#e9e5da !important}
+html[data-theme="dark"] .sr-item .sr-d{color:#b6b0a3 !important}
+html[data-theme="dark"] .code{background:#15171f !important;border-color:rgba(200,169,120,.22) !important}
+html[data-theme="dark"] .table-wrap{border-color:rgba(200,169,120,.22) !important}
+html[data-theme="dark"] .article-body th{background:rgba(255,255,255,.06) !important;color:#e9e5da !important}
+html[data-theme="dark"] .article-body h2{border-bottom-color:rgba(200,169,120,.28) !important}
+html[data-theme="dark"] .article-body h2::before{color:#d98b8b !important}
+
+/* ==================== 最终风格：稳重厚实 · 大气优雅 ==================== */
+body{font-size:16.5px;line-height:2.0}
+.container{max-width:1080px}
+.site-header{background:#f4f1ea;color:var(--fg);border-bottom:2px solid rgba(35,32,26,.85);
+  box-shadow:0 2px 0 rgba(176,141,87,.55);backdrop-filter:none}
+.site-header.solid{background:#f4f1ea;box-shadow:0 2px 0 rgba(176,141,87,.55)}
+.header-brand{font-weight:700;letter-spacing:.18em;font-size:21px}
+.brand-seal{width:22px;height:22px;font-size:13px;border-radius:0}
+.header-icons a{width:40px;height:40px;font-size:17px;border-radius:0}
+.banner-inner h1{font-weight:700;letter-spacing:.34em;text-indent:.34em}
+.brush-rule{height:3px;width:190px;background:linear-gradient(90deg,transparent,rgba(35,32,26,.8) 26%,rgba(35,32,26,.8) 74%,transparent)}
+.seal{border-radius:0;box-shadow:0 3px 0 rgba(0,0,0,.20)}
+.btn-round{border:2px solid rgba(35,32,26,.85);border-radius:0;font-weight:700;letter-spacing:.22em;padding:12px 26px}
+.btn-round:hover{background:var(--p1);border-color:var(--p1);color:#fff}
+.post-card{border:2px solid rgba(35,32,26,.55);border-radius:0;background:#fffdf8;
+  box-shadow:7px 7px 0 rgba(176,141,87,.20)}
+.post-card:hover{border-color:var(--p1);box-shadow:11px 11px 0 rgba(157,41,51,.18);transform:none}
+.post-card .card-img{border-bottom:2px solid rgba(35,32,26,.5)}
+.post-card .card-body{border-top:2px solid rgba(35,32,26,.5)}
+.post-card h2{font-weight:700}
+.cat-badge{background:rgba(35,32,26,.88);border-radius:0;font-weight:600;letter-spacing:.14em}
+.cat-pill,.tag-pill{border-width:1.5px;border-radius:0;font-weight:600}
+.cat-pill.on{background:var(--p1);color:#fff;border-color:var(--p1)}
+.tag-pill:hover{border-color:var(--p1)}
+.article-body{border:2px solid rgba(35,32,26,.45);border-radius:0;background:#fffdf8}
+.article-body h2{border-bottom:2px solid rgba(35,32,26,.5);font-weight:700;letter-spacing:.06em}
+.article-body h3{font-weight:700}
+.post-header h1{font-weight:700;letter-spacing:.04em}
+.post-cover{border-bottom:2px solid rgba(35,32,26,.5)}
+.code{border:2px solid rgba(35,32,26,.45);border-radius:0}
+.table-wrap{border:2px solid rgba(35,32,26,.45);border-radius:0}
+.article-body th{font-weight:700}
+.sidebar{border-right:2px solid rgba(35,32,26,.55);box-shadow:10px 0 0 rgba(176,141,87,.14)}
+.sidebar-menu a{border-bottom:1px solid rgba(35,32,26,.14);padding:15px 22px;letter-spacing:.16em}
+.sidebar-menu a .ch{border-radius:0;background:rgba(35,32,26,.9);font-weight:600}
+.sidebar-menu a:hover .ch{background:var(--p1)}
+.site-footer{background:#26241f;color:#e8e3d8;border-top:3px double var(--jin);padding:42px 18px 34px}
+.site-footer .copyright,.site-footer .foot-stats,.site-footer .foot-note{color:#cfc8ba}
+.site-footer a{color:#dcbd91}
+.foot-rule{background:var(--jin);height:2px;width:120px}
+.site-footer .cloud-rule{opacity:.30}
+.panel-card,.about-card{border:2px solid rgba(35,32,26,.45);border-radius:0;box-shadow:7px 7px 0 rgba(176,141,87,.18);background:#fffdf8}
+.panel-head{border-left:4px solid var(--p1);font-weight:700;letter-spacing:.22em;padding-left:12px}
+.ut-box iframe{border:2px solid rgba(35,32,26,.35);border-radius:0;background:#fff}
+.tip.small{font-size:12.5px;opacity:.85}
+.msg-form input,.msg-form textarea{border:2px solid rgba(35,32,26,.35);border-radius:0;background:#fff}
+.msg-form button{background:var(--p1);color:#fff;border:0;border-radius:0;font-weight:700;letter-spacing:.22em;padding:14px}
+.msg-form button:hover{background:#7d1f27;transform:none;box-shadow:none}
+.wall .wall-item{border:2px solid rgba(35,32,26,.4);border-radius:0}
+.timeline::before{width:2px;background:rgba(35,32,26,.4)}
+.tl-item::before{background:var(--p1)}
+.to-top{border:2px solid rgba(35,32,26,.8);border-radius:0;background:#fbfaf6;color:var(--fg);font-size:20px}
+.search-box{border:2px solid rgba(35,32,26,.45);border-radius:0}
+/* 深色镜像（保持高对比） */
+html[data-theme="dark"]{--fg:#eae5da;--muted:#b6b0a3}
+html[data-theme="dark"] .site-header,html[data-theme="dark"] .site-header.solid{background:#171821;border-bottom-color:#eae5da;box-shadow:0 2px 0 rgba(200,169,120,.45)}
+html[data-theme="dark"] .post-card{border-color:rgba(234,229,218,.5);background:#1b1d25;box-shadow:7px 7px 0 rgba(200,169,120,.14)}
+html[data-theme="dark"] .post-card .card-img,html[data-theme="dark"] .post-card .card-body{border-color:rgba(234,229,218,.4)}
+html[data-theme="dark"] .cat-badge{background:#eae5da;color:#171821}
+html[data-theme="dark"] .article-body{border-color:rgba(234,229,218,.4);background:#1e2029}
+html[data-theme="dark"] .article-body h2{border-bottom-color:rgba(234,229,218,.4)}
+html[data-theme="dark"] .code,html[data-theme="dark"] .table-wrap{border-color:rgba(234,229,218,.35)}
+html[data-theme="dark"] .sidebar{border-right-color:rgba(234,229,218,.5);box-shadow:10px 0 0 rgba(200,169,120,.10)}
+html[data-theme="dark"] .sidebar-menu a{border-bottom-color:rgba(234,229,218,.14)}
+html[data-theme="dark"] .sidebar-menu a .ch{background:#eae5da;color:#171821}
+html[data-theme="dark"] .site-footer{background:#0f1015;border-top-color:var(--jin);color:#e8e3d8}
+html[data-theme="dark"] .site-footer .copyright,html[data-theme="dark"] .site-footer .foot-stats,html[data-theme="dark"] .site-footer .foot-note{color:#c8c2b4}
+html[data-theme="dark"] .panel-card,html[data-theme="dark"] .about-card{background:#1e2029;border-color:rgba(234,229,218,.4)}
+html[data-theme="dark"] .msg-form input,html[data-theme="dark"] .msg-form textarea{background:#15161d;color:#eae5da}
+html[data-theme="dark"] .to-top{background:#1e2029;color:#eae5da;border-color:rgba(234,229,218,.7)}
+html[data-theme="dark"] .wall .wall-item{border-color:rgba(234,229,218,.35)}
+html[data-theme="dark"] .btn-round{border-color:rgba(234,229,218,.8);color:#eae5da}
+html[data-theme="dark"] .btn-round:hover{background:#d98b8b;border-color:#d98b8b;color:#171821}
+html[data-theme="dark"] .ut-box iframe{border-color:rgba(234,229,218,.3)}
+
+/* ==================== 终版：稳重厚实 · 大气优雅（强覆盖，最后生效）==================== */
+:root{--paper:#f5f2ea;--ink:#23201a;--seal:#9d2933;--gold:#b08d57;--gold-l:#c8a978}
+body{background:var(--paper) !important;background-image:none !important;color:var(--ink) !important;
+  font:17px/2.05 "Songti SC","Noto Serif SC",Georgia,"STSong",serif !important}
+h1,h2,h3,.hero-title,.post-card h2,.header-brand,.panel-head,.sidebar-profile h3{
+  font-family:"STKaiti","Kaiti SC","KaiTi",serif !important;font-weight:700 !important;letter-spacing:.18em}
+.site-header,.site-header.solid{background:var(--ink) !important;color:#f3efe6 !important;
+  border-bottom:2px solid var(--gold) !important;box-shadow:none !important;backdrop-filter:none !important}
+.header-brand,.header-brand span{color:#f3efe6 !important;text-shadow:none !important}
+.header-icons a{color:#f3efe6 !important;background:transparent !important;border:0 !important}
+.header-icons a:hover{background:rgba(255,255,255,.14) !important;color:#fff !important}
+.brand-seal{background:var(--seal) !important;color:#fff !important;border-radius:0 !important;transform:none !important}
+.banner{display:block !important;min-height:auto !important;padding:24px 0 8px !important;background:var(--paper) !important}
+.banner::after{display:none !important}
+.banner-media{position:relative !important;inset:auto !important;height:clamp(150px,26vh,230px) !important;
+  margin:0 16px !important;border:3px solid var(--ink) !important;
+  box-shadow:9px 9px 0 rgba(176,141,87,.30) !important;animation:none !important;z-index:1 !important}
+.banner-inner{padding:20px 16px 6px !important;color:var(--ink) !important}
+.banner-inner h1{font-size:clamp(30px,7.4vw,54px) !important;color:var(--ink) !important;
+  letter-spacing:.30em !important;text-indent:.30em !important;margin:14px 0 6px !important;text-shadow:none !important}
+.typed-wrap{color:#6b6459 !important;letter-spacing:.18em !important}
+.brush-rule{width:150px !important;height:4px !important;background:var(--seal) !important;margin:12px auto 0 !important}
+.cloud-rule{opacity:.32 !important}
+.seal{border-radius:0 !important;background:var(--seal) !important;color:#fff !important;
+  box-shadow:3px 3px 0 rgba(35,32,26,.26) !important;transform:none !important}
+.seal-banner{width:46px !important;height:46px !important;font-size:23px !important;margin:0 auto !important}
+.btn-round{background:var(--ink) !important;color:#f3efe6 !important;border:2px solid var(--ink) !important;
+  border-radius:0 !important;font-weight:700 !important;letter-spacing:.20em !important;padding:12px 24px !important}
+.btn-round:hover{background:var(--seal) !important;border-color:var(--seal) !important;color:#fff !important}
+.banner-social a{color:#5f594e !important}
+.banner-social a:hover{color:var(--seal) !important;background:transparent !important}
+.page-main{padding:22px 16px 46px !important;max-width:1060px !important}
+.page-head h1{letter-spacing:.26em !important;text-indent:.26em !important}
+.cat-strip{gap:8px !important;margin:0 0 16px !important}
+.cat-pill{background:transparent !important;border:2px solid rgba(35,32,26,.55) !important;border-radius:0 !important;
+  color:#3c372d !important;font-weight:700 !important;letter-spacing:.10em !important;padding:6px 14px !important}
+.cat-pill.on{background:var(--seal) !important;border-color:var(--seal) !important;color:#fff !important}
+.post-card{background:#fffdf7 !important;border:3px solid var(--ink) !important;border-radius:0 !important;
+  box-shadow:10px 10px 0 rgba(176,141,87,.30) !important;overflow:hidden !important}
+.post-card:hover{transform:none !important;border-color:var(--seal) !important;
+  box-shadow:10px 10px 0 rgba(157,41,51,.28) !important}
+.post-card .card-img{border-bottom:3px solid var(--ink) !important;height:170px !important;aspect-ratio:auto !important}
+.post-card .card-body{padding:16px 18px 15px !important;border-top:0 !important}
+.post-card h2{font-size:20px !important;line-height:1.5 !important}
+.cat-badge{background:var(--ink) !important;color:#f6f2e9 !important;border-radius:0 !important;
+  font-weight:700 !important;letter-spacing:.14em !important;padding:5px 12px !important}
+.card-meta{color:#6b6459 !important;font-size:13px !important}
+.tag-pill{background:transparent !important;border:2px solid rgba(35,32,26,.42) !important;border-radius:0 !important;
+  color:#4a4438 !important;font-weight:600 !important}
+.tag-pill:hover{border-color:var(--seal) !important;color:var(--seal) !important}
+.post-cover{height:clamp(170px,30vh,280px) !important;border:3px solid var(--ink) !important;border-radius:0 !important;
+  box-shadow:10px 10px 0 rgba(176,141,87,.28) !important;margin:18px 16px 0 !important}
+.post-header{padding:22px 16px 14px !important}
+.post-header h1{font-size:clamp(23px,4.8vw,34px) !important;letter-spacing:.06em !important}
+.post-meta{color:#6b6459 !important}
+.post-wrap{padding:0 16px !important}
+.article-body{background:#fffdf7 !important;border:3px solid var(--ink) !important;border-radius:0 !important;
+  box-shadow:10px 10px 0 rgba(176,141,87,.24) !important;padding:24px 22px !important}
+.article-body h2{border-bottom:2px solid rgba(35,32,26,.55) !important;padding:0 0 8px 16px !important;
+  position:relative !important;font-weight:700 !important}
+.article-body h2::before{content:"" !important;position:absolute !important;left:0 !important;top:5px !important;
+  width:6px !important;height:22px !important;background:var(--seal) !important}
+.article-body h3{font-weight:700 !important}
+.article-body blockquote{background:#f1ece1 !important;border-left:5px solid var(--seal) !important;
+  border-radius:0 !important;color:#4a4438 !important}
+.code{background:#f4f0e6 !important;border:2px solid rgba(35,32,26,.5) !important;border-radius:0 !important}
+.table-wrap{border:2px solid rgba(35,32,26,.5) !important;border-radius:0 !important}
+.article-body th{background:var(--ink) !important;color:#f6f2e9 !important;font-weight:700 !important}
+.sidebar{background:var(--paper) !important;border-right:3px solid var(--ink) !important;
+  box-shadow:12px 0 0 rgba(176,141,87,.18) !important}
+.sidebar-profile{background:var(--ink) !important;padding:26px 20px 20px !important}
+.sidebar-profile h3,.sidebar-profile p{color:#f3efe6 !important}
+.sidebar-menu a{border-bottom:1px solid rgba(35,32,26,.2) !important;color:#2f2b23 !important;
+  font-weight:600 !important;letter-spacing:.16em !important;padding:14px 20px !important}
+.sidebar-menu a:hover,.sidebar-menu a.active{background:#efe9dc !important;border-left:5px solid var(--seal) !important}
+.sidebar-menu a .ch{background:transparent !important;color:var(--seal) !important;
+  border:1px solid rgba(157,41,51,.45) !important;border-radius:0 !important;transform:none !important;font-weight:700 !important}
+.site-footer{background:var(--ink) !important;color:#e9e3d6 !important;
+  border-top:3px solid var(--gold) !important;padding:34px 18px 28px !important;margin-top:34px !important}
+.site-footer .copyright,.site-footer .foot-stats,.site-footer .foot-note{color:#cdc6b6 !important}
+.site-footer a{color:var(--gold-l) !important}
+.foot-rule{background:var(--gold) !important;height:2px !important;width:110px !important}
+.panel-card,.about-card{background:#fffdf7 !important;border:3px solid var(--ink) !important;border-radius:0 !important;
+  box-shadow:10px 10px 0 rgba(176,141,87,.24) !important}
+.panel-head{border-left:5px solid var(--seal) !important;font-weight:700 !important;letter-spacing:.20em !important}
+.ut-box iframe{border:2px solid rgba(35,32,26,.5) !important;border-radius:0 !important}
+.msg-form input,.msg-form textarea{border:2px solid rgba(35,32,26,.45) !important;border-radius:0 !important;background:#fff !important}
+.msg-form button{background:var(--seal) !important;color:#fff !important;border:0 !important;border-radius:0 !important;
+  font-weight:700 !important;letter-spacing:.20em !important;padding:14px !important}
+.wall .wall-item{border:2px solid rgba(35,32,26,.5) !important;border-radius:0 !important;background:#fffdf7 !important}
+.to-top{background:var(--ink) !important;color:#f6f2e9 !important;border:2px solid var(--gold) !important;border-radius:0 !important}
+.search-box{background:#fffdf7 !important;border:3px solid var(--ink) !important;border-radius:0 !important}
+html[data-theme="dark"]{--paper:#15161d;--ink:#eae5da;--seal:#d98b8b;--gold:#c8a978;--gold-l:#d9b98a}
+html[data-theme="dark"] body{background:#15161d !important;color:#eae5da !important}
+html[data-theme="dark"] .site-header,html[data-theme="dark"] .site-header.solid{background:#0f1015 !important}
+html[data-theme="dark"] .banner{background:#15161d !important}
+html[data-theme="dark"] .banner-media{border-color:#eae5da !important;box-shadow:9px 9px 0 rgba(200,169,120,.18) !important}
+html[data-theme="dark"] .banner-inner,html[data-theme="dark"] .banner-inner h1{color:#eae5da !important}
+html[data-theme="dark"] .typed-wrap{color:#b8b2a5 !important}
+html[data-theme="dark"] .btn-round{background:#eae5da !important;color:#15161d !important;border-color:#eae5da !important}
+html[data-theme="dark"] .btn-round:hover{background:var(--seal) !important;border-color:var(--seal) !important;color:#15161d !important}
+html[data-theme="dark"] .cat-pill{border-color:rgba(234,229,218,.5) !important;color:#ded8cb !important}
+html[data-theme="dark"] .cat-pill.on{background:var(--seal) !important;border-color:var(--seal) !important;color:#15161d !important}
+html[data-theme="dark"] .post-card{background:#1c1e26 !important;border-color:#eae5da !important;box-shadow:10px 10px 0 rgba(200,169,120,.16) !important}
+html[data-theme="dark"] .post-card .card-img{border-bottom-color:#eae5da !important}
+html[data-theme="dark"] .cat-badge{background:#eae5da !important;color:#15161d !important}
+html[data-theme="dark"] .tag-pill{border-color:rgba(234,229,218,.42) !important;color:#ded8cb !important}
+html[data-theme="dark"] .article-body{background:#1c1e26 !important;border-color:#eae5da !important}
+html[data-theme="dark"] .article-body h2{border-bottom-color:rgba(234,229,218,.45) !important}
+html[data-theme="dark"] .article-body blockquote{background:#242732 !important;color:#ded9cc !important}
+html[data-theme="dark"] .code{background:#15171f !important;border-color:rgba(234,229,218,.4) !important}
+html[data-theme="dark"] .table-wrap{border-color:rgba(234,229,218,.4) !important}
+html[data-theme="dark"] .article-body th{background:#eae5da !important;color:#15161d !important}
+html[data-theme="dark"] .sidebar{background:#15161d !important;border-right-color:#eae5da !important}
+html[data-theme="dark"] .sidebar-profile{background:#0f1015 !important}
+html[data-theme="dark"] .sidebar-menu a{color:#ded8cb !important;border-bottom-color:rgba(234,229,218,.18) !important}
+html[data-theme="dark"] .sidebar-menu a:hover,html[data-theme="dark"] .sidebar-menu a.active{background:#1c1e26 !important;border-left-color:var(--seal) !important}
+html[data-theme="dark"] .sidebar-menu a .ch{color:var(--seal) !important;border-color:rgba(217,139,139,.5) !important}
+html[data-theme="dark"] .site-footer{background:#0f1015 !important;color:#e9e3d6 !important}
+html[data-theme="dark"] .panel-card,html[data-theme="dark"] .about-card{background:#1c1e26 !important;border-color:#eae5da !important}
+html[data-theme="dark"] .msg-form input,html[data-theme="dark"] .msg-form textarea{background:#15171f !important;color:#eae5da !important}
+html[data-theme="dark"] .to-top{background:#eae5da !important;color:#15161d !important}
+html[data-theme="dark"] .wall .wall-item{background:#1c1e26 !important;border-color:rgba(234,229,218,.45) !important}
+html[data-theme="dark"] .search-box{background:#1c1e26 !important;border-color:#eae5da !important}
+
+/* ==================== 卡片封面：双剑（剑尖相对）==================== */
+.cover-ch{display:none !important}
+.cover-swords{position:absolute;z-index:2;width:74%;height:50%;left:13%;top:25%;
+  background-repeat:no-repeat;background-position:center;background-size:contain;
+  filter:drop-shadow(0 1px 0 rgba(255,255,255,.5))}
+.cover-swords{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20260%2060%27%3E%3Cg%20transform%3D%27translate(0%2C10)%27%3E%3Cg%3E%3Cpath%20d%3D%27M22%2020%20L104%2016.4%20L112%2020%20L104%2023.6%20Z%27%20fill%3D%27%232b2820%27%2F%3E%3Cpath%20d%3D%27M26%2020%20L104%2018.9%20L108.5%2020%20L104%2021.1%20Z%27%20fill%3D%27%23c8a978%27%20fill-opacity%3D%27.55%27%2F%3E%3Crect%20x%3D%2714%27%20y%3D%279.5%27%20width%3D%277%27%20height%3D%2721%27%20rx%3D%271.5%27%20fill%3D%27%23b08d57%27%20stroke%3D%27%232b2820%27%20stroke-width%3D%271%27%2F%3E%3Crect%20x%3D%272.6%27%20y%3D%2716%27%20width%3D%2712%27%20height%3D%278%27%20rx%3D%272%27%20fill%3D%27%232b2820%27%2F%3E%3Cg%20stroke%3D%27%239d2933%27%20stroke-width%3D%271.3%27%3E%3Cpath%20d%3D%27M5.4%2016.5v7M8.8%2016.5v7M12.2%2016.5v7%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%272.6%27%20cy%3D%2720%27%20r%3D%273.3%27%20fill%3D%27%239d2933%27%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate(260%2C10)%20scale(-1%2C1)%27%3E%3Cg%3E%3Cpath%20d%3D%27M22%2020%20L104%2016.4%20L112%2020%20L104%2023.6%20Z%27%20fill%3D%27%232b2820%27%2F%3E%3Cpath%20d%3D%27M26%2020%20L104%2018.9%20L108.5%2020%20L104%2021.1%20Z%27%20fill%3D%27%23c8a978%27%20fill-opacity%3D%27.55%27%2F%3E%3Crect%20x%3D%2714%27%20y%3D%279.5%27%20width%3D%277%27%20height%3D%2721%27%20rx%3D%271.5%27%20fill%3D%27%23b08d57%27%20stroke%3D%27%232b2820%27%20stroke-width%3D%271%27%2F%3E%3Crect%20x%3D%272.6%27%20y%3D%2716%27%20width%3D%2712%27%20height%3D%278%27%20rx%3D%272%27%20fill%3D%27%232b2820%27%2F%3E%3Cg%20stroke%3D%27%239d2933%27%20stroke-width%3D%271.3%27%3E%3Cpath%20d%3D%27M5.4%2016.5v7M8.8%2016.5v7M12.2%2016.5v7%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%272.6%27%20cy%3D%2720%27%20r%3D%273.3%27%20fill%3D%27%239d2933%27%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3Cpath%20d%3D%27M118%2030h24%27%20stroke%3D%27%23b08d57%27%20stroke-width%3D%271.2%27%20stroke-dasharray%3D%273%204%27%20stroke-opacity%3D%27.75%27%2F%3E%3C%2Fsvg%3E")}
+html[data-theme="dark"] .cover-swords{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20260%2060%27%3E%3Cg%20transform%3D%27translate(0%2C10)%27%3E%3Cg%3E%3Cpath%20d%3D%27M22%2020%20L104%2016.4%20L112%2020%20L104%2023.6%20Z%27%20fill%3D%27%23eae5da%27%2F%3E%3Cpath%20d%3D%27M26%2020%20L104%2018.9%20L108.5%2020%20L104%2021.1%20Z%27%20fill%3D%27%238a7350%27%20fill-opacity%3D%27.55%27%2F%3E%3Crect%20x%3D%2714%27%20y%3D%279.5%27%20width%3D%277%27%20height%3D%2721%27%20rx%3D%271.5%27%20fill%3D%27%23c8a978%27%20stroke%3D%27%23eae5da%27%20stroke-width%3D%271%27%2F%3E%3Crect%20x%3D%272.6%27%20y%3D%2716%27%20width%3D%2712%27%20height%3D%278%27%20rx%3D%272%27%20fill%3D%27%23eae5da%27%2F%3E%3Cg%20stroke%3D%27%23d98b8b%27%20stroke-width%3D%271.3%27%3E%3Cpath%20d%3D%27M5.4%2016.5v7M8.8%2016.5v7M12.2%2016.5v7%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%272.6%27%20cy%3D%2720%27%20r%3D%273.3%27%20fill%3D%27%23d98b8b%27%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate(260%2C10)%20scale(-1%2C1)%27%3E%3Cg%3E%3Cpath%20d%3D%27M22%2020%20L104%2016.4%20L112%2020%20L104%2023.6%20Z%27%20fill%3D%27%23eae5da%27%2F%3E%3Cpath%20d%3D%27M26%2020%20L104%2018.9%20L108.5%2020%20L104%2021.1%20Z%27%20fill%3D%27%238a7350%27%20fill-opacity%3D%27.55%27%2F%3E%3Crect%20x%3D%2714%27%20y%3D%279.5%27%20width%3D%277%27%20height%3D%2721%27%20rx%3D%271.5%27%20fill%3D%27%23c8a978%27%20stroke%3D%27%23eae5da%27%20stroke-width%3D%271%27%2F%3E%3Crect%20x%3D%272.6%27%20y%3D%2716%27%20width%3D%2712%27%20height%3D%278%27%20rx%3D%272%27%20fill%3D%27%23eae5da%27%2F%3E%3Cg%20stroke%3D%27%23d98b8b%27%20stroke-width%3D%271.3%27%3E%3Cpath%20d%3D%27M5.4%2016.5v7M8.8%2016.5v7M12.2%2016.5v7%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%272.6%27%20cy%3D%2720%27%20r%3D%273.3%27%20fill%3D%27%23d98b8b%27%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3Cpath%20d%3D%27M118%2030h24%27%20stroke%3D%27%23c8a978%27%20stroke-width%3D%271.2%27%20stroke-dasharray%3D%273%204%27%20stroke-opacity%3D%27.75%27%2F%3E%3C%2Fsvg%3E")}
+@media (max-width:420px){.cover-swords{width:82%;height:46%;left:9%;top:27%}}
+
+/* ==================== 顶栏配色统一（品牌 / 印章 / 图标同色阶）==================== */
+.site-header,.site-header.solid{background:#1c1a16 !important}
+html[data-theme="dark"] .site-header,html[data-theme="dark"] .site-header.solid{background:#0e1014 !important}
+.header-brand,.header-brand span{color:#ffffff !important}
+.brand-seal{background:#9d2933 !important;color:#ffffff !important;border:1px solid rgba(255,255,255,.35) !important;
+  font-family:"STKaiti","KaiTi",Georgia,serif !important;font-size:14px !important;letter-spacing:0 !important}
+.header-icons a{color:#f2eee6 !important}
+.header-icons a:hover{color:#ffffff !important;background:rgba(255,255,255,.14) !important}
+html[data-theme="dark"] .brand-seal{background:#d98b8b !important;color:#14161a !important}
+/* 侧栏顶部同名色阶 */
+.sidebar-profile{background:#1c1a16 !important}
+html[data-theme="dark"] .sidebar-profile{background:#0e1014 !important}
+.sidebar-profile h3{color:#ffffff !important}
+.sidebar-profile p{color:#cfc8ba !important}
+</style>
+<script>window.__POSTS=[];</script>
 </head>
-<body>
+<body data-depth="1">
 <div class="progress" id="progress"></div>
-<div class="aurora"></div>
-<div class="stars"></div>
-<canvas id="dream-canvas"></canvas>
-<header class="nav glass">
-  <a class="brand" href="../"><span>Felix</span></a>
-  <nav>
-    <a href="../">首页</a>
-    <a href="../archive.html">归档</a>
-    <a href="../about.html">关于</a>
-    <button id="theme-btn" class="icon-btn" aria-label="切换主题">🌙</button>
+<canvas id="snow-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1"></canvas>
+<canvas id="dream-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:60"></canvas>
+<header class="site-header" id="site-header">
+  <a class="menu-btn" id="menu-btn" href="javascript:;" aria-label="菜单"><i></i><i></i><i></i></a>
+  <a class="header-brand" href="../"><span class="brand-seal">Z</span>ZY驿站</a>
+  <nav class="header-icons">
+    <a href="javascript:;" id="search-btn" aria-label="检索"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></a>
+    <a href="javascript:;" id="theme-btn" aria-label="切换昼夜">墨</a>
   </nav>
 </header>
-<main><article class="post">
-<a class="back" href="../">← 返回首页</a>
-<h1>Safengine Shielden 2.4 —— 验证服务器地址解剖报告</h1>
-<p class="meta" style="color:var(--muted)">2026-09-17 · 42 分钟 · 17 段代码 · 16 张表格</p>
+<div class="sidebar-mask" id="sidebar-mask"></div>
+<aside class="sidebar" id="sidebar">
+  <a href="javascript:;" class="sidebar-close" id="sidebar-close" aria-label="收起">×</a>
+  <div class="sidebar-profile">
+    <div class="seal">Z</div>
+    <h3>ZY驿站</h3>
+    <p>代码 · 逆向 · 一直在路上</p>
+    <div class="cloud-rule"></div>
+  </div>
+  <nav class="sidebar-menu">
+    <a href="../"><i class="ch">首</i><span class="lb">首页</span></a>
+    <a href="../tags.html"><i class="ch">签</i><span class="lb">标签</span></a>
+    <a href="../categories.html"><i class="ch">类</i><span class="lb">分类</span></a>
+    <a href="../archive.html"><i class="ch">档</i><span class="lb">归档</span></a>
+    <a href="../about.html"><i class="ch">关</i><span class="lb">关于</span></a>
+    <a href="../contact.html"><i class="ch">言</i><span class="lb">留言板</span></a>
+    <a href="../friends.html"><i class="ch">链</i><span class="lb">友情链接</span></a>
+    <a href="https://github.com/JM-919" target="_blank" rel="noopener"><i class="ch">码</i><span class="lb">GitHub</span></a>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="cloud-rule"></div>
+  </div>
+</aside>
+<main>
+  <div class="post-cover" style="background-image:url(data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%201200%20600%27%3E%3Crect%20width%3D%271200%27%20height%3D%27600%27%20fill%3D%27%23f7f4ec%27%2F%3E%3Cpath%20d%3D%27M0%20470%20C%20180%20420%20320%20460%20470%20424%20C%20620%20388%20780%20448%20940%20420%20C%201060%20400%201140%20424%201200%20412%20L1200%20600%20L0%20600%20Z%27%20fill%3D%27%238fa3a6%27%20fill-opacity%3D%27.14%27%2F%3E%3Crect%20x%3D%27376%27%20y%3D%2776%27%20width%3D%27448%27%20height%3D%27448%27%20fill%3D%27%23e8d9b6%27%20stroke%3D%27%23b08d57%27%20stroke-width%3D%273%27%2F%3E%3Cpath%20d%3D%27M402%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%272.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20102H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%272.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M424%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20124H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M446%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20146H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M468%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20168H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M490%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20190H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M512%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20212H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M534%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20234H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M556%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20256H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M578%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20278H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M600%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.9%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20300H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.9%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M622%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20322H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M644%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20344H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M666%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20366H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M688%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20388H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M710%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20410H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M732%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20432H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M754%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20454H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M776%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20476H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M798%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%272.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20498H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%272.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Ccircle%20cx%3D%27468%27%20cy%3D%27168%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27468%27%20cy%3D%27300%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27468%27%20cy%3D%27432%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27168%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27300%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27432%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27732%27%20cy%3D%27168%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27732%27%20cy%3D%27300%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27732%27%20cy%3D%27432%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27300%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27597%27%20cy%3D%27296.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27622%27%20cy%3D%27300%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27619%27%20cy%3D%27296.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27322%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27597%27%20cy%3D%27318.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27622%27%20cy%3D%27322%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27619%27%20cy%3D%27318.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27578%27%20cy%3D%27300%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27575%27%20cy%3D%27296.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27644%27%20cy%3D%27322%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27641%27%20cy%3D%27318.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27278%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27597%27%20cy%3D%27274.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27622%27%20cy%3D%27344%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27619%27%20cy%3D%27340.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27578%27%20cy%3D%27278%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27575%27%20cy%3D%27274.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27644%27%20cy%3D%27344%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27641%27%20cy%3D%27340.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27556%27%20cy%3D%27300%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27553%27%20cy%3D%27296.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27666%27%20cy%3D%27322%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27663%27%20cy%3D%27318.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27256%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27597%27%20cy%3D%27252.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27622%27%20cy%3D%27366%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27619%27%20cy%3D%27362.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27534%27%20cy%3D%27234%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27531%27%20cy%3D%27230.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27666%27%20cy%3D%27366%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27663%27%20cy%3D%27362.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Crect%20x%3D%271080%27%20y%3D%27470%27%20width%3D%2752%27%20height%3D%2752%27%20fill%3D%27%239d2933%27%20opacity%3D%27.9%27%2F%3E%3Crect%20x%3D%271084%27%20y%3D%27474%27%20width%3D%2744%27%20height%3D%2744%27%20fill%3D%27none%27%20stroke%3D%27%23f8f5ef%27%20stroke-opacity%3D%27.5%27%2F%3E%3C%2Fsvg%3E)"></div>
+  <div class="post-header">
+    <h1>Safengine Shielden 2.4 —— 验证服务器地址解剖报告</h1>
+    <div class="post-meta">
+      <span>作者 ZY</span><i>·</i>
+      <span>2026-09-17</span><i>·</i>
+      <span>逆向分析</span><i>·</i>
+      <span>20216 字</span><i>·</i>
+      <span>约 42 分钟</span>
+    </div>
+    <div class="post-tags"><a class="tag-pill" href="../index.html?tag=%E9%80%86%E5%90%91%E5%88%86%E6%9E%90">#逆向分析</a><a class="tag-pill" href="../index.html?tag=%E6%9C%8D%E5%8A%A1%E5%99%A8">#服务器</a></div>
+  </div>
+  <div class="post-wrap">
+    <article class="article-body">
 <blockquote>分析对象：<code>/storage/emulated/0/Crack/SafengineShielden2.4.rar</code><br>分析目的：定位「加密打包」环节向哪个服务器地址获取授权验证；给出本地化（转本地验证）方案。<br>结论先行：<strong><code>auth.safengine.com</code>，端口 <code>10001</code>（原始 TCP / 私有协议）</strong>；配套<strong>验证数据库</strong> <code>tcp://auth.safengine.com:3306</code>（MySQL）。</blockquote>
 <hr>
 <h2>【必读】验证边界 —— 哪些是实证，哪些还没跑过</h2>
-<p>分析环境：<strong>aarch64 / Android</strong>，无 <code>wine</code> / <code>mono</code> / <code>mysql</code> / <code>php</code> / <code>docker</code>。&lt;br&gt;<code>Shielden.exe</code> 是 <strong>x86 Windows PE</strong> —— 在本机<strong>无法执行</strong>。因此：</p>
-<h3>✅ 已实证（静态分析，证据可复现）</h3>
+<p>分析环境：<strong>aarch64 / Android</strong>，无 <code>wine</code> / <code>mono</code> / <code>mysql</code> / <code>php</code> / <code>docker</code>。<br><code>Shielden.exe</code> 是 <strong>x86 Windows PE</strong> —— 在本机<strong>无法执行</strong>。因此：</p>
+<h3>✓ 已实证（静态分析，证据可复现）</h3>
 <div class="table-wrap"><table><thead><tr><th>结论</th><th>证据</th></tr></thead><tbody><tr><td>地址字面量 = <code>auth.safengine.com</code> / <code>10001</code> / <code>tcp://auth.safengine.com:3306</code></td><td><code>Langs/CHS.dll</code>、<code>CHT.dll</code> RT_STRING 块（UTF-16LE），双编码全树扫描仅此两处</td></tr><tr><td>走<strong>裸 TCP</strong> 而非 HTTP</td><td><code>Shielden.exe</code> 导入 <code>WS2_32.dll</code>，无 wininet/winhttp</td></tr><tr><td>验证数据库是 <strong>MySQL</strong>（标准协议，非私有）</td><td><code>SEKeygenSDK.dll</code> 导入 <code>libmysql.dll</code>，串含 <code>tcp://</code> / <code>MYSQL_SECURE_AUTH</code> / <code>useLegacyAuth</code></td></tr><tr><td>HTTP 端点契约</td><td><code>LicenseDB/webfront/web/include/check.inc.php</code> <strong>源码</strong>（非猜测）</td></tr><tr><td>服务端可自建</td><td>随包 <code>LicenseDB/</code>（<code>createdb.sql</code> + PHP + <code>sekeygen_wrapper.exe</code>）</td></tr><tr><td><strong>验证数据库真实存在且结构已知</strong></td><td><strong>用户现场 Navicat 截图</strong>：<code>licenses @safenginedb (auth.safengine.com:3306)</code></td></tr><tr><td><strong>授权类型枚举已知（13 项）</strong></td><td><strong>用户反汇编 <code>SafengineSRV.exe</code> 截图</strong>：case 分派表逐个 push 字符串字面量</td></tr></tbody></table></div>
-<h3>❌ 未验证（<strong>不要当成已跑通</strong>）</h3>
+<h3>✗ 未验证（<strong>不要当成已跑通</strong>）</h3>
 <div class="table-wrap"><table><thead><tr><th>项</th><th>状态</th></tr></thead><tbody><tr><td><code>Shielden.exe</code> 实际运行 / 打包出任何 exe</td><td><strong>从未执行</strong>（无 Windows/x86 运行时）</td></tr><tr><td>「验证服务器设置」<strong>界面真实存在且字段如此</strong></td><td>字段名来自语言资源字符串表，<strong>界面本身没见过</strong>（教程图与 <code>HelpCN.chm</code> 均无此面板）</td></tr><tr><td>打包时是否真的发起 10001/3306 连接</td><td><strong>未观测</strong></td></tr><tr><td><strong>10001 协议内容</strong></td><td><strong>完全未知</strong>。<code>fake_licensor_10001.py --mode success</code> 回 <code>0x01</code> 是<strong>盲试</strong>，非已知正确应答</td></tr><tr><td><strong>官方 KEY 格式</strong></td><td><strong>完全未知</strong>（<code>SEKeygen.exe</code> 未运行过）。<code>sekeygen_emulate.py</code> 产出的 <code>SEKEY1</code> 容器是<strong>自造格式，壳一定不认</strong></td></tr><tr><td><code>local_netlicensor.py</code> 被打包器/壳接受</td><td><strong>未验证</strong> —— 只验证了它自身端点行为符合 <code>check.inc.php</code> 契约</td></tr><tr><td>MySQL+PHP 原生路线</td><td><strong>未部署过</strong>（本机无 mysql/php/docker）</td></tr><tr><td>hosts 劫持实际生效</td><td><strong>未生效过</strong>（无 root，脚本只走到降级分支）</td></tr></tbody></table></div>
 <h3>本地已实测的部分（<code>local_verify/selftest.sh</code>，35/35 通过）</h3>
-<div class="table-wrap"><table><thead><tr><th>项</th><th>验证性质</th></tr></thead><tbody><tr><td>HTTP 5 端点返回格式</td><td>我自建的桩之间自洽</td></tr><tr><td>TCP 10001 桩回字节</td><td>我自建的桩之间自洽</td></tr><tr><td>抓包→分帧识别(<code>len16be</code>)→学习→冒充(<code>exact</code>/<code>prefix</code>/<code>fallback</code>)</td><td>我自建的桩之间自洽</td></tr><tr><td>重定向脚本降级路径</td><td>无 root 时的实际分支</td></tr><tr><td><strong>MySQL 3306 仿真</strong></td><td><strong>用 PyMySQL（独立第三方客户端实现）实测</strong>：握手/认证/查询/结果集/类型/ping 全通过 ✅</td></tr><tr><td><strong>3306 按 <code>safenginedb</code> 真实 schema 应答</strong></td><td><code>SHOW TABLES</code>=5 表 · <code>DESCRIBE licenses</code>=9 列 · <code>LicenseHash</code>/<code>HardwareHash</code> 回显 —— 均经 PyMySQL 实测 ✅</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>验证性质</th></tr></thead><tbody><tr><td>HTTP 5 端点返回格式</td><td>我自建的桩之间自洽</td></tr><tr><td>TCP 10001 桩回字节</td><td>我自建的桩之间自洽</td></tr><tr><td>抓包→分帧识别(<code>len16be</code>)→学习→冒充(<code>exact</code>/<code>prefix</code>/<code>fallback</code>)</td><td>我自建的桩之间自洽</td></tr><tr><td>重定向脚本降级路径</td><td>无 root 时的实际分支</td></tr><tr><td><strong>MySQL 3306 仿真</strong></td><td><strong>用 PyMySQL（独立第三方客户端实现）实测</strong>：握手/认证/查询/结果集/类型/ping 全通过 ✓</td></tr><tr><td><strong>3306 按 <code>safenginedb</code> 真实 schema 应答</strong></td><td><code>SHOW TABLES</code>=5 表 · <code>DESCRIBE licenses</code>=9 列 · <code>LicenseHash</code>/<code>HardwareHash</code> 回显 —— 均经 PyMySQL 实测 ✓</td></tr></tbody></table></div>
 <blockquote>3306 那一项是本工具包里<strong>唯一经过第三方实现交叉验证</strong>的组件 ——<br>因为 MySQL 是公开标准协议，可以用别人的客户端来证伪我的服务端。<br>10001 没有这种条件（协议未知、无参照实现），所以那里的桩只可能是盲试。</blockquote>
 <p><strong>以上都不等于「Shielden.exe 打包验证被跑通」。</strong></p>
 <h3>在 Windows 上必须补做的验证（按序）</h3>
@@ -64,7 +1142,7 @@
 <p>资源目录里<strong>没有任何表单资源</strong>，Delphi 的窗体已被搬进 <code>.sedata</code> 加密 —— 这是后续「无法直接改字面量」的原因。</p>
 <hr>
 <h2>1. 结论：地址是什么</h2>
-<p><code>Langs/CHS.dll</code> 的 Delphi 字符串表（RT_STRING，块 id 10，UTF-16LE）中，&lt;br&gt;「验证服务器设置」面板及其提示文本原样如下：</p>
+<p><code>Langs/CHS.dll</code> 的 Delphi 字符串表（RT_STRING，块 id 10，UTF-16LE）中，<br>「验证服务器设置」面板及其提示文本原样如下：</p>
 <figure class="code"><figcaption>text</figcaption><pre><code>验证服务器设置
 启用验证服务器        是否启用验证服务器验证授权。
 验证服务器域名        验证服务器的域名（例如：auth.safengine.com）。
@@ -76,12 +1154,12 @@
 无法连接验证服务器    当无法连接验证服务器时的提示信息。
 无法连接Safengine服务器。</code></pre></figure>
 <p><code>Langs/CHT.dll</code> 中含同址。<strong>除这两个语言 DLL 外，全树（含全部 exe/dll）再无第三处出现该地址</strong>（已按 ASCII 与 UTF-16LE 双编码全量扫描）。</p>
-<p>→ <strong>验证服务器</strong> = <code>auth.safengine.com:10001</code>&lt;br&gt;→ <strong>验证数据库</strong> = <code>tcp://auth.safengine.com:3306</code>（MySQL）</p>
+<p>→ <strong>验证服务器</strong> = <code>auth.safengine.com:10001</code><br>→ <strong>验证数据库</strong> = <code>tcp://auth.safengine.com:3306</code>（MySQL）</p>
 <h3>1.1 关于 3306 这条通道</h3>
 <p>字符串表里给的是 <code>验证数据库连接 例如：tcp://auth.safengine.com:3306</code>。三点推断与佐证：</p>
 <div class="table-wrap"><table><thead><tr><th>判断</th><th>依据</th><th>置信度</th></tr></thead><tbody><tr><td>就是 <strong>MySQL 协议</strong></td><td><code>SEKeygenSDK.dll</code> 导入 <code>libmysql.dll</code>（Connector/C）；串含 <code>tcp://</code>、<code>MYSQL_SECURE_AUTH</code>、<code>useLegacyAuth</code></td><td>高</td></tr><tr><td>端口 <strong>3306</strong></td><td>字面量已给</td><td>高</td></tr><tr><td>DSN 形如 <code>tcp://host:3306</code></td><td>字面量已给；对应 Connector/C++ 的 URI 形式</td><td>高</td></tr><tr><td>库名</td><td><strong><code>safenginedb</code></strong> —— 现场截图窗口标题直接给出</td><td><strong>高（直接观察）</strong></td></tr><tr><td>账号</td><td><code>createdb.sql</code> 建 <code>user</code>/<code>password</code> 为默认值，真实环境应已改</td><td>低（未观察到）</td></tr></tbody></table></div>
 <h3>1.2 现场实证：验证数据库的真实结构</h3>
-<p>用户提供的 Navicat 截图（连接名 <code>auth.safengine.com_3306</code>）<strong>直接证实了 1.1 的全部推断</strong>，&lt;br&gt;并给出了 <code>createdb.sql</code> 里没有的真实结构：</p>
+<p>用户提供的 Navicat 截图（连接名 <code>auth.safengine.com_3306</code>）<strong>直接证实了 1.1 的全部推断</strong>，<br>并给出了 <code>createdb.sql</code> 里没有的真实结构：</p>
 <figure class="code"><figcaption>text</figcaption><pre><code>窗口标题   licenses @safenginedb (auth.safengine.com:<span class="n">3306</span>)
 左侧库树   auth.safengine.com_3306
              ├ information_schema
@@ -102,18 +1180,18 @@ licenses 表列（截图可见 <span class="n">9</span> 列）
    LicenseCount       = NULL</code></pre></figure>
 <p><strong>与随包 <code>createdb.sql</code> 的差异（重要）：</strong></p>
 <div class="table-wrap"><table><thead><tr><th></th><th><code>createdb.sql</code>（webfront 库 <code>licensedb</code>）</th><th>真实 <code>safenginedb</code>（截图）</th></tr></thead><tbody><tr><td>库名</td><td><code>licensedb</code></td><td><strong><code>safenginedb</code></strong></td></tr><tr><td><code>licenses</code> 列数</td><td>8</td><td><strong>9</strong></td></tr><tr><td>邮件</td><td>—</td><td><strong><code>Email</code></strong></td></tr><tr><td>类型</td><td>—</td><td><strong><code>LicenseType</code></strong>（完整枚举见 1.3）</td></tr><tr><td>升级到期</td><td>—</td><td><strong><code>UpdateExpiration</code></strong></td></tr><tr><td>计数列名</td><td><code>LicensedCount</code></td><td><strong><code>LicenseCount</code></strong></td></tr><tr><td>吊销位 / 总次数</td><td><code>Banned</code> / <code>TotalCount</code></td><td>截图未显示</td></tr></tbody></table></div>
-<p>→ <strong>结论：<code>createdb.sql</code> 是 webfront 自己的库（<code>licensedb</code>）的建表脚本，&lt;br&gt;不等于验证数据库（<code>safenginedb</code>）。</strong> 二者是两个库，本地化时不要混填。&lt;br&gt;本仓库据此新增 <code>local_verify/A_selfhost/schema_real_safenginedb.sql</code>。</p>
+<p>→ **结论：<code>createdb.sql</code> 是 webfront 自己的库（<code>licensedb</code>）的建表脚本，<br>不等于验证数据库（<code>safenginedb</code>）。** 二者是两个库，本地化时不要混填。<br>本仓库据此新增 <code>local_verify/A_selfhost/schema_real_safenginedb.sql</code>。</p>
 <blockquote>不确定项（如实标注）：截图对 <code>UserID</code> 列与 <code>LicenseHash</code> 右半段做了打码，<br>且分辨率有限。上表标 <strong>粗体</strong> 的是截图直接可读的事实；<br><code>UserID</code> 列名与 <code>fail/log/banhardware/banlog</code> 的列构成仍按 <code>createdb.sql</code> 推断，待展开表结构确认。</blockquote>
 <h3>1.3 <code>SafengineSRV.exe</code>：服务端本体，与授权类型枚举</h3>
-<p>用户反汇编截图（标题 <code>D:\ASM\…\Safengine\SafengineSRV.exe</code>）显示的是一段&lt;br&gt;<strong>case 分派表的跳转表</strong>：</p>
+<p>用户反汇编截图（标题 <code>D:\ASM\…\Safengine\SafengineSRV.exe</code>）显示的是一段<br><strong>case 分派表的跳转表</strong>：</p>
 <figure class="code"><figcaption>text</figcaption><pre><code>0040211A   ja   <span class="n">00402177</span>                        ; 越界 -&gt; FAIL
 0040211C   jmp  d,[eax*<span class="n">4</span>+004002C1E]             ; 跳转表，case 分派
 ---- 每个 case 都是 push &lt;字符串字面量&gt; 然后 jmp 回 ----</code></pre></figure>
 <p>逐项读出的字面量（13 项）：</p>
 <div class="table-wrap"><table><thead><tr><th>#</th><th>字面量</th><th>#</th><th>字面量</th></tr></thead><tbody><tr><td>1</td><td><code>DEMO</code></td><td>8</td><td><code>SL64</code></td></tr><tr><td>2</td><td><em>未解析</em> → 推断 <code>SL</code></td><td>9</td><td><code>SP64</code></td></tr><tr><td>3</td><td><em>未解析</em> → 推断 <code>SP</code></td><td>10</td><td><code>KERNEL64</code></td></tr><tr><td>4</td><td><code>KERNEL</code></td><td>11</td><td><code>OEM64</code></td></tr><tr><td>5</td><td><code>OEM</code></td><td>12</td><td><code>NET64</code></td></tr><tr><td>6</td><td><code>NET</code></td><td>13</td><td><code>FAIL</code></td></tr><tr><td>7</td><td><code>DEMO64</code></td><td></td><td></td></tr></tbody></table></div>
-<p><strong>#2 / #3 为何判为 <code>SL</code> / <code>SP</code>：</strong> 该序列呈严格的「32 位组 ‖ 64 位组」对称结构 ——&lt;br&gt;64 位组去掉 <code>64</code> 后缀即 <code>DEMO / SL / SP / KERNEL / OEM / NET</code>，&lt;br&gt;与 32 位组已解析出的 <code>DEMO / ? / ? / KERNEL / OEM / NET</code> 逐位吻合，&lt;br&gt;缺口正好落在 #2、#3。且与 1.2 中 <code>licenses.LicenseType</code> 实测值 <code>SL</code>、<code>SP</code> 互相印证。</p>
+<p><strong>#2 / #3 为何判为 <code>SL</code> / <code>SP</code>：</strong> 该序列呈严格的「32 位组 ‖ 64 位组」对称结构 ——<br>64 位组去掉 <code>64</code> 后缀即 <code>DEMO / SL / SP / KERNEL / OEM / NET</code>，<br>与 32 位组已解析出的 <code>DEMO / ? / ? / KERNEL / OEM / NET</code> 逐位吻合，<br>缺口正好落在 #2、#3。且与 1.2 中 <code>licenses.LicenseType</code> 实测值 <code>SL</code>、<code>SP</code> 互相印证。</p>
 <blockquote><strong>修正上一轮</strong>：我在 1.2 曾把该列读作 <code>SL / SP / SU</code>。按本枚举，<strong>不存在 <code>SU</code></strong> ——<br>那应是低分辨率下 <code>SP</code> 的误读。以本节的 13 项枚举为准。</blockquote>
-<p><strong>意义</strong>：<code>SafengineSRV.exe</code> 是<strong>服务端本体</strong>（验证服务器 / NetLicensor 服务端），&lt;br&gt;不是随包分发的文件 —— 归档里只有客户端与 webfront。它的出现把此前最大的空白&lt;br&gt;（<strong>10001 协议未知</strong>）从「没有入手点」变成「有目标可打」：</p>
+<p><strong>意义</strong>：<code>SafengineSRV.exe</code> 是<strong>服务端本体</strong>（验证服务器 / NetLicensor 服务端），<br>不是随包分发的文件 —— 归档里只有客户端与 webfront。它的出现把此前最大的空白<br>（<strong>10001 协议未知</strong>）从「没有入手点」变成「有目标可打」：</p>
 <div class="table-wrap"><table><thead><tr><th>现状</th><th>之前</th><th>现在</th></tr></thead><tbody><tr><td>10001 协议</td><td>完全未知，只能盲试</td><td><strong>已知它在哪个二进制里</strong>，可直接静态+动态分析</td></tr><tr><td>LicenseType</td><td>只见过 <code>SL</code>/<code>SP</code> 两个样本值</td><td><strong>完整 13 项枚举</strong></td></tr><tr><td>验证服务器实现</td><td>无参照</td><td><strong>有服务端二进制可对照</strong></td></tr></tbody></table></div>
 <p><code>common/safengine_recon.py</code> 就是为这一步写的侦察脚本（见 6. 工具）。</p>
 <h3>1.4 服务端运行时的授权会话记录</h3>
@@ -123,7 +1201,7 @@ licenses 表列（截图可见 <span class="n">9</span> 列）
 <div class="table-wrap"><table><thead><tr><th>#</th><th>字段</th><th>观测</th></tr></thead><tbody><tr><td>①</td><td><code>LicenseHash</code></td><td>32 位十六进制；显示被截断为 6–8 字符</td></tr><tr><td>②</td><td>四位十进制数</td><td><code>2310 / 2330 / 2370 / 2380 / 2390</code> —— <strong>恒为 10 的倍数</strong></td></tr><tr><td>③</td><td><code>LicenseType</code></td><td><code>DEMO</code> / <code>DEMO64</code> / <code>SL</code> / <code>SP</code></td></tr><tr><td>④</td><td>客户端 IP</td><td>点分四段，部分样本被截断（如 <code>183.26.5.</code>）</td></tr></tbody></table></div>
 <h4>字段②的判读（本张图唯一的疑点）</h4>
 <div class="table-wrap"><table><thead><tr><th>候选</th><th>评估</th></tr></thead><tbody><tr><td><strong>去掉点号的版本号</strong></td><td><strong>最可能</strong>。2310=2.31.0 · 2330=2.33.0 · 2370=2.37.0 · 2380=2.38.0 · 2390=2.39.0。全部是 10 的倍数，正是版本序列的自然步长</td></tr><tr><td>TCP 端口</td><td><strong>基本可排除</strong> —— 端口不会整齐落在 10 的倍数上</td></tr><tr><td>构建号 / 内部编译号</td><td>无法排除</td></tr></tbody></table></div>
-<p>与本节样本的关系：<code>Shielden.exe</code> 版本 <code>2.4.0.0</code>，同规则应写作 <code>2400</code>，&lt;br&gt;略高于观测上界 <code>2390</code> —— 与「2.39 是 2.4 之前的一个版本」自洽。</p>
+<p>与本节样本的关系：<code>Shielden.exe</code> 版本 <code>2.4.0.0</code>，同规则应写作 <code>2400</code>，<br>略高于观测上界 <code>2390</code> —— 与「2.39 是 2.4 之前的一个版本」自洽。</p>
 <h4>可见样本的实测分布（n≈33）</h4>
 <figure class="code"><figcaption>text</figcaption><pre><code>LicenseType   DEMO 绝对多数 · DEMO64 次之 · SL / SP 各见 <span class="n">1</span> 例
               KERNEL / OEM / NET 未出现（商业档，公开分发的 DEMO 里自然少见）
@@ -133,11 +1211,11 @@ IP            全球分布（中国 / 巴西 / 土耳其 / 波兰 / 非洲 / 美
 <h4>这证实了什么</h4>
 <ol><li><strong><code>SL</code> 与 <code>SP</code> 是两个独立档位</strong>（同一 dump 中各自成行）—— 独立佐证了 1.3 中「#2=<code>SL</code>、#3=<code>SP</code>」的对称性推断</li><li>授权类型的<strong>实测子集</strong> = <code>{DEMO, DEMO64, SL, SP}</code>，全部落在 13 项枚举之内</li><li>服务端确实维护「hash → 类型 → 客户端」的会话表，字段形状与 <code>safenginedb.log</code> 表一致</li></ol>
 <h4>尚未解答</h4>
-<p>字段② 究竟是版本号还是构建号 —— 在 <code>SafengineSRV.exe</code> 中对应该结构下断，&lt;br&gt;看它从何处取值即可定论。消化整份 dump 用 <code>common/license_dump_analyze.py</code>。</p>
-<p><strong>关键点：3306 是三条通道里唯一「标准协议」的那条。</strong>&lt;br&gt;10001 是私有二进制（必须抓包），HTTP 是明文契约（有 PHP 源码），&lt;br&gt;而 3306 只需一个能握手的 MySQL 服务端 —— 这也意味着它<strong>最容易被漏配</strong>：&lt;br&gt;只改 10001 和 HTTP、忘了 3306，成品按 <code>tcp://127.0.0.1:3306</code> 直连就是 <code>Connection refused</code>。</p>
+<p>字段② 究竟是版本号还是构建号 —— 在 <code>SafengineSRV.exe</code> 中对应该结构下断，<br>看它从何处取值即可定论。消化整份 dump 用 <code>common/license_dump_analyze.py</code>。</p>
+<p><strong>关键点：3306 是三条通道里唯一「标准协议」的那条。</strong><br>10001 是私有二进制（必须抓包），HTTP 是明文契约（有 PHP 源码），<br>而 3306 只需一个能握手的 MySQL 服务端 —— 这也意味着它<strong>最容易被漏配</strong>：<br>只改 10001 和 HTTP、忘了 3306，成品按 <code>tcp://127.0.0.1:3306</code> 直连就是 <code>Connection refused</code>。</p>
 <h3>交叉印证（三条独立证据）</h3>
 <ol><li><strong>导入表</strong>：<code>Shielden.exe</code> 导入 <strong><code>WS2_32.dll</code></strong> —— 走裸 WinSock TCP， 与端口 10001 的私有协议一致（<strong>不是</strong> HTTP；全文件无 wininet/winhttp）。</li><li><strong><code>SEKeygenSDK.dll</code> 导入 <code>libmysql.dll</code></strong>，且其字符串含 <code>tcp://</code>、<code>MYSQL_SECURE_AUTH</code>、 <code>useLegacyAuth</code> —— 「验证数据库」确为 MySQL 连接，与 <code>tcp://auth.safengine.com:3306</code> 对应。</li><li><strong>随包发布了完整的自建服务端</strong>：<code>LicenseDB/</code>（<code>createdb.sql</code> + adodb5 + PHP 站 + <code>sekeygen_wrapper.exe</code>）， 官方 <code>LicenseDB/Readme.txt</code> 原文： &gt; 「Safengine 使用本地或远程服务器的授权数据库……配合 WEB 授权管理系统， &gt; 即可无缝接入我们的在线授权验证系统（Safengine NetLicensor）。 &gt; <strong>如果你需要此功能，请在加密时提供验证数据库的联接。</strong>」</li></ol>
-<p><code>LicenseDB/webfront/web/admin/os.products.edit.inc.php</code> 的表单字段为&lt;br&gt;「<strong>产品数据库配置（自动安装表）</strong>」= 主机地址 / 数据库 / 用户名 / 密码，&lt;br&gt;落库到 <code>Products</code> 表的 <code>d_host / d_database / d_username / d_password</code>&lt;br&gt;（<code>include/selector.inc.php::newLicConn()</code> 读取）。</p>
+<p><code>LicenseDB/webfront/web/admin/os.products.edit.inc.php</code> 的表单字段为<br>「<strong>产品数据库配置（自动安装表）</strong>」= 主机地址 / 数据库 / 用户名 / 密码，<br>落库到 <code>Products</code> 表的 <code>d_host / d_database / d_username / d_password</code><br>（<code>include/selector.inc.php::newLicConn()</code> 读取）。</p>
 <hr>
 <h2>2. 「加密打包」时到底发生了什么</h2>
 <figure class="code"><figcaption>text</figcaption><pre><code>┌──────────────────────────────┐
@@ -159,17 +1237,17 @@ IP            全球分布（中国 / 巴西 / 土耳其 / 波兰 / 非洲 / 美
                                · MySQL <span class="n">3306</span> → 验证数据库（取/写授权记录）
                                · HTTP       → webfront/index.php?p=/check/…（取 KEY）
                                返回 <span class="s">"(success) …"</span> / <span class="s">"(fail) …"</span></code></pre></figure>
-<p><strong>① 打包时的网络行为</strong>：勾选「启用验证服务器」后，工具需要<strong>连通验证服务器/验证数据库</strong>&lt;br&gt;以取得产品标识、版本号与授权策略；连不上即报 <code>无法连接验证服务器</code> / <code>无法连接Safengine服务器。</code>&lt;br&gt;（这两条串都是给打包期和运行期共用的错误提示。）</p>
-<p><strong>② 嵌入内容</strong>：受保护程序内嵌授权配置 + RSA 公钥（<code>授权选项 → RSA密钥长度 1024/…</code>），&lt;br&gt;并有 <code>SELicenseSDK.h</code> 中的 <code>SE_ERR_LICENSE_HARDWARE_ID_MISMATCH</code>、<code>SELicenseHashInfo.Hash[16]</code>&lt;br&gt;等运行期校验结构。</p>
+<p><strong>① 打包时的网络行为</strong>：勾选「启用验证服务器」后，工具需要<strong>连通验证服务器/验证数据库</strong><br>以取得产品标识、版本号与授权策略；连不上即报 <code>无法连接验证服务器</code> / <code>无法连接Safengine服务器。</code><br>（这两条串都是给打包期和运行期共用的错误提示。）</p>
+<p><strong>② 嵌入内容</strong>：受保护程序内嵌授权配置 + RSA 公钥（<code>授权选项 → RSA密钥长度 1024/…</code>），<br>并有 <code>SELicenseSDK.h</code> 中的 <code>SE_ERR_LICENSE_HARDWARE_ID_MISMATCH</code>、<code>SELicenseHashInfo.Hash[16]</code><br>等运行期校验结构。</p>
 <p><strong>③ 运行期的三条通道</strong>（<code>LicenseDB/webfront/web/include/check.inc.php</code> 明确给出 HTTP 契约）：</p>
 <div class="table-wrap"><table><thead><tr><th>动作</th><th>请求</th></tr></thead><tbody><tr><td>取 KEY</td><td><code>index.php?p=/check/get-key/&lt;product&gt;/&lt;username&gt;/&lt;password-md5&gt;/&lt;hardware-id-base64&gt;/</code></td></tr><tr><td>查账户</td><td><code>index.php?p=/check/query/&lt;product&gt;/&lt;username&gt;/&lt;password-md5&gt;/</code></td></tr><tr><td>查版本</td><td><code>index.php?p=/check/version/&lt;product&gt;/</code></td></tr><tr><td>充值</td><td><code>index.php?p=/check/charge/&lt;product&gt;/&lt;username&gt;/&lt;card-number&gt;/&lt;card-password-md5&gt;/</code></td></tr><tr><td>续费</td><td><code>index.php?p=/check/renew/&lt;product&gt;/&lt;username&gt;/</code></td></tr></tbody></table></div>
 <p>返回格式固定：成功 <code>(success) …</code>，失败 <code>(fail) …</code>。</p>
 <hr>
 <h2>3. 如何解决 / 能否转本地验证</h2>
-<p><strong>能。而且是官方设计好的路子。</strong> 关键点：域名 / 端口 / 数据库连接在工具里是&lt;br&gt;<strong>可编辑输入框</strong>（<code>auth.safengine.com:10001</code> 只是「例如」的预置示例），&lt;br&gt;且 Safengine 把整套服务端（<code>LicenseDB/</code>）都随包发了出来。&lt;br&gt;所以不需要打补丁、不需要逆向 <code>.sedata</code>，<strong>改配置指向本机即可</strong>。</p>
+<p><strong>能。而且是官方设计好的路子。</strong> 关键点：域名 / 端口 / 数据库连接在工具里是<br><strong>可编辑输入框</strong>（<code>auth.safengine.com:10001</code> 只是「例如」的预置示例），<br>且 Safengine 把整套服务端（<code>LicenseDB/</code>）都随包发了出来。<br>所以不需要打补丁、不需要逆向 <code>.sedata</code>，<strong>改配置指向本机即可</strong>。</p>
 <h3>方案 A（首选）—— 自建 NetLicensor，全本地闭环</h3>
 <ol><li><strong>让 3306 有东西在听</strong>（二选一） ```bash # 路 A-2（真 MySQL）—— 注意建的是验证库 safenginedb，不是 licensedb mysqld --defaults-file=./local_verify/mysql/my.cnf &amp;   # 监听 127.0.0.1:3306 mysql -uroot -p &lt; local_verify/A_selfhost/schema_real_safenginedb.sql #   -&gt; 建 safenginedb: licenses/fail/log/banhardware/banlog（结构照截图） # webfront 自己的库另建（与 3306 无关）： mysql -uroot -p &lt; LicenseDB/createdb.sql               # 建 licensedb</li></ol>
-<p># 路 A-1（纯 Python，零依赖 —— 标准 MySQL 协议仿真，SQL 全部落盘）&lt;br&gt;python3 local_verify/common/mysql_stub_3306.py --listen 0.0.0.0:3306&lt;br&gt;# 或由一体化服务端内嵌启动：&lt;br&gt;python3 local_verify/A_selfhost/local_netlicensor.py --db-port 0.0.0.0:3306 --init-demo</p>
+<p># 路 A-1（纯 Python，零依赖 —— 标准 MySQL 协议仿真，SQL 全部落盘）<br>python3 local_verify/common/mysql_stub_3306.py --listen 0.0.0.0:3306<br># 或由一体化服务端内嵌启动：<br>python3 local_verify/A_selfhost/local_netlicensor.py --db-port 0.0.0.0:3306 --init-demo</p>
 <figure class="code"><figcaption>text</figcaption><pre><code>   <span class="n">3306</span> 那条通道同时是**取证利器**：桩会把每一条 SQL 写进 `common/mysql3306.jsonl`，
    直接看出壳到底查了哪张表、哪些字段。
 <span class="n">2</span>. **部署 webfront（PHP）**：把 `LicenseDB/webfront/web` 放到 nginx+php-fpm，
@@ -180,9 +1258,9 @@ IP            全球分布（中国 / 巴西 / 土耳其 / 波兰 / 非洲 / 美
    $keygen_filename = <span class="s">"/srv/LicenseDB/webfront/sekeygen_wrapper/sekeygen_wrapper.exe"</span>;
    $keygen_dat_uploaded_dir = <span class="s">"/srv/LicenseDB/webfront/output/"</span>;
    $urlrewrite = true;   <span class="c">// 配合 rewrite/httpd.ini 的 RewriteRule</span></code></pre></figure>
-<ol><li><strong><code>SEKeygenSDK.dll</code> 放到 <code>sekeygen_wrapper/</code> 同级</strong>（<code>说明.txt</code> 第 4 步）。</li><li><strong>在 Shielden.exe「验证服务器设置」里改成</strong>： ``<code> 启用验证服务器   ☑ 验证服务器域名   127.0.0.1 验证服务器端口   10001 验证数据库名称   safenginedb      &lt;-- 验证库名，不是 webfront 的 licensedb 验证数据库用户名 root 验证数据库密码   &lt;口令&gt; 验证数据库连接   tcp://127.0.0.1:3306 </code>``</li><li>打包 → 生成的受保护程序只会连你自己的 <code>127.0.0.1</code>，<strong>断网也能授权</strong>。</li></ol>
+<ol><li><strong><code>SEKeygenSDK.dll</code> 放到 <code>sekeygen_wrapper/</code> 同级</strong>（<code>说明.txt</code> 第 4 步）。</li><li><strong>在 Shielden.exe「验证服务器设置」里改成</strong>： ``<code> 启用验证服务器   ✓ 验证服务器域名   127.0.0.1 验证服务器端口   10001 验证数据库名称   safenginedb      &lt;-- 验证库名，不是 webfront 的 licensedb 验证数据库用户名 root 验证数据库密码   &lt;口令&gt; 验证数据库连接   tcp://127.0.0.1:3306 </code>``</li><li>打包 → 生成的受保护程序只会连你自己的 <code>127.0.0.1</code>，<strong>断网也能授权</strong>。</li></ol>
 <h3>方案 B —— DNS 劫持 + 本地 10001 假服务（无法改配置时）</h3>
-<p>先用 <code>local_verify/tap_10001.py</code> 做<strong>透明抓包</strong>看真实握手，再用&lt;br&gt;<code>local_verify/fake_licensor_10001.py</code> 顶替：</p>
+<p>先用 <code>local_verify/tap_10001.py</code> 做<strong>透明抓包</strong>看真实握手，再用<br><code>local_verify/fake_licensor_10001.py</code> 顶替：</p>
 <figure class="code"><figcaption>text</figcaption><pre><code><span class="c"># hosts（或路由器 DNS / iptables DNAT）</span>
 <span class="n">127.0</span>.<span class="n">0.1</span>   auth.safengine.com</code></pre></figure>
 <figure class="code lang-bash"><figcaption>bash</figcaption><pre><code><span class="k">adb</span> shell <span class="s">"su -c 'echo 127.0.0.1 auth.safengine.com &gt;&gt; /system/etc/hosts'"</span>   <span class="c"># Android 侧示例</span>
@@ -190,7 +1268,7 @@ IP            全球分布（中国 / 巴西 / 土耳其 / 波兰 / 非洲 / 美
 netsh interface portproxy add v4tov4 listenport=<span class="n">10001</span> listenaddress=<span class="n">127.0</span>.<span class="n">0.1</span> connectport=<span class="n">10001</span> connectaddress=<span class="n">127.0</span>.<span class="n">0.1</span></code></pre></figure>
 <p>配合 <code>mock_webfront.py</code> 顶掉 <code>index.php?p=/check/*</code>，直接吐 <code>(success) …</code>。</p>
 <h3>方案 C —— 纯离线（绕开网络验证）</h3>
-<p>若你的目标只是「一机一码」而不要在线校验，<strong>根本不启用验证服务器</strong>：&lt;br&gt;走随包的离线链路 <code>BinRes/SEKeygen.exe</code> + <code>SDK/SESDKDummy.dll</code> + <code>SESDK.h</code>&lt;br&gt;（界面路径：<code>授权选项 → 生成授权工具 → 生成授权文件名 xxx.key</code>，&lt;br&gt;教程图 <code>简单的教程/6.jpg</code>、<code>7.jpg</code> 就是这条路）。&lt;br&gt;打包时不勾「启用验证服务器」，生成的 <code>.key</code> 复制到程序目录即可，<strong>零网络依赖</strong>。</p>
+<p>若你的目标只是「一机一码」而不要在线校验，<strong>根本不启用验证服务器</strong>：<br>走随包的离线链路 <code>BinRes/SEKeygen.exe</code> + <code>SDK/SESDKDummy.dll</code> + <code>SESDK.h</code><br>（界面路径：<code>授权选项 → 生成授权工具 → 生成授权文件名 xxx.key</code>，<br>教程图 <code>简单的教程/6.jpg</code>、<code>7.jpg</code> 就是这条路）。<br>打包时不勾「启用验证服务器」，生成的 <code>.key</code> 复制到程序目录即可，<strong>零网络依赖</strong>。</p>
 <hr>
 <h2>4. 判定与注意事项</h2>
 <ul><li><code>.sedata</code> 段加密是<strong>壳自身</strong>的保护，与「验证服务器地址」无关； 地址不需要脱壳，它就在<strong>明文的语言资源 DLL</strong> 里 —— 这也是本项目最省力的一步。</li><li>字符串写的是「<strong>例如</strong>」：说明这是 Safengine 预置的<strong>托管服务示例值</strong>。 你若购买的是官方托管授权，就用它；若是自建，改为自己的地址。 <strong>同一份 <code>Langs/*.dll</code> 两处一致</strong>，可确认非笔误。</li><li>端口 <code>10001</code> 上的协议为私有二进制协议（走 WS2_32）， <strong>不要</strong>假设它是 HTTP；方案 B 必须先抓包再写应答。</li><li><code>GetHWID.exe</code> 内嵌标题为 <code>Safengine Licensor v2.4.0.0</code>， <code>Shielden.exe</code> 内嵌 <code>Safengine NetLicensor v2.4.0.0</code> —— 前者是离线机器码工具，后者是联网验证客户端。</li><li>归档里所有 <code>http(s)://</code> 字符串（<code>symcb.com</code> / <code>thawte.com</code> / <code>usertrust.com</code> / <code>crl.microsoft.com</code> …） 都是<strong>代码签名时间戳与 CRL/OCSP</strong>，与授权验证无关，勿误判。</li></ul>
@@ -226,17 +1304,17 @@ netsh interface portproxy add v4tov4 listenport=<span class="n">10001</span> lis
 <blockquote>前提说明：以上是<strong>互操作性分析</strong>用途。请确保你对被分析的软件与授权数据<br>有合法处置权；本仓库只提供分析工具，不含任何绕过授权的成品。</blockquote>
 <hr>
 <h2>7. 插件体系与服务器验证的关系（<code>Plugin.dll</code> / <code>PluginBin.dll</code>）</h2>
-<p><strong>结论先行：这两个 DLL 里没有任何服务器验证流程。</strong> 它们只在授权校验的<strong>前后挂勾子</strong>，&lt;br&gt;校验本身发生在壳里。</p>
+<p><strong>结论先行：这两个 DLL 里没有任何服务器验证流程。</strong> 它们只在授权校验的<strong>前后挂勾子</strong>，<br>校验本身发生在壳里。</p>
 <h3>7.1 清单</h3>
 <div class="table-wrap"><table><thead><tr><th>文件</th><th>位宽</th><th>大小</th><th>加壳</th><th>角色</th></tr></thead><tbody><tr><td><code>Plugins/DllBox/Plugin.dll</code></td><td>PE32</td><td>322,048</td><td>否</td><td>宿主侧插件（打包时在 Shielden.exe 内运行）</td></tr><tr><td><code>Plugins/Splash/Plugin.dll</code></td><td>PE32</td><td>325,120</td><td>否</td><td>同上</td></tr><tr><td><code>Plugins/Splash64/Plugin.dll</code></td><td>PE32</td><td>325,120</td><td>否</td><td><strong>与 Splash/Plugin.dll 字节完全相同</strong>（md5 <code>6f4807c2…</code>）</td></tr><tr><td><code>Plugins/Splash/PluginBin.dll</code></td><td>PE32</td><td>180,224</td><td>否</td><td>目标侧，被捆绑进受保护程序</td></tr><tr><td><code>Plugins/Splash64/PluginBin.dll</code></td><td><strong>PE32+</strong></td><td>208,384</td><td>否</td><td>同上，64 位</td></tr></tbody></table></div>
-<p>→ 宿主侧插件只有一份（32 位，因为它跑在 32 位的 <code>Shielden.exe</code> 里）；&lt;br&gt;<code>Splash</code> 与 <code>Splash64</code> 的差别<strong>只在被捆绑的 <code>PluginBin.dll</code></strong>。</p>
+<p>→ 宿主侧插件只有一份（32 位，因为它跑在 32 位的 <code>Shielden.exe</code> 里）；<br><code>Splash</code> 与 <code>Splash64</code> 的差别<strong>只在被捆绑的 <code>PluginBin.dll</code></strong>。</p>
 <h3>7.2 导出接口（8 个，与 2010 版 CHM 已不一致）</h3>
 <figure class="code"><figcaption>text</figcaption><pre><code>GetPluginBinName   GetPluginContext   GetPluginContextSize   GetPluginEnabled
 GetPluginType      InitPluginSettings PluginProcess          ShowPluginOptions</code></pre></figure>
 <p>CHM 里写的 <code>Initialize</code> / <code>PluginMain</code> 已更名，以 <code>PDK/PluginSDK.h</code> 为准。</p>
 <h3>7.3 它们<strong>没有</strong>服务器验证：三重否定证据</h3>
 <div class="table-wrap"><table><thead><tr><th>检查</th><th>结果</th></tr></thead><tbody><tr><td>导入表</td><td><strong>无</strong> <code>WS2_32</code> / <code>WININET</code> / <code>WINHTTP</code> / <code>URLMON</code> / <code>libmysql</code>；全是 <code>KERNEL32/USER32/GDI32/COMCTL32/ole32/…</code> 这些纯 GUI 栈</td></tr><tr><td>字符串（网络/授权关键字全扫）</td><td><strong>零命中</strong>。唯一的 <code>server</code> 命中是 MFC 样板 <code>LocalServer32</code>/<code>InProcServer32</code>/<code>XAccessibleServer</code></td></tr><tr><td><code>PluginBin.dll</code> 的 SDK 导入</td><td><strong>只导入一个</strong>：<code>SEGetAppStatus()</code></td></tr></tbody></table></div>
-<p><code>SEGetAppStatus()</code> 返回 <code>SE_STATUS_INIT</code> / <code>SE_STATUS_NORMAL</code>（<code>SESDK.h</code>），&lt;br&gt;Splash 用它判断壳初始化是否完成，以便在正确时机显示启动画面 —— 与授权无关。</p>
+<p><code>SEGetAppStatus()</code> 返回 <code>SE_STATUS_INIT</code> / <code>SE_STATUS_NORMAL</code>（<code>SESDK.h</code>），<br>Splash 用它判断壳初始化是否完成，以便在正确时机显示启动画面 —— 与授权无关。</p>
 <h3>7.4 但它们确实<strong>挂在授权流水线上</strong>（这正是关键）</h3>
 <p><code>PDK/PluginSDK.h</code> 定义插件类型位：</p>
 <figure class="code"><figcaption>text</figcaption><pre><code>NORMAL            <span class="n">0x01</span>   壳初始化完成后、授权校验前执行
@@ -248,14 +1326,514 @@ GET_LICENSE       <span class="n">0x08</span>   在 DllMain 收到【授权文�
 <figure class="code"><figcaption>text</figcaption><pre><code><span class="n">55</span> 8b ec          push ebp; mov ebp,esp
 b8 <span class="n">06</span> <span class="n">00</span> <span class="n">00</span> <span class="n">00</span>    mov eax, <span class="n">6</span>        &lt;- BEFORE_LICENSING(<span class="n">0x2</span>) | NO_PROTECT(<span class="n">0x4</span>)
 5d c3             pop ebp; ret</code></pre></figure>
-<p><strong><code>0x6</code> = <code>BEFORE_LICENSING | NO_PROTECT</code></strong> —— 即：Splash 在授权校验<strong>之前</strong>执行，&lt;br&gt;且自身不受保护。所以启动画面会在授权失败时<strong>照样显示</strong>。</p>
-<p><code>DllBox/Plugin.dll::GetPluginType()</code> 不是常量返回（<code>cmp dword [0x1004a300],0; je …</code>），&lt;br&gt;类型由 <code>DllBox.ini</code> 在运行时决定。</p>
+<p><strong><code>0x6</code> = <code>BEFORE_LICENSING | NO_PROTECT</code></strong> —— 即：Splash 在授权校验<strong>之前</strong>执行，<br>且自身不受保护。所以启动画面会在授权失败时<strong>照样显示</strong>。</p>
+<p><code>DllBox/Plugin.dll::GetPluginType()</code> 不是常量返回（<code>cmp dword [0x1004a300],0; je …</code>），<br>类型由 <code>DllBox.ini</code> 在运行时决定。</p>
 <h3>7.5 对我们目标（转本地验证）的含义</h3>
 <ol><li><strong>改插件不能绕过服务器验证</strong> —— 验证逻辑不在插件里，在壳（受保护程序的 Safengine 运行时）里</li><li><strong><code>GET_LICENSE</code> 插件理论上能拿到授权文件明文</strong>（<code>pKeyBuf</code>/<code>dwKeySize</code>）—— 这是观察授权结构的<strong>合法切入点</strong>，但 Splash/DllBox 都没用这个类型</li><li>插件引用的是 <code>SESDKDummy.dll</code> / <code>SESDKDummy64.dll</code>（45 / 42 个 SDK 导出）—— <strong>真正实现</strong>在壳内，Dummy 只是链接期的桩。想知道授权怎么校验，得看壳，不是看插件</li><li>与 3306 / 10001 两条通道<strong>无关</strong>：插件不发任何网络请求</li></ol>
-</article></main>
-<footer class="footer"><p>© <span id="year"></span> Felix · Powered by GitHub Pages</p></footer>
-<button id="top" class="icon-btn top" aria-label="回到顶部">↑</button>
-<script src="../assets/js/main.js"></script>
-<script src="../assets/js/dream.js"></script>
+    </article>
+    <div class="prev-next"><a class="pn-item" href="p-07-解剖报告_26.0.0.html"><div class="pn-label">上一篇</div><div>XP Hero 25.3.0 内置 MOD —— 打怪经验 + 通行证购买 解剖报告</div></a><a class="pn-item" href="p-06-红果短剧_去更新_完整解剖文档.html"><div class="pn-label">下一篇</div><div>红果短剧（红果免费短剧 / 果短剧）去更新 —— 完整解剖文档（终版）</div></a></div>
+    <p class="back-wrap"><a class="back" href="../">← 返回首页</a></p>
+    <section class="comments">
+      <div class="panel-head">评论</div>
+      <div class="ut-box" id="ut-box"></div>
+    </section>
+  </div>
+</main>
+<footer class="site-footer">
+  <div class="cloud-rule"></div>
+  <div class="foot-rule"></div>
+  <div class="copyright">© 2026 - <span id="year"></span> ZY驿站 · 保留所有权利</div>
+  <div class="foot-stats">
+    <span>浏览量 <b id="visit-pv">—</b></span>
+    <span>访客数 <b id="visit-uv">—</b></span>
+    <span>本站已运行 <b id="runtime" data-start="2026-09-22">—</b></span>
+  </div>
+  <div class="foot-note">felixdsh2.eu.cc</div>
+</footer>
+<div class="search-modal" id="search-modal" hidden style="display:none">
+  <div class="search-box">
+    <div class="search-head"><span>检 索</span> <a href="javascript:;" id="search-close">×</a></div>
+    <input id="search-input" type="search" placeholder="输入关键词，如 授权 / 补丁 / Android" autocomplete="off">
+    <div class="search-result" id="search-result"><p class="tip">输入关键词开始检索</p></div>
+  </div>
+</div>
+<button id="top" class="to-top" aria-label="回到顶部"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6"/><path d="M6.5 11.5L12 6l5.5 5.5"/></svg></button>
+<script>/* app.js —— 墨雪 / 墨迹拖尾 / 侧栏 / 搜索 / 列表 / 统计 / 留言板（零依赖） */
+/* 特效开关（记忆在 localStorage，可在顶栏一键关闭） */
+/* 特效常开：墨雪与墨迹一直运行（不再提供开关） */
+window.__FX = { on: true, snowResume: null, dreamResume: null };
+/* app.js —— 飘雪 / 指针流光 / 侧栏 / 搜索 / 列表渲染 / 统计 / 留言板（合并版，零依赖） */
+/* snow.js —— 飘雪氛围层（系统减少动态时自动关闭） */
+(function () {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var cv = document.getElementById('snow-canvas');
+  if (!cv) return;
+  var ctx = cv.getContext('2d'), DPR = Math.min(devicePixelRatio || 1, 2);
+  var W = 0, H = 0, flakes = [], raf = 0, running = true;
+  function resize() {
+    W = innerWidth; H = innerHeight;
+    cv.width = W * DPR; cv.height = H * DPR;
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    var n = Math.min(42, Math.round(W / 26));
+    flakes = [];
+    for (var i = 0; i < n; i++) flakes.push({
+      x: Math.random() * W, y: Math.random() * H,
+      r: 0.8 + Math.random() * 1.6, sp: 0.18 + Math.random() * 0.5,
+      sw: Math.random() * 2 - 1, o: 0.16 + Math.random() * 0.22
+    });
+  }
+  resize();
+  addEventListener('resize', resize, { passive: true });
+  function frame() {
+    if (!running) return;
+    if (window.__FX && !window.__FX.on) { ctx.clearRect(0, 0, W, H); raf = 0; return; }
+    ctx.clearRect(0, 0, W, H);
+    for (var i = 0; i < flakes.length; i++) {
+      var f = flakes[i];
+      f.y += f.sp; f.x += Math.sin((f.y + i * 20) / 60) * 0.5 + f.sw * 0.2;
+      if (f.y > H + 6) { f.y = -6; f.x = Math.random() * W; }
+      if (f.x < -6) f.x = W + 6; else if (f.x > W + 6) f.x = -6;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, 6.2832);
+      ctx.fillStyle = (document.documentElement.getAttribute('data-theme') === 'dark')
+        ? 'rgba(232,226,210,' + f.o + ')' : 'rgba(58,54,48,' + f.o + ')';
+      ctx.fill();
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  raf = requestAnimationFrame(frame);
+  if (window.__FX) window.__FX.snowResume = function () { if (running && !raf) raf = requestAnimationFrame(frame); };
+  document.addEventListener('visibilitychange', function () {
+    running = !document.hidden;
+    if (running) raf = requestAnimationFrame(frame); else cancelAnimationFrame(raf);
+  });
+})();
+/* dream.js —— 全局指针流光拖尾 + 星尘（Canvas 2D，无依赖） */
+(function () {
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var canvas = document.getElementById('dream-canvas');
+  if (!canvas || reduce) return;
+
+  var ctx = canvas.getContext('2d');
+  var DPR = Math.min(devicePixelRatio || 1, 2);
+  var W = 0, H = 0, raf = 0, last = performance.now(), idleSince = performance.now();
+  var pointer = { x: innerWidth / 2, y: innerHeight * 0.35, has: false, amt: 0 };
+  var parts = [];
+  var DARK = document.documentElement.getAttribute('data-theme') === 'dark';
+  var HALO = DARK ? ['236,230,214', '214,206,190', '190,182,166', '222,216,200']
+                  : ['58,54,48', '96,90,80', '128,120,106', '78,72,64'];
+
+  function resize() {
+    W = innerWidth; H = innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  resize();
+  addEventListener('resize', resize, { passive: true });
+
+  function spawn(n, x, y, power) {
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * Math.PI * 2, s = Math.random() * 1.1;
+      parts.push({
+        x: x + Math.cos(a) * 8, y: y + Math.sin(a) * 8,
+        vx: Math.cos(a) * s * (power || 1), vy: Math.sin(a) * s * (power || 1) - 0.25,
+        r: 6 + Math.random() * 22,
+        life: 1, decay: 0.008 + Math.random() * 0.012,
+        c: HALO[(Math.random() * HALO.length) | 0]
+      });
+    }
+    if (parts.length > 320) parts.splice(0, parts.length - 320);
+    idleSince = 0;
+  }
+
+  function move(x, y) {
+    var dx = x - pointer.x, dy = y - pointer.y, d = Math.hypot(dx, dy);
+    pointer.x = x; pointer.y = y; pointer.has = true;
+    pointer.amt = Math.min(1, pointer.amt + 0.35);
+    spawn(Math.max(1, Math.min(3, (d / 22) | 0) + 1), x, y, 1);
+    idleSince = 0;
+  }
+
+  addEventListener('pointermove', function (e) { move(e.clientX, e.clientY); }, { passive: true });
+  addEventListener('touchmove', function (e) { var t = e.touches[0]; if (t) move(t.clientX, t.clientY); }, { passive: true });
+  addEventListener('pointerdown', function (e) { spawn(18, e.clientX, e.clientY, 2.2); }, { passive: true });
+  addEventListener('pointerleave', function () { pointer.has = false; }, { passive: true });
+
+  function frame(now) {
+    if (window.__FX && !window.__FX.on) { ctx.clearRect(0, 0, W, H); raf = 0; return; }
+    var dt = Math.min(2.5, (now - last) / 16.667); last = now;
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+
+    for (var i = parts.length - 1; i >= 0; i--) {
+      var p = parts[i];
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vx *= 0.985; p.vy = p.vy * 0.985 - 0.006 * dt;
+      p.life -= p.decay * dt;
+      if (p.life <= 0) { parts.splice(i, 1); continue; }
+      var r = p.r * (1.25 - p.life * 0.5);
+      var g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+      g.addColorStop(0, 'rgba(' + p.c + ',' + (0.16 * p.life).toFixed(3) + ')');
+      g.addColorStop(0.45, 'rgba(' + p.c + ',' + (0.06 * p.life).toFixed(3) + ')');
+      g.addColorStop(1, 'rgba(' + p.c + ',0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.2832); ctx.fill();
+    }
+
+    if (pointer.has) {
+      var size = 190 + pointer.amt * 70;
+      var g2 = ctx.createRadialGradient(pointer.x, pointer.y, 0, pointer.x, pointer.y, size);
+      g2.addColorStop(0, 'rgba(' + (DARK ? '236,230,214' : '58,54,48') + ',' + (0.07 * pointer.amt).toFixed(3) + ')');
+      g2.addColorStop(0.4, 'rgba(' + (DARK ? '200,192,176' : '104,98,88') + ',' + (0.04 * pointer.amt).toFixed(3) + ')');
+      g2.addColorStop(1, 'rgba(124,92,255,0)');
+      ctx.fillStyle = g2;
+      ctx.beginPath(); ctx.arc(pointer.x, pointer.y, size, 0, 6.2832); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    pointer.amt *= 0.94;
+
+    if (!parts.length && !pointer.has) {
+      if (!idleSince) idleSince = now;
+      if (now - idleSince > 700) { raf = 0; return; }
+    }
+    raf = requestAnimationFrame(frame);
+  }
+
+  function ensure() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } }
+  if (window.__FX) window.__FX.dreamResume = function () { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
+  addEventListener('pointermove', ensure, { passive: true });
+  addEventListener('touchmove', ensure, { passive: true });
+  addEventListener('pointerdown', ensure, { passive: true });
+  addEventListener('visibilitychange', function () {
+    if (document.hidden) { cancelAnimationFrame(raf); raf = 0; } else ensure();
+  });
+
+  var lastScroll = scrollY;
+  addEventListener('scroll', function () {
+    var d = Math.abs(scrollY - lastScroll); lastScroll = scrollY;
+    if (d > 40) { spawn(1, Math.random() * W, scrollY > 0 ? H * 0.85 : H * 0.2, 0.6); ensure(); }
+  }, { passive: true });
+})();
+/* ui.js —— 侧栏 / 顶栏 / 打字机 / 搜索 / 文章列表 / 归档 / 计时 */
+(function () {
+  var SVm = function (p) { return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
+  var MG = {
+    date: SVm('<rect x="4" y="6" width="16" height="14" rx="1.5"/><path d="M4 10h16"/><path d="M8.5 4v3M15.5 4v3"/>'),
+    time: SVm('<circle cx="12" cy="12" r="7.5"/><path d="M12 7.5V12l3.2 2"/>'),
+    chars: SVm('<path d="M4 6h16M4 12h16M4 18h16"/><path d="M9 4v16"/>')
+  };
+  var CAT_ART = {
+    '授权算法': ['#efe9dd','#e3dccd','授'], '补丁改造': ['#f1ece2','#e5ded0','补'],
+    '逆向分析': ['#eee9de','#e0d9ca','逆'], '技术笔记': ['#f2eee6','#e6e0d3','笔'],
+    '安全研究': ['#f0ebe1','#e4ddce','安']
+  };
+  function catArt(c) { return CAT_ART[c] || ['#f2eee6', '#e6e0d3', '文']; }
+  var depth = document.body.getAttribute('data-depth') === '1';
+  var UP = depth ? '../' : './';
+
+  /* ---- 侧栏抽屉 ---- */
+  var side = document.getElementById('sidebar'), mask = document.getElementById('sidebar-mask');
+  function toggleSide(on) {
+    if (!side) return;
+    var willOpen = (on === undefined) ? !side.classList.contains('open') : on;
+    side.classList.toggle('open', willOpen);
+    if (mask) mask.classList.toggle('show', willOpen);
+    try { localStorage.setItem('side', willOpen ? '1' : '0'); } catch (e) {}
+  }
+  var mb = document.getElementById('menu-btn');
+  if (mb) mb.addEventListener('click', function () { toggleSide(); });
+  if (mask) mask.addEventListener('click', function () { toggleSide(false); });
+  var sc2 = document.getElementById('sidebar-close');
+  if (sc2) sc2.addEventListener('click', function () { toggleSide(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { toggleSide(false); closeSearch(); } });
+  if (location.hash === '#search') setTimeout(function () { openSearch(); }, 120);
+  if (innerWidth >= 1180) { try { if (localStorage.getItem('side') === '1') document.body.classList.add('fixed-side'); } catch (e) {} }
+
+  /* ---- 顶栏滚动变实心 ---- */
+  var header = document.getElementById('site-header');
+  var onScroll = function () {
+    if (header) header.classList.toggle('solid', scrollY > 60);
+    var t = document.getElementById('top');
+    if (t) t.classList.toggle('show', scrollY > 420);
+    var bar = document.getElementById('progress');
+    if (bar) { var h = document.body.scrollHeight - innerHeight; bar.style.width = (h > 0 ? (scrollY / h) * 100 : 0) + '%'; }
+  };
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  var topBtn = document.getElementById('top');
+  if (topBtn) topBtn.addEventListener('click', function () { scrollTo({ top: 0, behavior: 'smooth' }); });
+
+  /* ---- 主题 ---- */
+  var root = document.documentElement, tb = document.getElementById('theme-btn');
+  var cur = localStorage.getItem('theme');
+  if (cur) root.dataset.theme = cur;
+  var paint = function () { if (tb) tb.textContent = root.dataset.theme === 'dark' ? '纸' : '墨'; };
+  paint();
+  if (tb) tb.addEventListener('click', function () {
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', root.dataset.theme); paint();
+  });
+
+  /* ---- 打字机 ---- */
+  var typed = document.getElementById('typed');
+  if (typed) {
+    var lines = (typed.getAttribute('data-lines') || '').split('|').filter(Boolean);
+    var li = 0, ci = 0, del = false;
+    (function tick() {
+      var s = lines[li] || '';
+      typed.textContent = del ? s.slice(0, ci--) : s.slice(0, ci++);
+      var wait = del ? 45 : 105;
+      if (!del && ci > s.length + 6) { del = true; wait = 1400; }
+      if (del && ci < 0) { del = false; li = (li + 1) % lines.length; wait = 320; }
+      setTimeout(tick, wait);
+    })();
+  }
+
+  /* ---- 数据：文章清单 ---- */
+  var posts = window.__POSTS || [];
+  function loadPosts(cb) { cb(posts); }
+
+  /* ---- 首页列表 + 分类筛选 ---- */
+  var list = document.getElementById('post-list');
+  if (list) {
+    var strip = document.getElementById('cat-strip');
+    var empty = document.getElementById('list-empty');
+    var Q = (typeof URLSearchParams === 'function') ? new URLSearchParams(location.search) : { get: function () { return null; } };
+    var fCat = Q.get('cat') || '', fTag = Q.get('tag') || '';
+    loadPosts(function (all) {
+      var cats = {};
+      all.forEach(function (p) { cats[p.category] = (cats[p.category] || 0) + 1; });
+      if (strip) {
+        var html = '<button class="cat-pill' + (!fCat && !fTag ? ' on' : '') + '" data-cat="">全部 <b>' + all.length + '</b></button>';
+        Object.keys(cats).forEach(function (c) {
+          html += '<button class="cat-pill' + (fCat === c ? ' on' : '') + '" data-cat="' + c + '">' + c + ' <b>' + cats[c] + '</b></button>';
+        });
+        strip.innerHTML = html;
+        strip.addEventListener('click', function (e) {
+          var b = e.target.closest ? e.target.closest('.cat-pill') : null;
+          if (!b) return;
+          [].forEach.call(strip.querySelectorAll('.cat-pill'), function (x) { x.classList.remove('on'); });
+          b.classList.add('on');
+          if (history.replaceState) history.replaceState(null, '', location.pathname);
+          var fb = document.getElementById('filter-bar'); if (fb) fb.parentNode.removeChild(fb);
+          render(b.getAttribute('data-cat'), '');
+        });
+      }
+      if ((fCat || fTag) && strip && strip.parentNode) {
+        var bar = document.createElement('div');
+        bar.className = 'filter-bar';
+        bar.id = 'filter-bar';
+        bar.innerHTML = '当前筛选：<b>' + (fCat ? '分类 · ' + fCat : '标签 · #' + fTag) + '</b>' +
+          '　<a href="' + UP + 'index.html">清除 ×</a>';
+        strip.parentNode.insertBefore(bar, strip);
+      }
+      render(fCat, fTag);
+      function render(cat, tag) {
+        var arr = all.filter(function (p) {
+          if (cat && p.category !== cat) return false;
+          if (tag && (p.tags || []).indexOf(tag) < 0) return false;
+          return true;
+        });
+        var filtered = !!(cat || tag);
+        if (!arr.length) {
+          list.innerHTML = '';
+          if (empty) { empty.hidden = false; empty.textContent = filtered ? '这个筛选下还没有文章' : '没有找到匹配的文章'; }
+          return;
+        }
+        if (empty) empty.hidden = true;
+        list.innerHTML = arr.map(function (p, i) {
+          return '<article class="post-card' + (i === 0 && !filtered ? ' hero-card' : '') + '">' +
+            '<a class="card-img" href="' + UP + 'posts/' + p.slug + '.html">' +
+            '<span class="cover-grad" style="background-image:url(' + p.cover + ')"><i class="cover-swords"></i></span>' +
+            '<span class="cat-badge">' + p.category + '</span></a>' +
+            '<div class="card-body"><h2><a href="' + UP + 'posts/' + p.slug + '.html">' + p.title + '</a></h2>' +
+            '<p class="excerpt">' + p.desc + '</p>' +
+            '<div class="card-meta"><span class="author">ZY</span>' +
+            '<span>' + MG.date + p.date + '</span><span>' + MG.time + '约 ' + p.readMins + ' 分钟</span><span>' + MG.chars + p.chars + ' 字</span></div>' +
+            '<div class="card-tags">' + (p.tags || []).map(function (t, k) {
+              return '<a class="tag-pill' + (k % 2 ? ' alt' : '') + '" href="' + UP + 'index.html?tag=' + encodeURIComponent(t) + '">#' + t + '</a>';
+            }).join('') + '</div></div></article>';
+        }).join('');
+      }
+    });
+  }
+
+  /* ---- 归档时间轴 ---- */
+  var tl = document.getElementById('timeline');
+  if (tl) {
+    loadPosts(function (all) {
+      var c = document.getElementById('archive-count');
+      if (c) c.textContent = '共 ' + all.length + ' 篇文章';
+      var byYear = {};
+      all.forEach(function (p) { (byYear[p.date.slice(0, 4)] = byYear[p.date.slice(0, 4)] || []).push(p); });
+      var out = '';
+      Object.keys(byYear).sort().reverse().forEach(function (y) {
+        out += '<h2 style="margin:26px 0 6px;font-size:20px">' + y + ' 年 <span class="tip" style="font-size:13px">（' + byYear[y].length + ' 篇）</span></h2>';
+        byYear[y].forEach(function (p) {
+          out += '<div class="tl-item"><div class="tl-date">' + p.date + ' · ' + p.category + '</div>' +
+            '<a class="tl-title" href="' + UP + 'posts/' + p.slug + '.html">' + p.title + '</a></div>';
+        });
+      });
+      tl.innerHTML = out || '<p class="tip center">还没有文章</p>';
+    });
+  }
+
+  /* ---- 标签墙 / 分类墙 ---- */
+  var tagWall = document.getElementById('tag-wall'), catWall = document.getElementById('cat-wall');
+  if (tagWall || catWall) {
+    loadPosts(function (all) {
+      var tags = {}, cats = {};
+      all.forEach(function (p) {
+        (p.tags || []).forEach(function (t) { tags[t] = (tags[t] || 0) + 1; });
+        cats[p.category] = (cats[p.category] || 0) + 1;
+      });
+      var paintWall = function (el, obj, kind) {
+        if (!el) return;
+        el.innerHTML = Object.keys(obj).sort(function (a, b) { return obj[b] - obj[a]; }).map(function (k) {
+          var href = UP + 'index.html?' + kind + '=' + encodeURIComponent(k);
+          var label = (kind === 'tag') ? '#' + k : k;
+          return '<a class="wall-item" href="' + href + '"><span>' + label + '</span><span class="count">' + obj[k] + '</span></a>';
+        }).join('');
+      };
+      paintWall(tagWall, tags, 'tag');
+      paintWall(catWall, cats, 'cat');
+    });
+  }
+
+  /* ---- 搜索弹窗（显式 style 控制，避免 hidden 失效导致遮挡）---- */
+  var modal = document.getElementById('search-modal'), input = document.getElementById('search-input'),
+      result = document.getElementById('search-result');
+  function toggleSearch(on) {
+    if (!modal) return;
+    var show = (on === undefined) ? (modal.style.display !== 'block') : on;
+    modal.style.display = show ? 'block' : 'none';
+    modal.hidden = !show;
+    document.body.classList.toggle('modal-open', show);
+    if (show) {
+      if (input) { input.value = ''; setTimeout(function () { input.focus(); }, 30); }
+      if (result) result.innerHTML = '<p class="tip">输入关键词开始检索</p>';
+      if (history.replaceState) history.replaceState(null, '', location.pathname + '#search');
+    } else if (location.hash === '#search' && history.replaceState) {
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+  }
+  function openSearch() { toggleSearch(true); }
+  function closeSearch() { toggleSearch(false); }
+  var sb = document.getElementById('search-btn');
+  if (sb) sb.addEventListener('click', openSearch);
+  var sc = document.getElementById('search-close');
+  if (sc) sc.addEventListener('click', closeSearch);
+  if (modal) modal.addEventListener('click', function (e) { if (e.target === modal) closeSearch(); });
+  if (result) result.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a.sr-item') : null;
+    if (a) closeSearch();            // 允许默认跳转，仅关闭弹窗
+  });
+  if (input) input.addEventListener('input', function () {
+    var kw = input.value.trim().toLowerCase();
+    if (!kw) { result.innerHTML = '<p class="tip">输入关键词检索全部文章…</p>'; return; }
+    loadPosts(function (all) {
+      var hit = all.filter(function (p) {
+        return (p.title + p.desc + (p.tags || []).join(' ') + p.category).toLowerCase().indexOf(kw) > -1;
+      });
+      result.innerHTML = hit.length ? hit.map(function (p) {
+        return '<a class="sr-item" href="' + UP + 'posts/' + p.slug + '.html"><div class="sr-t">' + p.title +
+          '</div><div class="sr-d">' + p.date + ' · ' + p.category + ' · ' + p.desc + '</div></a>';
+      }).join('') : '<p class="tip">没有匹配的文章</p>';
+    });
+  });
+
+  /* ---- 页脚运行时间 ---- */
+  var rt = document.getElementById('runtime');
+  if (rt) {
+    var start = new Date(rt.getAttribute('data-start') + 'T00:00:00');
+    (function up() {
+      var d = Date.now() - start.getTime();
+      var day = Math.floor(d / 864e5), h = Math.floor(d % 864e5 / 36e5), m = Math.floor(d % 36e5 / 6e4), s = Math.floor(d % 6e4 / 1000);
+      rt.textContent = day + ' 天 ' + h + ' 小时 ' + m + ' 分 ' + s + ' 秒';
+      setTimeout(up, 1000);
+    })();
+  }
+})();
+/* main.js —— 访问统计 / 留言板 / year / 进度条兜底 */
+(function () {
+  var y = document.getElementById('year'), y2 = document.getElementById('year2');
+  if (y) y.textContent = new Date().getFullYear();
+  if (y2) y2.textContent = new Date().getFullYear();
+
+  /* ---- 真实统计：不蒜子（busuanzi）---- */
+  var pe = document.getElementById('visit-pv'), ue = document.getElementById('visit-uv');
+  function busuanzi() {
+    var pv = document.getElementById('busuanzi_value_site_pv');
+    var uv = document.getElementById('busuanzi_value_site_uv');
+    var ok = false;
+    if (pv && /^\d/.test(pv.textContent || '')) { pe.textContent = (+pv.textContent).toLocaleString() + ' 次'; ok = true; }
+    if (uv && /^\d/.test(uv.textContent || '')) { ue.textContent = (+uv.textContent).toLocaleString() + ' 人'; ok = true; }
+    return ok;
+  }
+  var bs = document.createElement('script');
+  bs.async = true;
+  bs.src = 'https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js';
+  bs.onload = function () { setTimeout(busuanzi, 900); setTimeout(function () { if (!busuanzi()) fallback(); }, 3200); };
+  bs.onerror = function () { fallback(); };
+  document.head.appendChild(bs);
+  setTimeout(function () { if (!busuanzi()) fallback(); }, 4500);   // 脚本被墙/超时兜底
+  function fallback() {
+    try {
+      var n = parseInt(localStorage.getItem('felix_pv') || '0', 10) + 1;
+      localStorage.setItem('felix_pv', String(n));
+      if (pe) pe.textContent = '—';
+      if (ue) ue.textContent = '—';
+    } catch (e) { if (pe) pe.textContent = '—'; if (ue) ue.textContent = '—'; }
+  }
+
+  /* ---- 在线留言 ---- */
+  var ut = document.getElementById('ut-box');
+  if (ut) {
+    var sc = document.createElement('script');
+    sc.src = 'https://utteranc.es/client.js';
+    sc.setAttribute('repo', 'JM-919/jm-919.github.io');
+    sc.setAttribute('issue-term', 'pathname');
+    sc.setAttribute('theme', document.documentElement.getAttribute('data-theme') === 'dark' ? 'github-dark' : 'github-light');
+    sc.setAttribute('crossorigin', 'anonymous');
+    sc.async = true;
+    sc.onerror = function () { var f = document.getElementById('ut-fallback'); if (f) f.hidden = false; };
+    ut.appendChild(sc);
+    setTimeout(function () { if (!ut.querySelector('iframe')) { var f = document.getElementById('ut-fallback'); if (f) f.hidden = false; } }, 7000);
+  }
+
+  /* ---- 留言板（本地）---- */
+  var form = document.getElementById('msg-form');
+  if (form) {
+    var KEY = 'felix_msgs';
+    var read = function () { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } };
+    var wrap = document.getElementById('msg-list');
+    function paint() {
+      var list = read();
+      if (!wrap) return;
+      wrap.innerHTML = list.length ? list.map(function (m) {
+        return '<div class="msg-item"><span class="who">' + m.who + '</span><span class="when">' + m.when +
+          '</span><p style="margin:6px 0 0">' + m.text.replace(/</g, '&lt;') + '</p></div>';
+      }).join('') : '<p class="tip center">还没有留言，来做第一个吧</p>';
+    }
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var who = (document.getElementById('msg-who').value || '').trim() || '匿名同学';
+      var text = (document.getElementById('msg-text').value || '').trim();
+      if (!text) return;
+      var list = read();
+      list.unshift({ who: who, text: text, when: new Date().toLocaleString() });
+      localStorage.setItem(KEY, JSON.stringify(list.slice(0, 50)));
+      document.getElementById('msg-text').value = '';
+      paint();
+    });
+    paint();
+  }
+
+  /* ---- 首页 banner 底部"回到顶部"图标 ---- */
+  var bt = document.getElementById('banner-top');
+  if (bt) bt.addEventListener('click', function (e) { e.preventDefault(); scrollTo({ top: 0, behavior: 'smooth' }); });
+})();</script>
 </body>
 </html>
