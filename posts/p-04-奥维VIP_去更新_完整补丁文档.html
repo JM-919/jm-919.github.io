@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>奥维互动地图 VIP/SVIP 完美版 —— 完整补丁文档 · Felix</title>
+<meta name="description" content="为什么是 6 而不是 GetMaxVipLevel：&amp;lt;br&amp;gt;GetMaxVipLevel（JNIODef，native，反汇编 = mov …">
+<meta name="theme-color" content="#0b0716">
+<link rel="stylesheet" href="../assets/css/style.css">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<link rel="robots" href="../robots.txt">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="aurora"></div>
+<div class="stars"></div>
+<canvas id="dream-canvas"></canvas>
+<header class="nav glass">
+  <a class="brand" href="../"><span>Felix</span></a>
+  <nav>
+    <a href="../">首页</a>
+    <a href="../archive.html">归档</a>
+    <a href="../about.html">关于</a>
+    <button id="theme-btn" class="icon-btn" aria-label="切换主题">🌙</button>
+  </nav>
+</header>
+<main><article class="post">
+<a class="back" href="../">← 返回首页</a>
+<h1>奥维互动地图 VIP/SVIP 完美版 —— 完整补丁文档</h1>
+<p class="meta" style="color:var(--muted)">2026-09-21 · 27 分钟 · 7 段代码 · 10 张表格</p>
+<blockquote>目标：不依赖服务器、不改数据库，把「VIP/SVIP 身份、对象(收藏)数量、地图水印、<br>升级提示、VIP管理页显示」这一整套本地门禁在 <strong>Java 层 + native 层</strong> 同时打开。</blockquote>
+<hr>
+<h2>1. 样本与产物</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>值</th></tr></thead><tbody><tr><td>原始包</td><td><code>omapAndroidV1072.apk</code>（官方签名 <code>CN=Ovital</code>，96,119,983 B）</td></tr><tr><td>版本</td><td><code>versionName=10.7.2.35899</code>、<code>versionCode=1072020</code>、<code>minSdk=23</code>、<code>targetSdk=35</code>、<code>arm64-v8a</code></td></tr><tr><td>结构</td><td><code>classes.dex</code> 7,330,644 + <code>classes2.dex</code> 9,557,412 + <code>classes3.dex</code> 412,900；<code>lib/arm64-v8a/libovitalMap.so</code> 163,799,336</td></tr><tr><td>成品</td><td><code>OvitVIP_Perfect_10.7.3.35899_noharmony.apk</code>（重签 v1+v2+v3，96,335,894 B）</td></tr></tbody></table></div>
+<blockquote>版本号不是必须改的；本文档的补丁与版本号无关，直接打在新版官方包上即可。</blockquote>
+<hr>
+<h2>2. 授权体系速览（为什么两处都要动）</h2>
+<ul><li><strong>Java 层</strong>：<code>com.ovital.ovitalMap.JNIOMapSrv</code> 里一组 <code>public static native</code> 是壳， 全应用 60+ 处判 VIP 都调它们（形如 <code>if(!IsVip()){弹“需要VIP…”;return;}</code>）。</li><li><strong>native 层</strong>：真正干活的是 <code>libovitalMap.so</code> 里的 <code>OMapSrv::*</code>； <strong>地图绘制、对象数量限制、DXF 导出、等高线</strong> 这些不走 Java，必须改 so。</li><li>两者是「与」关系：只改 Java = 界面像 VIP、功能还是残废；只改 so = 功能开了、界面仍提示要买。</li></ul>
+<hr>
+<h2>3. Java 层补丁（5 处）</h2>
+<h3>3.1 <code>JNIOMapSrv</code> —— 10 个 native 壳改成 Java 桩</h3>
+<div class="table-wrap"><table><thead><tr><th>方法签名</th><th>桩体</th></tr></thead><tbody><tr><td><code>IsVip()Z</code> / <code>IsVip5()Z</code> / <code>IsVipL(I)Z</code></td><td><code>const/4 v0,0x1; return v0</code></td></tr><tr><td><code>GetVipLevel()I</code> / <code>GetMiVipLevel()I</code></td><td><code>const/4 v0,0x6; return v0</code> ← <strong>6 = SVIP</strong></td></tr><tr><td><code>GetVipEndTime()I</code> / <code>GetMbVipExpire()I</code></td><td><code>const v0,0x77359400</code>（2033-05-18）</td></tr><tr><td><code>GetMiVipEndTime()J</code> / <code>GetVipEndLongTime()J</code></td><td><code>const-wide v0,0x77359400L</code></td></tr><tr><td><code>GetVipBuyTips()Ljava/lang/String;</code></td><td><code>const-string v0,""; return-object v0</code></td></tr></tbody></table></div>
+<p><strong>为什么是 6 而不是 <code>GetMaxVipLevel()</code></strong>：&lt;br&gt;<code>GetMaxVipLevel()</code>（<code>JNIODef</code>，native，反汇编 = <code>mov w0,#0xa; ret</code>）返回 <strong>10，是开区间上界</strong>。&lt;br&gt;<code>qc.v(I)</code> 里 <code>0&lt;level&lt;10</code> 才映射成名字，<code>&gt;=10</code> 直接落 <code>"普通版"</code>；&lt;br&gt;而「(SVIP)」相关分支全部按 <strong>等级 == 6</strong> 精确命中（<code>UserTrackSetActivity</code> 用 6 取限额并配 <code>%s(SVIP)</code>；&lt;br&gt;<code>MacVipUpgradeActivity</code> 的 <code>Ib;-&gt;b("SVIP",6)</code>；<code>ProManageActivity</code> 用 <code>&gt;5</code> 判定 SVIP）。&lt;br&gt;<strong>填 10 = SVIP 显示消失，填 6 才对。</strong></p>
+<h3>3.2 <code>ovitalMapActivity.r()</code> —— 去掉“发现新版本/请到应用市场中升级新版本”弹窗</h3>
+<p>在该 handler 的 <code>what == 0x34</code> 分支里，删掉结尾那一行&lt;br&gt;<code>invoke-static/range {v0..v6}, Lcom/ovital/ovitalMap/oFun;-&gt;D7(...)Lcom/ovital/ovitalMap/t4;</code>&lt;br&gt;（D7 是弹窗构造器；删掉后直接走到 <code>return-void</code>）。其余 <code>what</code> 分支不动。</p>
+<h3>3.3 <code>SrhFndActivity</code> —— 好友数量上限按 VIP 等级取</h3>
+<p><code>GetVipLevelLimit(0x2710, -1)</code> 里写死的 <code>-1</code> 改成 <code>GetVipLevel()</code> 的返回值。</p>
+<h3>3.4 <code>ProManageActivity.k0()</code> —— VIP管理页 4 行显示</h3>
+<p><code>VcUserVipStatus.iVipLevel == 0</code>（本机无授权记录）那条分支原本显示&lt;br&gt;<code>无 / 普通版 / 永不过期 / 无</code>，改成：</p>
+<div class="table-wrap"><table><thead><tr><th>行</th><th>值</th></tr></thead><tbody><tr><td>绑定的VIP用户</td><td><code>11685260</code>（固定随机码）</td></tr><tr><td>VIP类型</td><td><code>SVIP</code></td></tr><tr><td>到期时间</td><td><code>dshVip.b(ctx)</code> = <strong>安装时间 + 10 年</strong></td></tr><tr><td>最后一次升级时间</td><td><code>dshVip.c(ctx)</code> = <strong>安装时间</strong></td></tr></tbody></table></div>
+<blockquote>⚠️ 只往这条分支里<strong>塞 API 调用会把 ProManageActivity 搞崩</strong>（<code>.registers 13</code> 的寄存器类型<br>在 <code>:goto</code> 汇合点被校验器合并，<code>move-result-wide</code> 之类会引发 VerifyError）。<br>正确做法是：<strong>重活放独立 helper 类，主分支里只用 <code>v0</code>(TextView) 和 <code>v3</code>(String)</strong>。</blockquote>
+<h3>3.5 注入 helper 类 <code>com/ovital/ovitalMap/dshVip</code></h3>
+<p><code>b(Context)</code> = <code>PackageManager.getPackageInfo(pkg,0).firstInstallTime</code> → <code>Calendar +10 年</code> → <code>yyyy-MM-dd</code>；&lt;br&gt;<code>c(Context)</code> = 同一个 <code>firstInstallTime</code> → <code>yyyy-MM-dd</code>。全程 try/catch，失败回落到固定日期。&lt;br&gt;<code>firstInstallTime</code> 是系统记录的「本机首次安装时间」，卸载重装才会变。</p>
+<hr>
+<h2>4. native 层补丁（19 处，按符号名定位）</h2>
+<div class="table-wrap"><table><thead><tr><th>符号</th><th>补丁字节</th><th>含义</th></tr></thead><tbody><tr><td><code>_Z14SelfCheckCrackv</code></td><td><code>00008052c0035fd6</code></td><td>自身破解自检 → 否</td></tr><tr><td><code>_ZN7OMapSrv14GetShowCrackedEv</code></td><td><code>00008052c0035fd6</code></td><td>读水印开关 → 0</td></tr><tr><td><code>_ZN7OMapSrv14SetShowCrackedEb</code></td><td><code>c0035fd6</code></td><td>写水印开关 → 空操作</td></tr><tr><td><code>_Z14CheckApkSigMd5P7_JNIEnvP8_jobject</code></td><td><code>20008052c0035fd6</code></td><td>APK 签名自校验 → 通过</td></tr><tr><td><code>_ZN7OMapSrv5IsVipEi</code></td><td><code>20008052c0035fd6</code></td><td>IsVip(type) → 1</td></tr><tr><td><code>_ZN7OMapSrv8IsVipIntEv</code></td><td><code>20008052c0035fd6</code></td><td>IsVipInt → 1</td></tr><tr><td><code>_ZN7OMapSrv9IsVip5IntEv</code></td><td><code>20008052c0035fd6</code></td><td>IsVip5Int → 1</td></tr><tr><td><code>_ZN7OMapSrv6IsVip5Ev</code></td><td><code>20008052c0035fd6</code></td><td>IsVip5 → 1（SVIP 能力）</td></tr><tr><td><code>_ZN7OMapSrv14IsVip9SpecUserEv</code></td><td><code>20008052c0035fd6</code></td><td>IsVip9SpecUser → 1</td></tr><tr><td><code>_ZN7OMapSrv11GetVipLevelEv</code></td><td><code>c0008052c0035fd6</code></td><td>引擎 VIP 等级 → 6</td></tr><tr><td><code>_ZN7OMapSrv14GetVipLevelIntEv</code></td><td><code>c0008052c0035fd6</code></td><td>同上（内部整型）</td></tr><tr><td><code>_ZN7OMapSrv19CheckVipLevelByTimeEj</code></td><td><code>20008052c0035fd6</code></td><td>到期校验 → 永远有效</td></tr><tr><td><code>_ZN7OMapSrv20NeedVipLevelImgToDxfEi</code></td><td><code>00008052c0035fd6</code></td><td>图片转 DXF → 不需 VIP</td></tr><tr><td><code>_ZN7OMapSrv23NeedVipLevelContourAreaEd</code></td><td><code>00008052c0035fd6</code></td><td>等高线面积 → 不需 VIP</td></tr><tr><td><code>_ZN7OMapSrv20GetMinLevelForObjCntEi</code></td><td><code>00008052c0035fd6</code></td><td>对象数量最低等级 → 0</td></tr><tr><td><code>_ZN7OMapSrv17IsOviObjCntExceedEib</code></td><td><code>00008052c0035fd6</code></td><td>对象/收藏数超限 → 否</td></tr><tr><td><code>_ZN7OMapSrv20IsOviObjCntExceedIntEibPi</code></td><td><code>420000b45f0000b900008052c0035fd6</code></td><td>同上（带出参，先把 <code>*x2</code> 清 0）</td></tr><tr><td><code>_ZN7OMapSrv19ShowOviObjCntExceedEb</code></td><td><code>c0035fd6</code></td><td><strong>满地图“对象数量共N个 需要VIP才能显示”水印 → 空操作</strong></td></tr><tr><td><code>_ZN7OMapSrv17IsDbNeedReductionEv</code></td><td><code>00008052c0035fd6</code></td><td>对象库需缩减提示 → 否</td></tr></tbody></table></div>
+<p>字节含义：<code>mov w0,#0; ret</code> / <code>mov w0,#1; ret</code> / <code>mov w0,#6; ret</code> / 纯 <code>ret</code>。</p>
+<p><strong>水印根因</strong>：本地对象数（本机 18406 个）超过非 VIP 上限 → 引擎在 <code>OMapSrvLoopFunc</code> 里&lt;br&gt;<code>SelfCheckCrack()/GetShowCracked()</code> → <code>ShowOviObjCntExceed(true)</code> → 把&lt;br&gt;<code>"对象数量共%1个\n需要VIP才能显示"</code>（<code>.rodata</code> @0x210351a）逐块铺在图上。&lt;br&gt;把 <code>IsOviObjCntExceed/ShowOviObjCntExceed</code> 关掉即根除。</p>
+<hr>
+<h2>5. 打包与签名（踩过的坑）</h2>
+<ol><li><strong>必须 v1+v2+v3 全签</strong>：只 v2 在部分 ROM 上装不上/起不来。</li><li><code>resources.arsc</code> 必须 <strong>STORED + 4 字节对齐</strong>（targetSdk≥30 平台强制）， 改包时不要动它的存储方式与偏移（<code>lib/repack.py</code> 只追加尾部条目 + 重写中央目录，正好满足）。</li><li><strong>签名密钥</strong>：<code>noupdate.keystore</code>（PKCS12，alias/pass 都是 <code>noupdate</code>/<code>123456</code>）。 奥维<strong>容忍重签</strong>（同内容重签实测可正常运行），不像某些壳有强校验。</li><li><code>versionCode</code> 若非要改，<strong>别用夸张值</strong>（如 999999999 会被 native 自检判定异常、启动 8 秒后静默退出）； 用正常递增（如 1072020 → 1073000）即可。</li><li><code>repack.py</code> 回填后 APK 会变大（旧条目变成垃圾），<strong>签名的 zipalign 会顺手清掉</strong>， 所以不要用 <code>--skipZipAlign</code>。</li></ol>
+<hr>
+<h2>6. 一键补丁（换版本复用）</h2>
+<figure class="code"><figcaption>text</figcaption><pre><code>奥维一键补丁/
+├── 一键补丁.sh          <span class="c"># 主脚本</span>
+├── lib/so_patch.py      <span class="c"># 按【符号名】打 native 补丁（不依赖地址，跨版本）</span>
+├── lib/dex_patch.py     <span class="c"># 按类/方法名打 Java 补丁 + 注入 dshVip</span>
+├── lib/repack.py        <span class="c"># 外科式回填（尾部追加 + 4096 对齐 + 丢签名块）</span>
+├── lib/stamp_version.py <span class="c"># 改 versionCode（可选）</span>
+├── tools/{baksmali,smali,uber-apk-signer}.jar, zipalign
+└── noupdate.keystore</code></pre></figure>
+<p>用法（目录在 /storage 上没有执行位，<strong>用 bash 调用</strong>）：</p>
+<figure class="code lang-bash"><figcaption>bash</figcaption><pre><code>bash /storage/emulated/<span class="n">0</span>/MT2/apks/奥维一键补丁/一键补丁.sh &lt;官方APK&gt; [输出APK] [新versionCode]
+<span class="c"># 例：</span>
+bash 奥维一键补丁/一键补丁.sh omapAndroidV1080.apk ov1080_VIP.apk</code></pre></figure>
+<p>实测：原版 10.7.2 → 成品，<strong>55 秒</strong>，输出 96,335,894 B，v1+v2+v3 校验通过。</p>
+<p><strong>换版本时</strong>：</p>
+<ul><li>native 靠符号名自动定位，地址变了也不怕；</li><li>Java 靠「类名 + 方法名 + 特征串」定位，官方若改名，脚本会打印 <code>[跳过]</code> 并继续， 看日志补一下 <code>lib/dex_patch.py</code> 里的匹配串即可；</li><li>若某符号在新版被删，脚本会打印 <code>[跳过] 本版本无此符号</code>，不影响其余补丁。</li></ul>
+<hr>
+<h2>7. 装机验收清单</h2>
+<div class="table-wrap"><table><thead><tr><th>位置</th><th>期望</th></tr></thead><tbody><tr><td>更多页头部</td><td><code>當前版本: …(64 Bits) SVIP</code></td></tr><tr><td>地图</td><td>无满屏“对象数量共N个 需要VIP才能显示”水印；收藏对象正常显示</td></tr><tr><td>更多 → VIP管理</td><td>绑定VIP用户=11685260；VIP类型=SVIP；到期时间=安装日+10年；最后一次升级时间=安装日</td></tr><tr><td>设置 → 最大下载级别</td><td>20（VIP 上限）</td></tr><tr><td>启动</td><td>无“发现新版本/请到应用市场升级”弹窗；无鸿蒙版提示</td></tr></tbody></table></div>
+<hr>
+<h2>8. 已知边界（改包改不到的）</h2>
+<ol><li><strong>服务器侧</strong>：买 VIP、绑定设备数、云空间额度、企业云收藏夹 —— 按账号在服务端校验，改包无效。</li><li><code>GetOviObjCntLimit</code>（只是<strong>显示</strong>“对象上限 N”的数字）未改，避免像 <code>GetVipLevelLimitCount</code> 那样返回超大值触发崩溃；实际已不拦截。</li><li><code>GetLastSignPicVipType</code> 直接读实例字段（<code>ldr w0,[x0,#0x2F0xxx]</code>），不是能简单改返回值的函数； 要动得改整个 <code>SetVipLevel</code> 写入路径，风险高，未做。</li><li><code>OMapSrv::SelfCheckVip</code> / <code>SetTmpVipLevel</code> 属引擎内部自检，已被 <code>IsVip*</code> 覆盖，未单独改。</li></ol>
+<hr>
+<h2>9. 「装了模组版，卸载后原版装不上，提示有残留」——真因与一次解决</h2>
+<h3>真因（两条，都不是文件，所以文件管理器里永远找不到）</h3>
+<p>系统卸载（桌面长按→卸载）在国产 ROM 上默认是 <strong><code>DELETE_KEEP_DATA</code>（卸载保留数据）</strong>。&lt;br&gt;保留下来的东西是<strong>绑定签名和版本号</strong>的：</p>
+<div class="table-wrap"><table><thead><tr><th>情况</th><th>系统报错</th><th>安装器文案</th></tr></thead><tbody><tr><td>保留的数据属于<strong>模组版签名</strong>，再装官方原版（签名不同）</td><td><code>INSTALL_FAILED_UPDATE_INCOMPATIBLE: signatures do not match</code></td><td>「存在残留数据」</td></tr><tr><td>保留记录里记着上次的 <code>versionCode</code>（如模组版 1073000），再装更低的官方（1072020）</td><td><code>INSTALL_FAILED_VERSION_DOWNGRADE: Downgrade detected on app uninstalled with DELETE_KEEP_DATA</code></td><td>「存在残留数据」</td></tr></tbody></table></div>
+<p>两条都在本机实测复现过。<strong><code>adb install -d</code>（允许降级）也过不去</strong>，别指望它。</p>
+<h3>一次解决</h3>
+<p><strong>核心动作：卸载时连数据一起删。</strong></p>
+<ul><li>手机：设置→应用→应用管理→奥维互动地图→<strong>存储→清除数据</strong>→返回→<strong>卸载</strong>； 或长按图标→ⓘ应用信息→存储→清除数据→再卸载。</li><li>adb（推荐，最干净）：</li></ul>
+<figure class="code lang-bash"><figcaption>bash</figcaption><pre><code><span class="k">adb</span> uninstall com.ovital.ovitalMap          <span class="c"># 注意：不要加 -k</span></code></pre></figure>
+<ul><li>一键脚本：<code>bash 奥维一键补丁/装机清理.sh [要装的APK]</code> —— 遍历所有用户（含分身 user 128）连着数据卸载 → 清未完成安装会话 → 清 <code>/sdcard/Android/{data,media,obb}/&lt;包名&gt;</code> → 装目标包。</li></ul>
+<h3>不再复发（根治）</h3>
+<p><strong>模组包的 <code>versionCode</code> 必须 == 官方包</strong>（我们已按此重做）。&lt;br&gt;另外 <code>versionCode</code> 与 <code>versionName</code> 必须<strong>互相自洽</strong>——本机实测把官方 10.7.2 的&lt;br&gt;<code>versionCode=1072020</code> 配上 <code>versionName=10.7.3.35899</code>，引擎会在启动 16 秒后静默退出。&lt;br&gt;所以最终成品是<strong>直接拿官方 APK 打补丁</strong>得到的：<code>versionCode=1072020</code>、<code>versionName=10.7.2.35899</code>，&lt;br&gt;完全保持官方数值，只换 dex 与 so。</p>
+<blockquote>为什么要卸载才能换包：模组版与原版<strong>签名不同</strong>（拿不到 Ovital 私钥），签名相同才能覆盖安装。<br>想做到「原版/模组版共存、互不干扰」只能改包名，代价是数据不共享且要改全部组件/权限名，风险高。</blockquote>
+<hr>
+<h2>10. 换版本必看：官方会改混淆名（10.7.3.36288 实测差异）</h2>
+<p>同一套逻辑，官方在两个版本里用了<strong>不同的混淆名</strong>，所以补丁脚本必须按<strong>结构/签名</strong>匹配，&lt;br&gt;不能写死类名或方法名。<code>lib/</code> 下的脚本已全部按此改造：</p>
+<div class="table-wrap"><table><thead><tr><th>补丁点</th><th>10.7.2</th><th>10.7.3.36288</th><th>脚本怎么定位</th></tr></thead><tbody><tr><td>设置 TextView 文本的 helper</td><td><code>Lcom/ovital/ovitalMap/Mz;-&gt;A(TextView,String)I</code></td><td><strong><code>Lcom/ovital/ovitalMap/cA;-&gt;A(TextView,String)I</code></strong></td><td>从被替换的那段原文里正则抓出 <code>L(.*);-&gt;A(Landroid/widget/TextView;Ljava/lang/String;)I</code>，原样复用</td></tr><tr><td>升级弹窗构造函数</td><td><code>oFun;-&gt;D7(Context,String,String,OnClickListener,String,OnClickListener,String)Lt4;</code></td><td><strong><code>oFun;-&gt;E7(...)</code></strong>（签名完全一样）</td><td>按<strong>完整方法签名</strong>匹配，不按方法名</td></tr><tr><td>JNIOMapSrv 的 10 个 native 壳</td><td>同名</td><td>同名</td><td>按 <code>.method public static native &lt;签名&gt;</code> 文本</td></tr><tr><td>好友上限调用点</td><td>同名</td><td>同名</td><td>按 <code>const/4 vX, -0x1</code> + <code>GetVipLevelLimit(II)I</code> 文本</td></tr><tr><td>19 处 native</td><td>地址如 <code>0x3f66a44</code></td><td>地址全变，如 <code>0x3f6fba8</code></td><td><strong>按 ELF 符号名</strong>（<code>_ZN7OMapSrv11GetVipLevelEv</code>）</td></tr></tbody></table></div>
+<p><strong>踩过的坑（务必记住）</strong>：如果 helper 类抓错/写死，会得到一个引用了<strong>不存在的方法</strong>的 dex，&lt;br&gt;表现就是 —— <strong>VIP管理页一点就闪退、什么都不显示</strong>（NoSuchMethodError）。&lt;br&gt;<code>10.7.3.36288</code> 上就是这么翻的车；现已修正并实测正常。</p>
+<p>换新版本时的自检：<code>一键补丁.sh</code> 跑完看输出，5 条 Java 补丁 + 19 条 native 补丁都应为 <code>[OK]</code>，&lt;br&gt;出现 <code>[跳过]</code> 就说明官方改了结构，需要更新 <code>lib/dex_patch.py</code> 的匹配串。</p>
+<hr>
+<h2>11. VIP管理页 4 行的取值规则（显示层实现，不落盘）</h2>
+<div class="table-wrap"><table><thead><tr><th>行</th><th>取值</th><th>说明</th></tr></thead><tbody><tr><td>绑定的VIP用户</td><td><code>dshVip.a(ctx)</code></td><td><strong>5~8 位"随机"码</strong>，由 <code>Settings.Secure.ANDROID_ID</code> 的 <code>hashCode</code> 取模派生：<code>abs(hashCode)%90000000+10000000</code></td></tr><tr><td>VIP类型</td><td>固定 <code>SVIP</code></td><td>直接写死字符串</td></tr><tr><td>到期时间</td><td><code>dshVip.b(ctx)</code></td><td><code>PackageInfo.firstInstallTime</code> + 10 年 → <code>yyyy-MM-dd</code></td></tr><tr><td>最后一次升级时间</td><td><code>dshVip.c(ctx)</code></td><td><code>PackageInfo.firstInstallTime</code> → <code>yyyy-MM-dd</code></td></tr></tbody></table></div>
+<p><strong>为什么用 ANDROID_ID 派生，而不是写文件</strong>：</p>
+<ul><li><strong>纯显示层</strong>，不落任何盘、不改数据、不申请权限；</li><li><code>ANDROID_ID</code> 由「设备 + 签名密钥 + 用户」三者决定，<strong>同一台机、同一个签名，卸载重装后不变</strong> —— 正好满足"第一次随机、以后都按第一次算"；</li><li>不同设备算出来不同，看着像真的账号 ID，不虚假。</li></ul>
+<p><strong>实测</strong>（10.7.3.36288，本机）：首次显示 <code>87676467</code>（8 位）；&lt;br&gt;<code>adb uninstall</code> 连数据卸载后重装，再进 VIP管理 —— <strong>仍然是 <code>87676467</code></strong>。</p>
+<blockquote>注意：<code>adb shell settings get secure android_id</code> 拿到的是 shell 自己的 ANDROID_ID，<br>和 APP 进程里读到的<strong>不是同一个值</strong>，所以别拿它去对答案。</blockquote>
+<hr>
+<h2>12. 会员等级 = 9（最高），显示仍为 SVIP —— 以及踩过的两个坑</h2>
+<h3>等级取值</h3>
+<p><code>JNIODef.GetMaxVipLevel()</code>（native）= <code>mov w0,#0xa; ret</code> → <strong>10</strong>，是<strong>开区间上界</strong>；&lt;br&gt;<code>qc.v(I)</code> 里只有 <code>0 &lt; level &lt; 10</code> 才映射成名字。所以<strong>合法等级是 1~9，最高 9</strong>。</p>
+<p>最终配置：</p>
+<div class="table-wrap"><table><thead><tr><th>位置</th><th>值</th></tr></thead><tbody><tr><td>Java <code>JNIOMapSrv.GetVipLevel()</code> / <code>GetMiVipLevel()</code></td><td><strong>9</strong></td></tr><tr><td>native <code>OMapSrv::GetVipLevel()</code> / <code>GetVipLevelInt()</code></td><td><strong>9</strong></td></tr><tr><td>native <code>OMapSrv::IsVip9SpecUser()</code></td><td><strong>0</strong>（见下）</td></tr><tr><td>Java <code>JNIOCommon.GetVipTypeName(IIZ)</code> / <code>GetVipLevelName(I)</code></td><td>换成桩：<strong>等级 ≥6 一律返回 <code>SVIP</code></strong>，其余返回 <code>VIP&lt;等级&gt;</code></td></tr></tbody></table></div>
+<h3>坑 1：等级 9 会弹「当前设备所绑定的VIP9处于失效状态，请联网验证」</h3>
+<p>因为 VIP9 在引擎里是<strong>特殊用户档</strong>（<code>OMapSrv::IsVip9SpecUser</code>），需要服务器侧登记。&lt;br&gt;把 <code>IsVip9SpecUser</code> 打成 <strong>0</strong>（我们不是 VIP9 特殊用户）后，这个失效提示就消失了。</p>
+<h3>坑 2：<code>const/4</code> 装不下 9</h3>
+<p><code>const/4 v0, 0x9</code> 是<strong>非法字节码</strong>（<code>const/4</code> 只吃 -8~7），smali 会报&lt;br&gt;<code>Invalid literal value: 9. Must be between -8 and 7</code>。等级桩必须写 <strong><code>const/16 v0, 0x9</code></strong>。&lt;br&gt;（<code>一键补丁.sh</code> 已改成回编译后<strong>检查 classes2.dex 是否真的生成</strong>，失败立即退出，&lt;br&gt;免得像之前那样默默失败、最后签名出一个半成品。）</p>
+<h3>为什么不直接用等级 6</h3>
+<p>等级 6 恰好是 native 名字表里的 <code>SVIP</code>，但只有 6；要"最高等级"就得上 9。&lt;br&gt;上 9 之后 native 名字函数会返回 <code>VIP9</code>，所以把 <code>JNIOCommon</code> 的两个名字函数换成桩，&lt;br&gt;让<strong>等级 ≥6 统一显示 SVIP</strong> —— 既拿到最高等级的全部权限，界面上又还是 SVIP。</p>
+<p>实测（10.7.3.36288）：更多页头部 <code>當前版本: V10.7.3.36288(64 Bits) SVIP</code>；&lt;br&gt;VIP管理页四行正常、<strong>无失效提示</strong>、无闪退。</p>
+<hr>
+<h2>13. 换版本「一键升级」标准流程（照做即可）</h2>
+<figure class="code lang-bash"><figcaption>bash</figcaption><pre><code><span class="c"># 1) 拿到新版官方 APK，放到工作目录</span>
+<span class="c"># 2) 一键打补丁（约 1 分钟）</span>
+bash 奥维一键补丁/一键补丁.sh /path/新版官方.apk /path/输出_VIP.apk</code></pre></figure>
+<p><strong>跑完必须看输出，逐条核对（缺一不可）</strong>：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>[OK] JNIOMapSrv: <span class="n">10</span> 个 native 壳 -&gt; Java 桩
+[OK] JNIOCommon: <span class="n">2</span> 个 VIP 名字函数 -&gt; 等级&gt;=<span class="n">6</span> 显示 SVIP
+[OK] ovitalMapActivity: 去掉升级弹窗（... 按签名匹配）
+[OK] ProManageActivity: <span class="n">4</span> 行显示（helper=...）      ← 括号里的类名随版本变，正常
+[OK] 注入 helper 类 dshVip
+[OK] SrhFndActivity: 好友上限按 VIP 等级取
+[OK] native 补丁 <span class="n">19</span> 处 …（逐条 @地址）</code></pre></figure>
+<ul><li>出现 <strong><code>[跳过]</code></strong> → 官方改了结构，去 <code>lib/dex_patch.py</code> 更新对应匹配串；</li><li>出现 <strong><code>!! 回编译 dex 失败</code></strong> → smali 语法/字面量问题，改完重跑；</li><li><strong>一个 <code>[OK]</code> 都不能少</strong>，尤其 <code>JNIOCommon</code> 那条（少了就是"更多页不显示 SVIP"）。</li></ul>
+<p><strong>装机验收清单</strong>：</p>
+<div class="table-wrap"><table><thead><tr><th>位置</th><th>期望</th></tr></thead><tbody><tr><td>更多页头部</td><td><code>… (64 Bits) SVIP</code></td></tr><tr><td>更多 → VIP管理</td><td>绑定VIP用户=固定随机码；VIP类型=SVIP；到期时间=安装日+10年；最后升级=安装日；<strong>无"失效状态"提示、不闪退</strong></td></tr><tr><td>地图</td><td>无满屏"对象数量共N个 需要VIP才能显示"</td></tr><tr><td>设置 → 最大下载级别</td><td>20</td></tr><tr><td>启动</td><td>无"发现新版本/请到应用市场升级"</td></tr></tbody></table></div>
+<p><strong>换包必读</strong>：模组包与原版<strong>签名不同</strong>，必须先卸载；卸载要<strong>连数据一起删</strong>&lt;br&gt;（<code>adb uninstall &lt;包名&gt;</code>，不要 <code>-k</code>，也不要在系统弹窗里选"保留数据"），&lt;br&gt;否则会出现"存在残留"装不上（详见第 9 节）。<code>base/装机清理.sh</code> 可一键搞定。</p>
+<hr>
+<h2>14. 升级成功后的收尾：清旧版，只留新版</h2>
+<p>规则：<strong>新版本打包装机验收通过后，立刻清掉旧版，工作目录只保留新版。</strong></p>
+<figure class="code lang-bash"><figcaption>bash</figcaption><pre><code>bash 奥维一键补丁/换版清理.sh            <span class="c"># 预演：只打印"保留/将删"，不动文件</span>
+bash 奥维一键补丁/换版清理.sh --yes      <span class="c"># 真删：按【版本号】保留最高的那个</span>
+bash 奥维一键补丁/换版清理.sh --yes 保留<span class="n">1</span>.apk 保留<span class="n">2</span>.apk   <span class="c"># 指定保留（文件必须存在）</span></code></pre></figure>
+<p>清理范围：<code>OvitVIP_Perfect_*.apk</code>、<code>omapAndroidV*.apk</code>、<code>omapAndroid*.apk</code>、<code>奧維互動地圖_*.apk</code>。&lt;br&gt;不碰：文档、工具包、keystore、其它 App 的包。</p>
+<p><strong>三重保险（血泪教训）</strong>：</p>
+<ol><li><strong>默认只预演</strong>，必须显式加 <code>--yes</code> 才真删；</li><li><strong>硬闸</strong>：任何文件只要版本号 == 本系列最高版本，一律不删 —— 绝不可能把新版删掉；</li><li>指定的保留文件不存在 → 直接中止。</li></ol>
+<blockquote>为什么要有硬闸：早期版本按"修改时间最新"挑保留项，两个包修改时间在同一秒时挑错了，<br>把新版删了（成品可以从一键补丁重打，但如果同时把<strong>官方原始包</strong>删了就真的没了）。<br>所以现在改成<strong>按版本号</strong>比较 + 硬闸 + 默认预演。</blockquote>
+<p><strong>建议的完整换版流程</strong>：</p>
+<figure class="code lang-bash"><figcaption>bash</figcaption><pre><code><span class="c"># 1) 新版官方 APK 放到工作目录</span>
+bash 奥维一键补丁/一键补丁.sh 新版官方.apk 新版_VIP.apk   <span class="c"># 2) 打补丁，逐条核对 25 个 [OK]</span>
+<span class="k">adb</span> uninstall com.ovital.ovitalMap &amp;&amp; <span class="k">adb</span> install -r -t 新版_VIP.apk   <span class="c"># 3) 装机</span>
+<span class="c"># 4) 验收：更多页 SVIP / VIP管理四行 / 地图无水印 / 无升级弹窗</span>
+bash 奥维一键补丁/换版清理.sh              <span class="c"># 5) 预演</span>
+bash 奥维一键补丁/换版清理.sh --yes        <span class="c"># 6) 确认无误再清旧版</span></code></pre></figure>
+</article></main>
+<footer class="footer"><p>© <span id="year"></span> Felix · Powered by GitHub Pages</p></footer>
+<button id="top" class="icon-btn top" aria-label="回到顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/dream.js"></script>
+</body>
+</html>

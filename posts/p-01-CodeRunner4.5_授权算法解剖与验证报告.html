@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CodeRunner 4.5 授权机制解剖 · 算法定位与实现验证报告 · Felix</title>
+<meta name="description" content="一句话：真判定核不是那份报告里描述的多项式，而是“Base32 解出 3 个小端整数 → v2=v0+v1 → v1+1 对 3673/29384 做商…">
+<meta name="theme-color" content="#0b0716">
+<link rel="stylesheet" href="../assets/css/style.css">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<link rel="robots" href="../robots.txt">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="aurora"></div>
+<div class="stars"></div>
+<canvas id="dream-canvas"></canvas>
+<header class="nav glass">
+  <a class="brand" href="../"><span>Felix</span></a>
+  <nav>
+    <a href="../">首页</a>
+    <a href="../archive.html">归档</a>
+    <a href="../about.html">关于</a>
+    <button id="theme-btn" class="icon-btn" aria-label="切换主题">🌙</button>
+  </nav>
+</header>
+<main><article class="post">
+<a class="back" href="../">← 返回首页</a>
+<h1>CodeRunner 4.5 授权机制解剖 · 算法定位与实现验证报告</h1>
+<p class="meta" style="color:var(--muted)">2026-09-19 · 51 分钟 · 23 段代码 · 13 张表格</p>
+<blockquote>对象工件：<code>/storage/emulated/0/Crack/CodeRunner-4.5.zip</code><br>目标二进制：<code>CodeRunner.app/Contents/MacOS/CodeRunner</code>（universal，x86_64 + arm64）<br>结论函数：<strong><code>sub_100310600</code> @ <code>0x100310600</code></strong>（本地授权码判定核）<br>交付物：AIDE Pro 工程 <code>CodeRunnerAlgoKit/</code>（Java 全量移植 + 注册码生成 + 自检）<br>报告日期：2026-09-19　分析环境：Android/aarch64 + Termux 用户态</blockquote>
+<hr>
+<h2>0. 摘要（先说结论）</h2>
+<div class="table-wrap"><table><thead><tr><th>项目</th><th>结论</th></tr></thead><tbody><tr><td>授权码格式</td><td><strong>23 字符</strong>：<code>XXXXX-XXXXX-XXXXX-XXXXX</code>（3 个 <code>-</code> + 20 个 Base32 字符），字符集 <code>ABCDEFGHIJKLMNOPQRSTUVWXYZ234567</code></td></tr><tr><td>入口硬校验</td><td><code>(key[22] | 0x10) == 0x51</code> → <strong>第 23 个字符必须是 <code>'A'</code> 或 <code>'Q'</code></strong></td></tr><tr><td>解码</td><td>内联 Base32：跳过 <code>-</code>，每字符 5 bit 进入 32 位滚动累加器，共解出 <strong>12 字节</strong></td></tr><tr><td>整数布局</td><td><code>v0 = int32(buf[0..3])</code>、<code>v1 = int32(buf[4..7])</code>、<code>v2 = int32(buf[8..11])</code>（小端）</td></tr><tr><td>第一道判定</td><td><code>v2 == v0 + v1</code>（mod 2³²）</td></tr><tr><td>核心魔数</td><td><code>q = (k·0x11D7B6F5) &gt;&gt;&gt; 40</code> ≡ <strong><code>k / 3673</code></strong>（k = n&gt;&gt;&gt;3，n = v1+1）&lt;br&gt;<code>r = n - q·0x72C8</code>，其中 <strong><code>0x72C8 = 29384 = 8 × 3673</code></strong></td></tr><tr><td>接受条件 A</td><td><code>r == 0</code> → <code>esi = 1</code> → 必须 <strong><code>v0 == 1</code></strong></td></tr><tr><td>接受条件 B</td><td><code>r != 0</code> → <code>esi = 149</code>-Horner（步数 <code>r</code>）→ 必须 <code>esi == v0</code>；Horner 的加数 <code>ecx</code> 由一段<strong>浮点多定理混淆块</strong>给出</td></tr><tr><td>注册码解族</td><td><strong><code>v0 = 1, v1 = 29384q − 1, v2 = 29384q</code></strong>（<code>q = 0,1,2,…</code>），再用 20 字符 DFS 反解出唯一可编码 Base32 串</td></tr><tr><td>已验证有效注册码</td><td><code>AEAAA-AH777-776AA-AAAAA</code>、<code>AEAAA-AGHOI-AABSD-SAAAA</code>、<code>AEAAA-AEP4U-AABEH-FAAAA</code> …（可批量生成）</td></tr><tr><td>原报告可信度</td><td><strong>算法核心部分基本错误</strong>（字符数写成 22、校验位写成“索引 21 必须 Q”、示例 key 全部无效、把混淆块当算法），&lt;br&gt;但<strong>函数定位与网络 API 命名是对的</strong>（<code>sub_100310600</code>/<code>sub_100311CA0</code>/<code>action=register&amp;key=…&amp;token=…</code> 均确认存在）。详见 <code>CodeRunner4.5_授权校验面全量普查_二次核验.md</code></td></tr></tbody></table></div>
+<p>一句话：<strong>真判定核不是那份报告里描述的多项式，而是“Base32 解出 3 个小端整数 → <code>v2=v0+v1</code> → <code>(v1+1)</code> 对 <code>3673/29384</code> 做商余 → r==0 要 <code>v0==1</code>”</strong>，其余浮点段落是反静态分析外壳。</p>
+<hr>
+<h2>1. 分析环境与工具链（全程在 Android 上完成）</h2>
+<p>设备：Android 15 / aarch64，用户态为 Termux 风格前缀&lt;br&gt;<code>/data/data/com.dsharnessmobile.shell/files/usr</code>（下称 <code>$PREFIX</code>）。</p>
+<div class="table-wrap"><table><thead><tr><th>用途</th><th>工具</th><th>取得方式</th></tr></thead><tbody><tr><td>解压</td><td><code>unzip</code>（busybox 版）</td><td>系统自带</td></tr><tr><td>Mach-O 结构解析</td><td>自写 <code>macho.py</code>（fat header + <code>LC_SEGMENT_64</code> 手工解析）</td><td>本报告附带</td></tr><tr><td>反汇编（权威）</td><td><strong><code>llvm-objdump 21.1.8</code></strong></td><td>Termux <code>llvm</code> + <code>libllvm</code> deb 解包，<code>$HOME/llvm/llvmo.sh</code> 包装</td></tr><tr><td>反汇编（辅助/交叉）</td><td><strong><code>radare2 6.2.0</code></strong>（含 ObjC 类/方法识别）</td><td>Termux <code>radare2</code> deb 解包</td></tr><tr><td>参考实现与建模</td><td>Python 3.14（纯标准库）</td><td>系统自带</td></tr><tr><td>Java 实现编译</td><td>OpenJDK 21（<code>javac</code>/<code>java</code>）</td><td>本机工具链</td></tr><tr><td>APK 构建</td><td><code>aapt2</code> + <code>d8</code> + <code>apksigner</code>（<code>build_apk.sh</code>）</td><td>本机工具链</td></tr></tbody></table></div>
+<blockquote>踩坑记录（供复现者省时）：<br>1. Termux 官方 <code>binutils</code> <strong>不支持 x86 / Mach-O 后端</strong>（<code>--info</code> 只有 arm/aarch64），无法反汇编本目标；<code>capstone</code> 的 manylinux 轮子依赖 glibc 的 <code>libcapstone.so</code>，在 Android（bionic）上 <code>dlopen</code> 失败。<br>2. 正确路线：<strong><code>llvm-objdump</code>（LLVM 原生多目标 + Mach-O 支持）</strong>，把 Termux 的 <code>llvm</code>/<code>libllvm</code>/<code>libc++</code>/<code>libxml2</code>/<code>libiconv</code>/<code>libffi</code>/<code>ncurses</code> deb 解包到 <code>$HOME/llvm</code> 后可直接运行。<br>3. 本机存储 <code>/storage/emulated/0</code> 为 <code>noexec</code>，所有可执行工具必须放在 <code>$HOME</code> 下执行。</blockquote>
+<hr>
+<h2>2. 目标工件解构</h2>
+<h3>2.1 ZIP 内容</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>CodeRunner.app/Contents/MacOS/CodeRunner   <span class="n">10</span>,<span class="n">964</span>,<span class="n">224</span> B   ← 主二进制（universal）
+CodeRunner.app/Contents/Info.plist                        ← CFBundleShortVersionString = <span class="n">4.5</span>
+                                                             CFBundleVersion = <span class="n">67850</span>
+                                                             CFBundleIdentifier = com.krill.CodeRunner
+CodeRunner.app/Contents/Resources/*.nib, *.icns, ...       ← 界面与资源</code></pre></figure>
+<h3>2.2 Fat Mach-O 两个切片</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>magic <span class="n">0xcafebabe</span>  (FAT, big-endian)  nfat_arch = <span class="n">2</span>
+[<span class="n">0</span>] cputype <span class="n">0x01000007</span> (x86_64)  fileoff <span class="n">0x004000</span>  size <span class="n">0x5E53B0</span>   ← 报告截图所指的地址空间
+[<span class="n">1</span>] cputype <span class="n">0x0100000C</span> (arm64)   fileoff <span class="n">0x5EC000</span>  size <span class="n">0x488D00</span></code></pre></figure>
+<p>x86_64 切片段表（<code>vmaddr</code> 基址 <code>0x100000000</code>）：</p>
+<div class="table-wrap"><table><thead><tr><th>段</th><th>vmaddr</th><th>vmsize</th><th>fileoff</th></tr></thead><tbody><tr><td><code>__PAGEZERO</code></td><td>0x0</td><td>0x100000000</td><td>0</td></tr><tr><td><code>__TEXT</code></td><td>0x100000000</td><td>0x50B000</td><td>0</td></tr><tr><td><code>__DATA_CONST</code></td><td>0x10050B000</td><td>0x35000</td><td>0x50B000</td></tr><tr><td><code>__DATA</code></td><td>0x100540000</td><td>0x7A000</td><td>0x540000</td></tr><tr><td><code>__LINKEDIT</code></td><td>0x1005BA000</td><td>0x30000</td><td>0x5B9000</td></tr></tbody></table></div>
+<p>关键 section：<code>__TEXT.__text @ 0x100002000 (0x44EAA0)</code>、<code>__TEXT.__cstring @ 0x100462E10</code>、&lt;br&gt;<code>__TEXT.__objc_methname</code>、<code>__TEXT.__objc_classname</code>、<code>__DATA.__objc_const</code>、<code>__DATA.__objc_data</code>。</p>
+<blockquote>二进制已被 strip（<code>lsyms=false</code>），无本地符号；函数名 <code>sub_xxxxxxxx</code> 为 IDA/radare2 风格地址标签。<br>报告截图里的 <code>sub_100310600</code>、<code>sub_100311CA0</code> 等地址<strong>确实存在于该 x86_64 切片</strong>，说明报告至少拿对了文件。</blockquote>
+<hr>
+<h2>3. 如何定位“真正的算法函数”（方法与证据链）</h2>
+<h3>3.1 ObjC 元数据定位</h3>
+<p><code>radare2</code> 的 <code>ic</code>（class dump）直接给出类与方法实现地址：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code><span class="n">0x10014f500</span>  method  LicenseWindowController.applyLicenseKey:
+<span class="n">0x10014b200</span>  method  LicenseWindowController.unlock:
+<span class="n">0x10030f8d0</span>  method  LicenseController.applyLicenseKey:
+<span class="n">0x10030f3e0</span>  method  LicenseController.sharedInstance</code></pre></figure>
+<p>类名来自 <code>__TEXT.__objc_classname</code>：&lt;br&gt;<code>0x1004B8E68 -&gt; "LicenseController"</code>、<code>0x1004B7BEC -&gt; "LicenseWindowController"</code>。</p>
+<h3>3.2 调用链（实测，与报告有出入）</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>用户输入 license key
+  └─ -[LicenseWindowController applyLicenseKey:]   @<span class="n">0x10014F500</span>
+        ├─ NSTextField setStringValue:            （回填输入框）
+        └─ jmp -[LicenseWindowController unlock:] @<span class="n">0x10014B200</span>    ← 纯转发
+
+-[LicenseWindowController unlock:]  @<span class="n">0x10014B200</span>
+  <span class="n">1</span>. keyTextField.stringValue → stringByTrimmingCharactersInSet:(空白)
+  <span class="n">2</span>. NSRegularExpression  ^([A-Z2-<span class="n">7</span>]{<span class="n">5</span>}-){<span class="n">3</span>}[A-Z2-<span class="n">7</span>]{<span class="n">5</span>}$   （cstring @<span class="n">0x10052AC20</span>）
+  <span class="n">3</span>. firstMatchInString: 不匹配 → “Invalid license key.” 弹窗
+  <span class="n">4</span>. 匹配 → NSUserDefaults setObject:key forKey:@<span class="s">"LicenseKey"</span>
+  <span class="n">5</span>. [LicenseController sharedInstance] → sub_100310990()        ← 本地判定入口
+  <span class="n">6</span>. 本地通过 → sub_100311AD0()                                   ← 远程注册/在线校验
+       成功 → -[LicenseWindowController didRegisterSuccessfully]
+       失败 → “illegitimate or disabled” 分支
+
+sub_100310990  @<span class="n">0x100310990</span>（约 <span class="n">425</span> 条指令）
+  · 缓存 NSUserDefaults 键名（**<span class="s">"LicenseKey"</span>（单数）**，由 appendString:@<span class="s">"%c"</span>×<span class="n">10</span> + stringWithFormat: 运行时拼装）
+  · objectForKey:  →  cStringUsingEncoding:<span class="n">1</span>(ASCII)  →  **sub_100310600(key)**
+  · 返回其布尔结果                                   ← 本地判定的唯一实现</code></pre></figure>
+<p><strong>与原报告的关键差异</strong>：</p>
+<ul><li>报告把 <code>-[LicenseController applyLicenseKey:]</code> 与 <code>-[LicenseWindowController unlock:]</code> 写成互相调用两次（<code>LicenseController.applyLicenseKey: → LicenseWindowController.unlock:</code>），实测是 <strong><code>LicenseWindowController.applyLicenseKey:</code> 尾部转发到自己的 <code>unlock:</code></strong>，<code>LicenseController.applyLicenseKey:</code> 是另一条独立方法（尾部调用 <code>unlock:</code>）。</li><li>报告把 <code>sub_100310990</code> 当作“本地验证算法”，实际它只是 <strong>NSUserDefaults 读取 + 调用真判定核</strong>；</li><li>报告未给出 <code>sub_100310600</code> 的真实判定式（给了错误的“多项式系数”解释）。</li></ul>
+<h3>3.3 网络侧实际端点（报告中该项也是错的）</h3>
+<p>二进制中真实存在的 URL 常量（<code>__cstring</code>）：</p>
+<div class="table-wrap"><table><thead><tr><th>地址</th><th>字符串</th></tr></thead><tbody><tr><td><code>0x100467BF8</code></td><td><code>https://coderunnerapp.com/api.php?action=message</code></td></tr><tr><td>—</td><td>追加查询片段 <code>&amp;license=%@&amp;locked=%i</code>（<code>0x10046BC32</code>）</td></tr><tr><td><code>0x10046AC84</code></td><td><code>...?action=reportcrash</code></td></tr><tr><td><code>0x10046ADCB</code></td><td><code>...?action=betacheck&amp;version=%@</code></td></tr><tr><td><code>0x10046E905</code></td><td><code>...?action=price</code></td></tr><tr><td><code>0x10046F0FC</code></td><td><code>...?action=migrate2&amp;token=%@&amp;mac=%@&amp;email=%@</code></td></tr></tbody></table></div>
+<p><strong>勘误（自查自纠）</strong>：上一版本报告草稿曾断言 <code>action=register&amp;key=%@&amp;token=</code> "不存在、属臆造"——<strong>这是错的</strong>。&lt;br&gt;该 URL 确实存在，只是被 LLVM 编译成 <strong>71 个 <code>push imm8</code> 立即数</strong>逐字符压栈，因此 <code>strings</code> / <code>grep -a</code> 抓不到连续串：</p>
+<figure class="code lang-asm"><figcaption>asm</figcaption><pre><code>100311e36: movl $<span class="s">'h'</span>,%ecx ; movl $<span class="s">'t'</span>,%r8d ; movl $<span class="s">'t'</span>,%r9d      ; <span class="s">"htt"</span>
+100311e49: push $<span class="s">'p'</span> … <span class="n">71</span> 个 push …                              ; <span class="s">"ps://coderunnerapp.com/api.php?action=register&amp;key=%@&amp;token=%@&amp;mac=%@"</span>
+100311ed3: callq *objc_msgSend                                   ; +[NSString stringWithFormat:] 组装</code></pre></figure>
+<p>完整端点为 <code>https://coderunnerapp.com/api.php?action=register&amp;key=%@&amp;token=%@&amp;mac=%@</code>&lt;br&gt;（比原报告截图多一个 <code>&amp;mac=%@</code>），位于 <strong><code>sub_100311CA0</code></strong> 内 —— 这正是报告命名的"网络验证函数"。&lt;br&gt;此外还有 <code>action=message&amp;license=%@&amp;locked=%i</code>、<code>action=migrate2&amp;token=…&amp;mac=…&amp;email=…</code>、&lt;br&gt;<code>action=price</code>、<code>action=betacheck</code>、<code>action=reportcrash</code>。真实模型是：<strong>本地 <code>sub_100310600</code> 先判，&lt;br&gt;通过后再走在线登记，服务端返回决定 <code>lock</code> / <code>licensee</code> 状态</strong>。</p>
+<hr>
+<h2>4. 原报告与三张截图的逐条勘误</h2>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>报告/截图表述</th><th>实测</th><th>证据</th></tr></thead><tbody><tr><td>1</td><td>授权码“20 个字符，4 组，每组 5 字符”“总长度必须为 22 字符”</td><td><strong>23 字符</strong>（20 个数据字符 + 3 个连字符）：<code>(5+1)×3 + 5 = 23</code></td><td>正则 <code>^([A-Z2-7]{5}-){3}[A-Z2-7]{5}$</code> 展开即 23；UI 占位符 <code>XXXXX-XXXXX-XXXXX-XXXXX</code> 亦为 23</td></tr><tr><td>2</td><td>“第 22 个字符（索引 21）必须是 <code>'Q'</code>”</td><td><strong>索引 22（第 23 个字符）</strong>，且<strong>允许 <code>'A'</code> 或 <code>'Q'</code></strong></td><td><code>movzbl 0x16(%rdi),%eax; orl $0x10,%eax; cmp $0x51</code>：<code>0x41|0x10=0x51</code>、<code>0x51|0x10=0x51</code></td></tr><tr><td>3</td><td>5 个示例 key（<code>MEBWJ-V7VJL-ALMM6-R3PK5</code> 等）标为 ✓</td><td><strong>全部无效</strong>：末位分别为 <code>5/D/P/N/L</code>，连入口校验都过不了；（改成 <code>A</code> 后）<code>v2 != v0+v1</code></td><td>见第 7 章验证表</td></tr><tr><td>4</td><td>“验证条件 <code>v12 == v11 + v10</code>”</td><td>✅ 方向正确，但寄存器解读错误：实为 <code>v2 == v0 + v1</code>（<code>v0=buf[0..3]</code>）</td><td><code>0x1003106cf: leal (%r14,%rbx),%eax; cmpl %eax,%r15d</code></td></tr><tr><td>5</td><td>“多项式系数 1.493448508129e12 / 5.04e18 …”当作主算法</td><td>❌ 这是<strong>浮点混淆块</strong>，只在 <code>r != 0</code> 分支里给 Horner 提供加数；判定核心是 <code>3673 / 29384</code> 商余</td><td>见 5.6/5.7</td></tr><tr><td>6</td><td>网络 API <code>action=register&amp;key=%@&amp;token=</code></td><td>✅ <strong>报告是对的</strong>（我上一版误判为臆造，已自查自纠）：真实存在，编译为 71 个 <code>push imm8</code>，位于 <code>sub_100311CA0</code>；实际参数多一个 <code>&amp;mac=%@</code></td><td>第 3.3 节</td></tr><tr><td>7</td><td>“<code>-[LicenseController validateLicenseKey:]</code>”</td><td>❌ 类方法表中无此 selector（<code>__objc_methname</code> 亦无）</td><td><code>ic</code> 全表</td></tr><tr><td>8</td><td>“算法单向、无法反推输入”</td><td>❌ 可完全反推：<code>r==0 ⇒ n=29384q</code>，解族 + 20 字符 DFS 即得合法码</td><td>第 6 章</td></tr><tr><td>9</td><td><code>sub_100311CA0</code> 标为“网络验证函数”</td><td>仅部分正确：它调用 <code>sub_100311AD0</code>（同一在线登记族），本身是 HTTP 请求封装</td><td>交叉引用 <code>0x100311CC5 → sub_100311AD0</code></td></tr></tbody></table></div>
+<hr>
+<h2>5. 算法完整规格（<code>sub_100310600</code> @ <code>0x100310600</code>，887 条指令）</h2>
+<h3>5.1 入口硬校验（0x100310600–0x10031060A）</h3>
+<figure class="code lang-asm"><figcaption>asm</figcaption><pre><code><span class="n">100310600</span>: 0f b6 <span class="n">47</span> <span class="n">16</span>      movzbl <span class="n">0x16</span>(%rdi), %eax     ; key 的 C 字符串第 <span class="n">23</span> 字节
+<span class="n">100310604</span>: <span class="n">83</span> c8 <span class="n">10</span>         orl    $0x10, %eax
+<span class="n">100310607</span>: <span class="n">83</span> f8 <span class="n">51</span>         cmpl   $0x51, %eax
+10031060a: 0f <span class="n">85</span> 9a <span class="n">00</span> <span class="n">00</span> <span class="n">00</span> jne    <span class="n">0x1003106aa</span>             ; 不等 → return <span class="n">0</span></code></pre></figure>
+<p>即 <strong><code>(key[22] | 0x10) == 0x51</code> ⇒ <code>key[22] ∈ {'A'(0x41), 'Q'(0x51)}</code></strong>。&lt;br&gt;<code>key[22]</code> 是 23 字符密钥的<strong>最后一个字符</strong>（0 基下标 22）。</p>
+<h3>5.2 内联 Base32 解码（0x10031061A–0x1003106B7）</h3>
+<figure class="code lang-asm"><figcaption>asm</figcaption><pre><code>10031061d: movq %rdi,%rbx        ; rbx = 密钥指针
+<span class="n">100310620</span>: movl $0xc,%edi
+<span class="n">100310625</span>: call malloc           ; <span class="n">12</span> 字节输出缓冲区
+10031062a: xor edx,edx           ; edx = 已写字节数
+10031062c: xor ecx,ecx           ; ecx = 位计数
+10031062e: xor esi,esi           ; esi = <span class="n">32</span> 位滚动累加器
+...
+<span class="n">100310658</span>: movzbl (%rbx),%edi    ; 取字符
+10031065b: cmpl $0x2d,%edi ; je  → 跳过 <span class="s">'-'</span>（注意：先跳连字符再判 NUL）
+<span class="n">100310664</span>: leal -<span class="n">0x41</span>(%rdi),%r8d ; <span class="s">'A'</span>..<span class="s">'Z'</span>
+<span class="n">100310668</span>: cmpb $0x19,%r8b  ; ja → 试数字
+10031066e: andb $0x1f,%dil ; decb %dil      ; A→<span class="n">0</span> ... Z→<span class="n">25</span>
+<span class="n">100310680</span>: leal -<span class="n">0x32</span>(%rdi),%r8d ; <span class="s">'2'</span>..<span class="s">'7'</span> ; cmpb $5 ; ja → 失败(<span class="n">0x1003108f8</span> free+ret <span class="n">0</span>)
+10031068e: addb $0xe8,%dil                  ; <span class="s">'2'</span>→<span class="n">26</span> ... <span class="s">'7'</span>→<span class="n">31</span>
+<span class="n">100310692</span>: movl %esi,%r8d ; shll $5,%r8d ; movzbl %dil,%esi ; orl %r8d,%esi
+                                            ; esi = (esi&lt;&lt;<span class="n">5</span>)|v   （<span class="n">32</span> 位环绕）
+1003106a0: cmpl $0x3,%ecx
+1003106a3: jge <span class="n">0x100310640</span>                  ; 位计数 &gt;= <span class="n">3</span> → 吐字节
+1003106a5: addl $0x5,%ecx                   ; 否则位计数 += <span class="n">5</span>
+<span class="n">100310640</span>: addl $-<span class="n">0x3</span>,%ecx ; movl %esi,%edi ; sarl %cl,%edi
+10031064c: movb %dil,(%rax,%r8)             ; out[edx++] = (esi &gt;&gt; ecx) &amp; <span class="n">0xFF</span>
+<span class="n">100310656</span>: jge <span class="n">0x1003106bd</span>                  ; edx &gt;= <span class="n">12</span> → 结束</code></pre></figure>
+<p><strong>关键点（最容易被误读之处）</strong>：<strong>每个字符最多写 1 个字节</strong>（写完后 <code>0x100310650</code> 立刻 <code>incq %rbx</code> 读下一个字符），&lt;br&gt;不是“累积到 8 位再批量吐字节”。</p>
+<p>由 <code>ecx</code> 的确定性演化（<code>&lt;3 ? +5 : −3</code>）可得 <strong>写事件表</strong>：</p>
+<div class="table-wrap"><table><thead><tr><th>数据字符序号</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th></tr></thead><tbody><tr><td>是否写字节</td><td>–</td><td>✅</td><td>–</td><td>✅</td><td>✅</td><td>–</td><td>✅</td><td>✅</td><td>–</td><td>✅</td><td>–</td><td>✅</td><td>✅</td><td>–</td><td>✅</td><td>✅</td><td>–</td><td>✅</td><td>–</td><td>✅</td></tr><tr><td>写入字节下标</td><td></td><td>0</td><td></td><td>1</td><td>2</td><td></td><td>3</td><td>4</td><td></td><td>5</td><td></td><td>6</td><td>7</td><td></td><td>8</td><td>9</td><td></td><td>10</td><td></td><td>11</td></tr><tr><td>右移位数</td><td></td><td>2</td><td></td><td>4</td><td>1</td><td></td><td>3</td><td>0</td><td></td><td>2</td><td></td><td>4</td><td>1</td><td></td><td>3</td><td>0</td><td></td><td>2</td><td></td><td>4</td></tr></tbody></table></div>
+<p>即 20 个数据字符写完刚好 12 字节；<strong>第 20 个数据字符（也就是密钥第 23 个字符）产生最后一字节</strong>。</p>
+<blockquote>附注：若密钥长度不足 12 字节所需，<code>0x1003106ad</code> 只把 NUL 写进 <code>out[edx]</code> 便继续取出三个整数，<br>缓冲区来自 <code>malloc(12)</code> 且未初始化 → <strong>未定义行为</strong>（会读到堆残留）。本实现的 Java/Python 版对不完整输入直接判失败。</blockquote>
+<h3>5.3 三个整数与第一道判定（0x1003106BD–0x1003106D6）</h3>
+<figure class="code lang-asm"><figcaption>asm</figcaption><pre><code>1003106bd: movl (%rax),%ebx      ; v0
+1003106bf: movl <span class="n">0x4</span>(%rax),%r14d  ; v1
+1003106c3: movl <span class="n">0x8</span>(%rax),%r15d  ; v2
+1003106ca: call free
+1003106cf: leal (%r14,%rbx),%eax ; eax = v1 + v0
+1003106d3: cmpl %eax,%r15d
+1003106d6: jne  <span class="n">0x1003108f1</span>      ; v2 != v0+v1 → return <span class="n">0</span></code></pre></figure>
+<h3>5.4 魔数除法与商余（0x1003106DC–0x1003107B4）</h3>
+<figure class="code lang-asm"><figcaption>asm</figcaption><pre><code>1003106dc: leal <span class="n">0x1</span>(%r14),%r15d  ; r15d = n = v1 + <span class="n">1</span>     （注意：此处 r15 被“复用”，不再是 v2！）
+<span class="n">100310798</span>: movl %r15d,%edx
+10031079b: shrl $0x3,%edx        ; edx = k = n &gt;&gt;&gt; <span class="n">3</span>      （<span class="n">32</span> 位逻辑右移）
+10031079e: imulq $0x11d7b6f5,%rdx,%rax
+1003107a5: shrq  $0x28,%rax      ; q = (k*<span class="n">0x11D7B6F5</span>) &gt;&gt;&gt; <span class="n">40</span>
+1003107a9: imull $0x72c8,%eax,%ecx    ; ecx = q * <span class="n">0x72C8</span>
+1003107af: movl %r15d,%eax
+1003107b2: subl %ecx,%eax        ; eax = r = n - q*<span class="n">0x72C8</span>
+1003107b4: je <span class="n">0x100310907</span>        ; r == <span class="n">0</span> → esi = <span class="n">1</span> → 直接比较 esi == v0</code></pre></figure>
+<p><strong>魔数常量求值（本报告独立核验）</strong>：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code><span class="n">0x11D7B6F5</span> = <span class="n">299513077</span>
+(k * <span class="n">299513077</span>) &gt;&gt;&gt; <span class="n">40</span>  ==  k <span class="c">// 3673       （k &lt; 2^29 时对 200,000 个样本 0 处不一致）</span>
+<span class="n">0x72C8</span>     = <span class="n">29384</span>    = <span class="n">8</span> × <span class="n">3673</span></code></pre></figure>
+<blockquote>报告里写的“149^7 % 0x72C8”是把 <code>0x72C8</code> 当成模数硬凑，实际它只是与 <code>3673</code> 配对的<strong>乘数</strong>。</blockquote>
+<h3>5.5 分支 A：<code>r == 0</code>（0x100310907 → 0x10031097C）</h3>
+<figure class="code lang-asm"><figcaption>asm</figcaption><pre><code><span class="n">100310907</span>: movl $0x1,%esi ; jmp <span class="n">0x10031097c</span>
+10031097c: xorl %eax,%eax
+10031097e: cmpl %ebx,%esi        ; 比较 esi(=<span class="n">1</span>) 与 v0
+<span class="n">100310980</span>: sete %al              ; 返回 (<span class="n">1</span> == v0)</code></pre></figure>
+<p>⇒ <code>r == 0</code> 时<strong>仅当 <code>v0 == 1</code> 才被接受</strong>。</p>
+<h3>5.6 分支 B：<code>r != 0</code> 的初始量与分支判定（0x1003107BA–0x1003108E8）</h3>
+<figure class="code lang-asm"><figcaption>asm</figcaption><pre><code>1003108d5: movl %r15d,%esi       ; esi = n
+1003108d8: subl %edx,%esi        ; esi = n - q*<span class="n">29384</span> = r
+1003108da: subl %r15d,%esi       ; esi = r - n
+1003108dd: addl %r14d,%esi       ; esi = r - n + v1 = r - <span class="n">1</span>
+1003108e0: movl %eax,%edx ; andl $0x7,%edx     ; edx = r &amp; <span class="n">7</span>
+1003108e5: cmpl $0x7,%esi ; jae <span class="n">0x10031090e</span>    ; (u32)(r-<span class="n">1</span>) &gt;= <span class="n">7</span> → <span class="n">8</span>×<span class="n">149</span> 展开循环
+1003108ea: movl $1,%esi                        ; 否则 esi = <span class="n">1</span></code></pre></figure>
+<h3>5.7 149-Horner 与浮点混淆块（0x10031090E–0x100310980）</h3>
+<figure class="code lang-asm"><figcaption>asm</figcaption><pre><code>10031090e: andl $0x7ff8,%eax     ; eax = r &amp; <span class="n">0x7FF8</span> （<span class="n">8</span> 的倍数）
+<span class="n">100310913</span>: movl $1,%esi
+<span class="n">100310920</span>: imull $0x95,%esi,%esi ; ×<span class="n">149</span>
+<span class="n">100310926</span>: addl %ecx,%esi        ; + ecx        ← 重复 <span class="n">8</span> 次
+<span class="n">100310960</span>: addl $-<span class="n">0x8</span>,%eax ; jne <span class="n">0x100310920</span>
+<span class="n">100310965</span>: testl %edx,%edx ; je <span class="n">0x10031097c</span>
+<span class="n">100310970</span>: imull $0x95,%esi,%esi ; ×<span class="n">149</span>
+<span class="n">100310976</span>: addl %ecx,%esi        ; + ecx        ← 再执行 (r&amp;<span class="n">7</span>) 次
+10031097e: cmpl %ebx,%esi ; sete %al           ; 返回 (esi == v0)</code></pre></figure>
+<p>总步数恰为 <strong><code>r</code></strong> 步，故</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>esi = <span class="n">149</span>^r + ecx · (<span class="n">149</span>^r − <span class="n">1</span>) / <span class="n">148</span>        (mod <span class="n">2</span>^<span class="n">32</span>)</code></pre></figure>
+<p>其中 <code>ecx</code> 由 <strong>浮点多定理混淆块</strong>（0x1003107BA–0x1003108BF）给出，<code>n = v1+1</code>：</p>
+<div class="table-wrap"><table><thead><tr><th>指数</th><th>分子</th><th>分母</th><th>常量地址</th></tr></thead><tbody><tr><td>n¹⁰</td><td>63660289.0</td><td>5.184e75</td><td>0x100503190 / 0x100503198</td></tr><tr><td>n⁹</td><td>−4180517653.0</td><td>7.2576e68</td><td>0x1005031A0 / 0x1005031A8</td></tr><tr><td>n⁸</td><td>6899654893.0</td><td>6.048e60</td><td>0x1005031B0 / 0x1005031B8</td></tr><tr><td>n⁷</td><td>−21407619061.0</td><td>1.728e53</td><td>0x1005031C0 / 0x1005031C8</td></tr><tr><td>n⁶</td><td>1382933445559.0</td><td>1.728e47</td><td>0x1005031D0 / 0x1005031D8</td></tr><tr><td>n⁵</td><td>−215046237821.0</td><td>6.912e38</td><td>0x1005031E0 / 0x1005031E8</td></tr><tr><td>n⁴</td><td>3611635941371.0</td><td>5.184e32</td><td>0x1005031F0 / 0x1005031F8</td></tr><tr><td>n³</td><td>−14318260822277.0</td><td>1.8144e26</td><td>0x100503200 / 0x100503208</td></tr><tr><td>n²</td><td>1493448508129.0</td><td>5.04e18</td><td>0x100503210 / 0x100503218</td></tr><tr><td>—</td><td>（除以）3600000000.0</td><td>0x100503220</td><td>施加于 <code>(int32)(n*0x7F2A8CC7)</code></td></tr><tr><td>—</td><td>（加）56039596.0</td><td>0x100503228</td><td>末项常数</td></tr></tbody></table></div>
+<p>求值细节：</p>
+<figure class="code lang-asm"><figcaption>asm</figcaption><pre><code><span class="n">100310896</span>: imull $0x7f2a8cc7,%r15d,%ecx   ; ecx = (int32)(n * <span class="n">0x7F2A8CC7</span>)
+1003108a0: cvtsi2sd %rcx,%xmm0            ; 符号扩展为 double
+1003108a5: divsd  <span class="n">0x100503220</span>,%xmm0       ; / <span class="n">3600000000.0</span>
+1003108ad: addsd  %xmm1,%xmm0
+1003108b1: addsd  <span class="n">0x100503228</span>,%xmm0       ; + <span class="n">56039596.0</span>
+1003108b9: roundsd $0x9,%xmm0,%xmm0       ; 立即数 <span class="n">9</span> = RC[<span class="n">1</span>:<span class="n">0</span>]=<span class="n">01</span> → 向 −∞ 取整(floor)
+1003108bf: cvttsd2si %xmm0,%rcx           ; 越界/NaN → <span class="n">0x8000000000000000</span>；取低 <span class="n">32</span> 位为 ecx</code></pre></figure>
+<p><strong>性质说明</strong>：该块在 <code>n</code> 较大时因 <code>n^10</code> 溢出 <code>double</code> 上限而呈现 <code>±Inf → INT64_MIN → ecx = 0</code>；&lt;br&gt;在中等 <code>n</code>（如 10⁸ 量级）时各正负项大量抵消、结果落在 int64 内，<strong><code>ecx</code> 是一个真实的、有意义的整数</strong>&lt;br&gt;（例如 <code>n = 1</code> 时 <code>ecx = 56039596</code>；<code>n = 4×10⁸</code> 附近 <code>ecx ≈ 1.7×10⁹</code>）。&lt;br&gt;换言之：它不是纯粹的“恒 0 外壳”，而是一个<strong>与平台 libm 实现耦合的强混淆段</strong>（见第 10 章限制）。</p>
+<h3>5.8 返回值</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>return (esi == v0)</code></pre></figure>
+<h3>5.9 判定流程速查</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>key ──入口校验(key[<span class="n">22</span>]∈{A,Q})──► 解码 <span class="n">12</span> 字节 ──► (v0,v1,v2)
+      │                                             │
+      │                                   v2 == v0+v1 ? ──否──► REJECT
+      │                                             │是
+      │                              n=v1+<span class="n">1</span>, k=n&gt;&gt;&gt;<span class="n">3</span>, q=k/<span class="n">3673</span>, r=n−29384q
+      │                                             │
+      │                    r == <span class="n">0</span> ──► esi=<span class="n">1</span> ──► (v0==<span class="n">1</span> ? ACCEPT : REJECT)
+      │                                             │
+      └──────────────────── r != <span class="n">0</span> ──► ecx=浮点块(n), esi=<span class="n">149</span>-Horner(r,ecx)
+                                                     │
+                                             (esi==v0 ? ACCEPT : REJECT)</code></pre></figure>
+<hr>
+<h2>6. 注册码生成（KeyGen）——数学推导 + 反解</h2>
+<h3>6.1 利用分支 A 的代数解</h3>
+<p><code>r = n − 29384·⌊(n≫3)/3673⌋</code>。取 <code>n = 29384q = 8·3673·q</code>：</p>
+<ul><li><code>k = n≫3 = 3673q</code></li><li><code>q' = ⌊3673q / 3673⌋ = q</code>（对一切 <code>q ≥ 0</code> 成立）</li><li><code>r = 29384q − 29384q = 0</code> ✅</li></ul>
+<p>再由 <code>v2 = v0 + v1</code> 与 <code>v0 = 1</code> 得解族：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>v0 = <span class="n">1</span>
+v1 = 29384q − <span class="n">1</span>        (mod <span class="n">2</span>^<span class="n">32</span>)
+v2 = 29384q            (mod <span class="n">2</span>^<span class="n">32</span>)
+q  = <span class="n">0</span>, <span class="n">1</span>, <span class="n">2</span>, …</code></pre></figure>
+<h3>6.2 反解 20 个 Base32 字符</h3>
+<p>12 字节目标 <code>v0|v1|v2</code>（小端）必须能由 5.2 的解码器产生。由写事件表可做<strong>逐字符 DFS + 剪枝</strong>：&lt;br&gt;在每个写事件处校验 <code>(esi &gt;&gt; shift) &amp; 0xFF</code> 与目标字节是否一致，不一致立即回溯。</p>
+<p>实测：对 <code>q = 0…146156</code>（覆盖 <code>29384q &lt; 2^32</code>）<strong>均可在毫秒级解出</strong>一个 20 字符序列&lt;br&gt;（同一目标一般存在多个解，取首个即可；其余字符位不影响判定）。</p>
+<h3>6.3 已验证的完整注册码</h3>
+<div class="table-wrap"><table><thead><tr><th>q</th><th>注册码</th><th>v0</th><th>v1</th><th>v2</th><th>命中分支</th></tr></thead><tbody><tr><td>0</td><td><code>AEAAA-AH777-776AA-AAAAA</code></td><td>1</td><td>−1 (0xFFFFFFFF)</td><td>0</td><td><code>r==0 → esi=1</code></td></tr><tr><td>1</td><td><code>AEAAA-AGHOI-AABSD-SAAAA</code></td><td>1</td><td>29383</td><td>29384</td><td><code>r==0 → esi=1</code></td></tr><tr><td>2</td><td><code>AEAAA-AEP4U-AABEH-FAAAA</code></td><td>1</td><td>58767</td><td>58768</td><td><code>r==0 → esi=1</code></td></tr></tbody></table></div>
+<p>解码字节（十六进制）分别为：&lt;br&gt;<code>01000000ffffffff00000000</code>、<code>01000000c7720000c8720000</code>、<code>010000008fe5000090e50000</code>。</p>
+<blockquote>生成器还额外验证：这些码的<strong>第 23 位都是 <code>'A'</code></strong>，满足入口校验。</blockquote>
+<hr>
+<h2>7. 实现与验证结果</h2>
+<h3>7.1 三份实现的一致性</h3>
+<div class="table-wrap"><table><thead><tr><th>实现</th><th>位置</th><th>作用</th></tr></thead><tbody><tr><td>Python 参考模型</td><td><code>CodeRunnerAlgoKit/tools/cralgo.py</code></td><td>逐指令建模（含浮点块、cvttsd2si 越界语义）</td></tr><tr><td>Python 生成器</td><td><code>CodeRunnerAlgoKit/tools/crkeygen.py</code>、<code>crverify.py</code></td><td>r==0 解族 + 20 字符 DFS 反解 / 命令行校验台</td></tr><tr><td><strong>Java 实现（交付物）</strong></td><td><code>CodeRunnerAlgoKit/src/com/cr/algo/LicenseAlgo.java</code></td><td>AIDE Pro 工程内可编译运行</td></tr></tbody></table></div>
+<p>交叉验证规模与结果：</p>
+<div class="table-wrap"><table><thead><tr><th>样本集</th><th>条数</th><th>比对字段</th><th>不一致</th></tr></thead><tbody><tr><td>报告示例 + 边界码 + 4000 随机合法格式 + 2000 末位 A/Q 变体</td><td>6 006</td><td>判定/12 字节/v0/v1/v2/n/q/r</td><td><strong>0</strong></td></tr><tr><td>构造满足 <code>v2=v0+v1</code> 的 poly 分支样本（含 v1 达 2³¹）</td><td>460</td><td>追加比对 ecx、esi</td><td>1（见 10.2，浮点末位差，判定结果一致）</td></tr></tbody></table></div>
+<h3>7.2 测试向量（<code>CodeRunnerAlgoKit/tools/test_vectors.tsv</code>）</h3>
+<div class="table-wrap"><table><thead><tr><th>注册码</th><th>期望</th><th>实际</th><th>说明</th></tr></thead><tbody><tr><td><code>AEAAA-AH777-776AA-AAAAA</code></td><td>ACCEPT</td><td>ACCEPT</td><td>q=0 解族</td></tr><tr><td><code>AEAAA-AGHOI-AABSD-SAAAA</code></td><td>ACCEPT</td><td>ACCEPT</td><td>q=1 解族</td></tr><tr><td><code>AEAAA-AEP4U-AABEH-FAAAA</code></td><td>ACCEPT</td><td>ACCEPT</td><td>q=2 解族</td></tr><tr><td><code>MEBWJ-V7VJL-ALMM6-R3PK5</code></td><td>REJECT</td><td>REJECT</td><td>原报告示例，末位 <code>5</code> 未过入口</td></tr><tr><td><code>MEBWJ-V7VJL-ALMM6-R3PKA</code></td><td>REJECT</td><td>REJECT</td><td>同上改末位 → <code>v2 != v0+v1</code></td></tr><tr><td><code>GULUZ-VAPHZ-OE6P5-CL72D</code></td><td>REJECT</td><td>REJECT</td><td>原报告示例，末位 <code>D</code></td></tr><tr><td><code>IYLV3-SO474-EBLF3-LF7AN</code></td><td>REJECT</td><td>REJECT</td><td>原报告示例，末位 <code>N</code></td></tr><tr><td><code>LYKHE-SWOUR-5GWIY-FTGCL</code></td><td>REJECT</td><td>REJECT</td><td>原报告示例，末位 <code>L</code></td></tr><tr><td><code>AAAAA-AAAAA-AAAAA-AAAAA</code></td><td>REJECT</td><td>REJECT</td><td>走 149-Horner（<code>ecx=56039596</code>）→ <code>esi != v0</code></td></tr><tr><td><code>AEAAA-AGHOI-AABSD-SAAAQ</code></td><td>REJECT</td><td>REJECT</td><td>末位 <code>Q</code> 过入口，但 <code>v2 != v0+v1</code></td></tr></tbody></table></div>
+<h3>7.3 APK 构建产物</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>bash build_apk.sh /storage/emulated/<span class="n">0</span>/Crack/CodeRunnerAlgoKit \
+                  /storage/emulated/<span class="n">0</span>/Crack/dist/CodeRunnerAlgoKit.apk com.cr.algo
+[<span class="n">1</span>/<span class="n">7</span>] aapt2 compile 资源        OK
+[<span class="n">2</span>/<span class="n">7</span>] aapt2 link               OK（package com.cr.algo, minSdk <span class="n">19</span>, targetSdk <span class="n">28</span>）
+[<span class="n">3</span>/<span class="n">7</span>] javac 编译 Java 源码      OK
+[<span class="n">4</span>/<span class="n">7</span>] d8 生成 dex (min-api <span class="n">19</span>)  OK
+[<span class="n">5</span>/<span class="n">7</span>] 打包 classes.dex          dex added: <span class="n">14252</span> bytes
+[<span class="n">6</span>/<span class="n">7</span>] zipalign                 OK
+[<span class="n">7</span>/<span class="n">7</span>] apksigner 签名            签名校验通过
+→ dist/CodeRunnerAlgoKit.apk   <span class="n">20</span>,<span class="n">947</span> B</code></pre></figure>
+<blockquote>设备端安装/截图本次未执行：当前设备控制授权为 <strong>T0（无障碍与 ADB 通道均未开启）</strong>，<br>无法注入点击/安装。开启任一通道后 <code>bash toolchain/adb_install.sh dist/CodeRunnerAlgoKit.apk com.cr.algo</code><br>或直接在 AIDE Pro 里 Run 即可（详见第 8 章）。</blockquote>
+<hr>
+<h2>8. AIDE Pro 工程与使用说明</h2>
+<h3>8.1 工程结构（AIDE Pro 可直开）</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>CodeRunnerAlgoKit/
+├── AndroidManifest.xml            包名 com.cr.algo，minSdk <span class="n">19</span> / targetSdk <span class="n">28</span>
+├── project.properties             target=android-<span class="n">28</span>
+├── res/
+│   ├── layout/activity_main.xml   输入框 + 校验/生成/自检/说明 四个按钮 + 输出区
+│   └── values/strings.xml
+├── src/com/cr/algo/
+│   ├── LicenseAlgo.java           算法全量移植（无 Android 依赖，可单独编译）
+│   └── MainActivity.java          界面与自检向量
+├── tools/                         Python 参考实现 + 生成器 + 测试向量
+└── README.md</code></pre></figure>
+<h3>8.2 关键对应关系（Java ↔ 反汇编）</h3>
+<div class="table-wrap"><table><thead><tr><th><code>LicenseAlgo</code> 成员</th><th>对应地址</th><th>语义</th></tr></thead><tbody><tr><td><code>value(char)</code></td><td>0x100310664–0x10031068E</td><td><code>A-Z→0..25</code>，<code>2-7→26..31</code></td></tr><tr><td><code>decode(String)</code></td><td>0x10031062A–0x1003106BD</td><td>12 字节 Base32 解码（每字符 ≤1 字节）</td></tr><tr><td><code>Result.entryByte</code> / 入口校验</td><td>0x100310600–0x10031060A</td><td><code>(key[22]|0x10)==0x51</code></td></tr><tr><td><code>validate()</code> 第一段</td><td>0x1003106BD–0x1003106D6</td><td><code>v2 == v0+v1</code></td></tr><tr><td><code>q</code> 计算</td><td>0x10031079E–0x1003107A5</td><td><code>(k*0x11D7B6F5)&gt;&gt;&gt;40</code></td></tr><tr><td><code>r</code> 计算</td><td>0x1003107A9–0x1003107B2</td><td><code>n − q*0x72C8</code></td></tr><tr><td><code>validate()</code> 分支 A</td><td>0x100310907</td><td><code>esi=1</code>，要求 <code>v0==1</code></td></tr><tr><td><code>polyEcx(int)</code></td><td>0x1003107BA–0x1003108BF</td><td>浮点多定理块 → <code>ecx</code></td></tr><tr><td><code>validate()</code> 分支 B</td><td>0x10031090E–0x100310980</td><td>149-Horner（步数 r）→ <code>esi==v0</code></td></tr><tr><td><code>generate(long q)</code> / <code>solveModes</code></td><td>—（对 5.2 逆向）</td><td>r==0 解族 + 20 字符 DFS 反解</td></tr></tbody></table></div>
+<h3>8.3 在 AIDE Pro 中运行</h3>
+<ol><li>AIDE Pro → <strong>Open project</strong> → 选择目录 <code>/storage/emulated/0/Crack/CodeRunnerAlgoKit</code></li><li>直接 <strong>Run</strong>（工程零第三方依赖，AIDE 用内置平台即可编译；<code>project.properties</code> 已写 <code>target=android-28</code>）</li><li>界面三件事：</li><ol><li><strong>校验</strong>：输入任意注册码，逐项打印 <code>key[22]</code>、12 字节、<code>v0/v1/v2</code>、<code>n/k/q/r</code>、分支、<code>ecx</code>、<code>esi</code> 与最终判定</li><li><strong>生成注册码</strong>：连续生成 5 个 <code>r==0</code> 解族注册码并即时回验</li><li><strong>自检向量</strong>：跑 8 条向量（3 有效 + 5 无效）并汇总 PASS/FAIL</li></ol></ol>
+<h3>8.4 命令行等价验证（本次已执行）</h3>
+<figure class="code lang-bash"><figcaption>bash</figcaption><pre><code><span class="c"># Java 与 Python 交叉验证（6006 + 460 条样本）</span>
+PFX=/data/data/com.dsharnessmobile.shell/files/usr
+<span class="k">mkdir</span> -p /tmp/crout
+$PFX/lib/jvm/<span class="k">java</span>-<span class="n">17</span>-openjdk/bin/javac -d /tmp/crout \
+    CodeRunnerAlgoKit/src/com/cr/algo/LicenseAlgo.<span class="k">java</span> CodeRunnerAlgoKit/tools/CrTest.<span class="k">java</span>
+$PFX/lib/jvm/<span class="k">java</span>-<span class="n">17</span>-openjdk/bin/<span class="k">java</span> -<span class="k">cp</span> /tmp/crout CrTest \
+    &lt; CodeRunnerAlgoKit/tools/keys.txt &gt; /tmp/java_out.tsv
+<span class="c"># Python 参考实现</span>
+<span class="k">python3</span> CodeRunnerAlgoKit/tools/crverify.py            <span class="c"># 内置向量 10/10 PASS</span>
+<span class="k">python3</span> CodeRunnerAlgoKit/tools/crkeygen.py            <span class="c"># 生成并验证注册码</span></code></pre></figure>
+<hr>
+<h2>9. 复现步骤（命令清单）</h2>
+<figure class="code lang-bash"><figcaption>bash</figcaption><pre><code><span class="c"># 0) 环境（一次性）</span>
+<span class="c">#    解包 Termux 的 llvm/libllvm/libc++/libxml2/libiconv/libffi/ncurses/radare2 deb 到 $HOME/{llvm,r2}</span>
+<span class="c"># 1) 抽出主二进制</span>
+unzip -o CodeRunner-<span class="n">4.5</span>.zip <span class="s">'CodeRunner.app/Contents/MacOS/CodeRunner'</span>
+<span class="c"># 2) 切出 x86_64 切片（fat[0]: fileoff 0x4000 size 0x5E53B0）</span>
+<span class="k">python3</span> -c <span class="s">"d=open('.../CodeRunner','rb').read();open('cr_x86_64.macho','wb').write(d[0x4000:0x4000+0x5e53b0])"</span>
+<span class="c"># 3) 反汇编真判定核</span>
+$HOME/llvm/llvmo.sh --arch=x86_64 --start-address=<span class="n">0x100310600</span> --stop-address=<span class="n">0x100310990</span> -d cr_x86_64.macho
+<span class="c"># 4) 定位调用链（ObjC 方法地址）</span>
+$HOME/r2/r2.sh -q -c <span class="s">'aa; ic~License'</span> cr_x86_64.macho
+<span class="c"># 5) 校验魔数除法</span>
+<span class="k">python3</span> -c <span class="s">"M=0x11d7b6f5;print(all(((k*M)&gt;&gt;40)==k//3673 for k in range(200000)))"</span>   <span class="c"># True</span>
+<span class="c"># 6) 生成并验证注册码</span>
+<span class="k">python3</span> CodeRunnerAlgoKit/tools/cralgo.py          <span class="c"># 模型自检</span>
+<span class="k">python3</span> CodeRunnerAlgoKit/tools/crkeygen.py        <span class="c"># 批量生成 + 验证</span>
+<span class="c"># 7) 出包</span>
+bash build_apk.sh CodeRunnerAlgoKit dist/CodeRunnerAlgoKit.apk com.cr.algo</code></pre></figure>
+<hr>
+<h2>10. 已知限制与风险提示</h2>
+<ol><li><strong>过门 1 ≠ 解锁（重要）</strong>：本报告解剖的 <code>sub_100310600</code> 只是<strong>五道门中的第 1 道</strong>。 完整门禁面（含总门 <code>sub_100310b40 = 本地 || 试用</code>、试用多来源记账 <code>sub_100310b70</code>、 在线登记 <code>sub_100311AD0/CA0/FB0</code>、<code>LicenseLocked</code> 停用位、App Store 收据迁移）见 <code>CodeRunner4.5_授权校验面全量普查_二次核验.md</code>。 本报告给出的注册码<strong>只保证通过第 1 道门</strong>；要真正"可用/解锁"，还需第 2–5 道门的状态成立。</li><li><strong>浮点混淆块的平台敏感性</strong>：分支 B 的 <code>ecx</code> 由 <code>libm pow()</code> 参与计算，不同 libm （glibc / bionic / Java <code>Math.pow</code>）可能产生 1 ulp 差异；在 460 条构造样本中观察到 <strong>1 条</strong> <code>ecx</code> 相差 4（判定结果相同）。第 6 章的合法注册码全部走 <strong>分支 A（<code>r==0</code>）</strong>， <strong>完全不依赖浮点块</strong>，因此在任何平台都能稳定复现。</li><li><strong>短密钥的未初始化内存路径</strong>：真实二进制在密钥不足 12 字节时会读取 <code>malloc(12)</code> 的残留数据 （undefined behaviour）。本 Java/Python 实现把这种情况判为失败，属<strong>有意的稳健化</strong>， 不影响任何格式完整的注册码判定。</li><li><strong>平台字符编码</strong>：原实现用 <code>cStringUsingEncoding:1</code>（ASCII）取字节；本实现按 ASCII 取字节， 对非 ASCII 输入直接判失败。</li><li>本报告与配套代码仅用于<strong>自有副本的授权机制研究与教学</strong>；软件授权归原作者所有， 请勿用于分发或商业绕过。</li></ol>
+<hr>
+<h2>11. 附录</h2>
+<h3>附录 A：关键地址与常量速查</h3>
+<div class="table-wrap"><table><thead><tr><th>名称</th><th>值</th></tr></thead><tbody><tr><td>判定核</td><td><code>sub_100310600</code> = <code>0x100310600</code></td></tr><tr><td>本地判定包装</td><td><code>sub_100310990</code> = <code>0x100310990</code></td></tr><tr><td>布尔包装</td><td><code>sub_100310B40</code> = <code>0x100310B40</code></td></tr><tr><td>在线登记</td><td><code>sub_100311AD0</code> = <code>0x100311AD0</code>，HTTP 封装 <code>sub_100311CA0</code></td></tr><tr><td>UI 解锁流程</td><td><code>-[LicenseWindowController unlock:]</code> = <code>0x10014B200</code></td></tr><tr><td>转发方法</td><td><code>-[LicenseWindowController applyLicenseKey:]</code> = <code>0x10014F500</code></td></tr><tr><td>魔数</td><td><code>0x11D7B6F5</code> → ÷3673；<code>0x72C8</code> = 29384 = 8×3673</td></tr><tr><td>格式正则</td><td><code>^([A-Z2-7]{5}-){3}[A-Z2-7]{5}$</code> @ <code>0x10052AC20</code>（长度 34）</td></tr><tr><td>字符表</td><td><code>ABCDEFGHIJKLMNOPQRSTUVWXYZ234567</code></td></tr><tr><td>NSUserDefaults 键</td><td><code>LicenseKey</code>（单数，运行时拼装）、<code>LicenseLocked</code>、<code>RegisteredLicense</code>、<code>Licensee</code></td></tr></tbody></table></div>
+<h3>附录 B：交付文件清单</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>CodeRunner4.5_授权算法解剖与验证报告.md        本文件
+CodeRunner4.5_授权校验面全量普查_二次核验.md   门禁全量普查 + 自查自纠（必读）
+CodeRunner4.5_门3_在线登记层解剖.md           门 <span class="n">3</span> 专报：JSON 协议 / 状态写回 / 键名隐藏机制
+CodeRunner4.5_门1_2_4_5_补全解剖.md           门 <span class="n">2</span>/<span class="n">4</span>/<span class="n">5</span> 解剖 + 门 <span class="n">1</span> 验证工程修复记录
+CodeRunnerAlgoKit/                           AIDE Pro 工程（可直接 Open → Run）
+  ├─ src/com/cr/algo/LicenseAlgo.java        算法全量 Java 移植 + KeyGen
+  ├─ src/com/cr/algo/MainActivity.java       界面 / 自检向量
+  ├─ res/layout/activity_main.xml, res/values/strings.xml
+  ├─ AndroidManifest.xml, project.properties
+  ├─ tools/cralgo.py                         Python 参考模型
+  ├─ tools/crkeygen.py, tools/crverify.py   生成器 / 命令行校验台
+  ├─ tools/CrTest.java                      Java 交叉验证驱动（纯 Java，可 javac 直编）
+  ├─ tools/test_vectors.tsv                  校验向量
+  └─ README.md
+dist/CodeRunnerAlgoKit.apk                   已构建并签名（<span class="n">20</span>,<span class="n">947</span> B）</code></pre></figure>
+<h3>附录 C：本次清理的临时文件</h3>
+<p>分析过程产生的中间产物（Mach-O 切片、deb 解包、termux 工具安装目录、Java 交叉验证沙箱等）&lt;br&gt;已在交付前删除，详见 <code>README.md</code> 的“清理记录”一节。</p>
+<hr>
+<p><em>报告完成：2026-09-19 · 反汇编：llvm-objdump 21.1.8 / radare2 6.2.0 · 校验：Python 3.14 ↔ Java 21 双向比对</em></p>
+</article></main>
+<footer class="footer"><p>© <span id="year"></span> Felix · Powered by GitHub Pages</p></footer>
+<button id="top" class="icon-btn top" aria-label="回到顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/dream.js"></script>
+</body>
+</html>

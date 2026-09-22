@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XP Hero 25.3.0 内置 MOD —— 打怪经验 + 通行证购买 解剖报告 · Felix</title>
+<meta name="description" content="目标包：io.supercent.weaponrpg 25.3.075 元数据：v31 / 19473 类型 / 134481 方法&amp;lt;br&amp;gt;…">
+<meta name="theme-color" content="#0b0716">
+<link rel="stylesheet" href="../assets/css/style.css">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<link rel="robots" href="../robots.txt">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="aurora"></div>
+<div class="stars"></div>
+<canvas id="dream-canvas"></canvas>
+<header class="nav glass">
+  <a class="brand" href="../"><span>Felix</span></a>
+  <nav>
+    <a href="../">首页</a>
+    <a href="../archive.html">归档</a>
+    <a href="../about.html">关于</a>
+    <button id="theme-btn" class="icon-btn" aria-label="切换主题">🌙</button>
+  </nav>
+</header>
+<main><article class="post">
+<a class="back" href="../">← 返回首页</a>
+<h1>XP Hero 25.3.0 内置 MOD —— 打怪经验 + 通行证购买 解剖报告</h1>
+<p class="meta" style="color:var(--muted)">2026-09-14 · 29 分钟 · 19 段代码 · 8 张表格</p>
+<p>目标包：<code>io.supercent.weaponrpg</code> 25.3.0(75)　元数据：v31 / 19473 类型 / 134481 方法&lt;br&gt;分析日期：2026-09-14　构建：<code>3.9-exp100-pass</code></p>
+<hr>
+<h2>一、打怪经验（EXP）路径</h2>
+<h3>1.1 元数据里所有经验入口</h3>
+<div class="table-wrap"><table><thead><tr><th>方法</th><th>类型</th><th>token</th><th>flags</th><th>说明</th></tr></thead><tbody><tr><td><code>UserCurrencyManager::AddExp</code></td><td>static, 1 参</td><td>0600a108</td><td>0096</td><td>通用经验入口（原版只挂了这条）</td></tr><tr><td><code>UserCurrencyManager::AddHunterExp</code></td><td>static, 1 参</td><td>0600a112</td><td>0096</td><td>猎人（打怪）经验入口 ← 本次新增</td></tr><tr><td><code>UserCurrencyManager::get_ExpRate</code></td><td>static, 0 参</td><td>0600a0e7</td><td>0896</td><td>经验倍率 getter</td></tr><tr><td><code>UserCurrencyManager::get_HunterExpAcc</code></td><td>static, 0 参</td><td>0600a0e0</td><td>0896</td><td>猎人累计经验</td></tr><tr><td><code>PlayerCharacter::GetExpMult</code></td><td>实例, 0 参</td><td>0600b905</td><td>0086</td><td>玩家角色经验倍率（float）</td></tr><tr><td><code>UnitStat::get_ExpMult</code></td><td>虚方法</td><td>0600ba94</td><td>0dc6</td><td>单位经验倍率基类（float）</td></tr><tr><td><code>PlayerUnitStat::get_ExpMult</code></td><td>虚方法</td><td>0600ba54</td><td>08c6</td><td>玩家单位覆盖</td></tr><tr><td><code>EnemyUnitStat::get_ExpMult</code></td><td>虚方法</td><td>0600ba06</td><td>08c6</td><td>敌人单位覆盖</td></tr><tr><td><code>StatCalculator.ExpRateStatCalculator::GetCalculatedValue</code></td><td>实例, 1 参</td><td>0600b26d</td><td>01e6</td><td>经验率属性计算器</td></tr><tr><td><code>RewardHelper::GetExpReward</code></td><td>static, 3 参</td><td>0600a576</td><td>0091</td><td>奖励结算里的经验计算</td></tr><tr><td><code>CheatPlayerGroup::CheatPlayerExpRate</code></td><td>实例, 1 参</td><td>060092bc</td><td>0081</td><td>游戏自带作弊：设置经验倍率</td></tr></tbody></table></div>
+<p>支撑字段：<code>ExpMult</code>(field 28743)、<code>ExpRate</code>(31464)、<code>_expMult</code>(32367)</p>
+<h3>1.2 推断的调用链</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>敌人死亡  EnemySpawner::OnEnemyDeadFinish        (0600bce8)
+   ↓
+奖励结算  RewardHelper::GetExpReward(…)          (0600a576)
+   ↓  乘上玩家经验倍率
+倍率取值  PlayerCharacter::GetExpMult()          (0600b905)
+            └─ PlayerUnitStat::get_ExpMult       (0600ba54)  ← float
+   ↓
+经验入账  UserCurrencyManager::AddExp(int)       (0600a108)
+            └─ UserCurrencyManager::AddHunterExp(int)  (0600a112)</code></pre></figure>
+<h3>1.3 实现（本次改动）</h3>
+<p>原版只挂了 <code>AddExp</code>，且参数探测没考虑实例方法的 <code>this</code> 占位&lt;br&gt;（<code>AddExp</code> 恰好是 static，所以问题没暴露）。</p>
+<p>改动：</p>
+<ol><li>两个入口都挂（<code>AddExp</code> + <code>AddHunterExp</code>）。</li><li>重入保护 <code>g_exp_in_hook</code>：若 <code>AddExp</code> 内部又调 <code>AddHunterExp</code>，嵌套那次原样转发 → 保证总倍率是 ×100 而不是 ×10000。</li><li>修正参数槽位：<code>xslot = static ? amt : amt + 1</code>（实例方法 x0 = <code>this</code>）。</li><li>分别计数：报告里 <code>AddExp calls=</code> / <code>AddHunterExp calls=</code> 分开， 实机跑一次即可确认打怪经验实际走哪条。</li><li>上限钳制 <code>2e9</code>，不触发 int32 溢出。</li></ol>
+<hr>
+<h2>二、通行证购买流程</h2>
+<h3>2.1 关键枚举 <code>EPassItemClickResult</code>（type 1050）</h3>
+<div class="table-wrap"><table><thead><tr><th>值</th><th>字段</th><th>含义</th></tr></thead><tbody><tr><td>0</td><td><code>Ignored</code></td><td>忽略</td></tr><tr><td>1</td><td><code>ShowTooltip</code></td><td>只显示说明</td></tr><tr><td>2</td><td><code>ReceiveRewards</code></td><td>直接领取（免费档 / 已购档）</td></tr><tr><td>3</td><td><code>ShowPurchasePopup</code></td><td>弹购买框（付费档未购买）</td></tr></tbody></table></div>
+<h3>2.2 完整购买链路</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>[点击通行证某一步的图标]
+   ↓
+CommonPassViewBehavior::OnButtonEvent            (06001c6c)
+   ↓
+PassBase::EvaluateItemClick(itemIdx, stepIdx)    (06001b9f, virtual, 各 Pass 子类重写)
+   ├ Ignored          → 不做
+   ├ ShowTooltip      → 显示说明
+   ├ ReceiveRewards   → 走领取
+   └ ShowPurchasePopup→ 购买弹窗
+          ↓
+   PassBase::GetPurchasePopupData(stepIdx)       (06001ba0)
+      └ PurchasePopupData::Create(rewardItems, priceText, stepIndex, extraValueText) (06001c61)
+         价格来源：PassBase 字段 _shopProductByStep (field <span class="n">5005</span>)
+         商品由 PassBase::RebuildProductsFromStatic (06001ba9) /
+                ValidateProducts (06001baa) 从静态表构建
+          ↓
+     用户点「购买」
+          ↓
+   PassBase::OnTryBuyVipProduct(stepIdx, product)  (06001bac)
+      → CommonPassManager / PaymentManager / IapManager → Google Play 计费   ★失败点
+          ↓
+   PassBase::OnPurchaseResult(result, stepIdx, product)  (06001bad)
+          ↓ 成功分支
+   PassBase::SuccessPurchasePassStep(stepIdx)     (06001ba5)
+          ↓
+   CommonPassManager::SuccessPurchasePassStep(passType, stepIdx) (06001b72, 存档侧)</code></pre></figure>
+<h3>2.3 「购买失败」根因</h3>
+<p>侧载包没有 Google Play 计费通道 → <code>OnTryBuyVipProduct</code> 里发起的真实购买必然失败&lt;br&gt;→ <code>OnPurchaseResult</code> 拿到失败结果 → 永远走不到 <code>SuccessPurchasePassStep</code>&lt;br&gt;→ 界面表现就是「通行证中心点购买，全部购买失败」。</p>
+<h3>2.4 此前处置为什么不对</h3>
+<div class="table-wrap"><table><thead><tr><th>版本</th><th>做法</th><th>结果</th></tr></thead><tbody><tr><td>v3.2</td><td>把 <code>PaymentManager.Purchase*</code> / <code>PurchaseManager.TryRestore*</code> 全部置空（→ ret）</td><td>购买变成什么都不发生，仍是失败表现</td></tr><tr><td>v3.8（一.7）</td><td>在 <code>PurchaseConsumable</code> 入口调游戏的 <code>OnComplete_Consumalbe</code> 完成回调</td><td>方向对，但只覆盖条计费入口，通行证链路未必经过它</td></tr><tr><td>当前代码</td><td>购买入口完全没有挂钩（<code>PurchaseConsumable</code> 等只出现在 <code>sig_of()</code> 诊断里，不是 target）</td><td>点购买直接进真实 Google Play → 必然失败</td></tr></tbody></table></div>
+<h3>2.5 本次修复</h3>
+<p>在通行证自己的成功入口上接管，而不是去猜计费回调：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>{ FEAT_ALL_PAID, <span class="s">"DevilHunterIdle.CommonPass.PassBase"</span>, <span class="s">"OnTryBuyVipProduct"</span>,
+  A_CHOOK, <span class="s">'-'</span>, (void*)&amp;hook_try_buy_vip },</code></pre></figure>
+<p>hook 内不再执行原始购买，而是直接调用游戏自己的&lt;br&gt;<code>PassBase::SuccessPurchasePassStep(stepIndex)</code> —— 等价于一次真实的购买成功，&lt;br&gt;完全绕开 Google Play，且走的是游戏原生解锁/存档路径。</p>
+<p>细节：</p>
+<ul><li><code>stepIndex</code> 的形参位置在运行时用 <code>p_method_get_param()</code> 探测（挑第一个 <code>Int32</code>），不硬编码。</li><li><code>SuccessPurchasePassStep</code> 的代码指针在 <code>setup_pass_buy()</code> 里解析（兼容 m0/m8 两种 code ptr 布局）。</li><li>全程计数：<code>通行证购买接管: calls=N ok=M lastStep=X</code>。</li></ul>
+<hr>
+<h2>三、意外发现：游戏内置开发者作弊系统</h2>
+<p>元数据里有一整套 <code>DevilHunterIdle.Cheat.*</code> + <code>Supercent.Util.Cheat.*</code>：</p>
+<div class="table-wrap"><table><thead><tr><th>组件</th><th>说明</th></tr></thead><tbody><tr><td><code>Supercent.Util.Cheat.CheatManager&lt;T&gt;</code></td><td>作弊管理器（<code>get_IsCheatViewVisible</code> / <code>Init</code> / <code>LoadMetaData</code> / <code>Register</code>）</td></tr><tr><td><code>DevilHunterIdle.Cheat.Core.CheatLoader</code></td><td>作弊注册加载器（<code>ECheatRegisterPhase</code> 分阶段）</td></tr><tr><td><code>DevilHunterIdle.Cheat.CheatView</code></td><td>作弊面板 UI</td></tr><tr><td>37+ 个 <code>Cheat*Group</code></td><td>按功能分组的作弊项</td></tr></tbody></table></div>
+<p>与本项目直接相关的现成作弊：</p>
+<div class="table-wrap"><table><thead><tr><th>需求</th><th>游戏自带作弊</th></tr></thead><tbody><tr><td>经验倍率</td><td><code>CheatPlayerGroup::CheatPlayerExpRate(int)</code> (060092bc)</td></tr><tr><td>通行证内容解锁</td><td><code>CheatCommonPassGroup::ForceOpenPassContents(int)</code> (060091d8)</td></tr><tr><td>通行证内容链</td><td><code>CheatCommonPassGroup::OpenContentsChain(int)</code> (060091db)</td></tr><tr><td>战斗通行证等级</td><td><code>CheatCommonPassGroup::EnsureBattlePassUnlockPlayerLevel()</code> (060091dd)</td></tr><tr><td>广告</td><td><code>CheatAdsGroup::CheatDisableInterstial / CheatDisableVideoRV</code></td></tr><tr><td>无敌/加血</td><td><code>CheatPlayerGroup::CheatInvinsible / CheatPlayerHeal</code></td></tr><tr><td>速度</td><td><code>CheatUtilGroup::CheatChangeSpeed(int)</code></td></tr></tbody></table></div>
+<p>这条线比外部挂钩更「原生」，但需要先弄清作弊面板的开启门槛&lt;br&gt;（<code>CheatLoader</code> 注册阶段 / <code>IsCheatViewVisible</code> 判定）。作为后续可选路线记录，本次未采用。</p>
+<hr>
+<h2>四、复现 / 自检</h2>
+<figure class="code"><figcaption>text</figcaption><pre><code>bash mod/build.sh        <span class="c"># 编译 .so + dex（含上述改动）</span>
+bash tools/repack.sh     <span class="c"># 合并 ABI split + classes18.dex + libxpmod.so → zipalign → v1/v2/v3 签名</span>
+sh out/verify_on_device.sh</code></pre></figure>
+<p>实机报告 <code>Download/xpmod_report.txt</code> 新增字段：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>   打怪经验x100: scaled=N last X -&gt; Y
+     AddExp        calls=N (arg x0,64bit=<span class="n">0</span>,static=<span class="n">1</span>) ready=<span class="n">1</span>
+     AddHunterExp  calls=N (arg x0,64bit=<span class="n">0</span>,static=<span class="n">1</span>) ready=<span class="n">1</span>
+   通行证购买接管: calls=N ok=M lastStep=S successFn=0x… stepArg=<span class="n">0</span></code></pre></figure>
+<hr>
+<h2>五、实机验证结果（2026-09-14 14:25–14:29，真机 PTP-AN70 / Android 17）</h2>
+<p>MOD 安装后启动，自动战斗一段时间，从&lt;br&gt;<code>/sdcard/Android/media/io.supercent.weaponrpg/xpmod_live.txt</code> 读到的实测数据：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>== live == AddStackableItem: calls=<span class="n">66</span> scaled=<span class="n">66</span> (x100) (amtParam=<span class="n">1</span> is64=<span class="n">1</span> static=<span class="n">1</span>)
+   TryPayStackableItem: calls=<span class="n">128</span> granted=<span class="n">131</span> | cargo: calls=<span class="n">3</span>
+patched=<span class="n">83</span>/<span class="n">96</span>  report_dropped=<span class="n">0</span> report_len=<span class="n">28555</span>
+   打怪经验x100: scaled=<span class="n">6</span> last <span class="n">2</span> -&gt; <span class="n">200</span>
+     AddExp        calls=<span class="n">6</span> (arg x0,64bit=<span class="n">1</span>,static=<span class="n">1</span>) ready=<span class="n">1</span>
+     AddHunterExp  calls=<span class="n">0</span> (arg x0,64bit=<span class="n">1</span>,static=<span class="n">1</span>) ready=<span class="n">1</span>
+   通行证购买接管: calls=<span class="n">1</span> ok=<span class="n">1</span> lastStep=<span class="n">0</span> successFn=<span class="n">0x7b591d0ad0</span> stepArg=<span class="n">0</span>
+   feat8 installed=<span class="n">0</span>/<span class="n">11</span>  &lt;== 未全打
+   feat9 installed=<span class="n">2</span>/<span class="n">2</span>
+resolved=<span class="n">96</span>/<span class="n">96</span></code></pre></figure>
+<h3>5.1 结论</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>结论</th></tr></thead><tbody><tr><td>打怪经验 ×100</td><td>✅ <strong>生效</strong>。<code>AddExp</code> 被真实调用 6 次、全部放大（样例 <code>2 → 200</code>）</td></tr><tr><td>打怪经验走哪条</td><td>✅ <strong>实测是 <code>AddExp</code></strong>；<code>AddHunterExp</code> 调用次数 = <strong>0</strong>，本次玩法中未被使用</td></tr><tr><td>双挂钩是否安全</td><td>✅ 两条都 <code>ready=1</code> 且 <code>feat9 installed=2/2</code>，重入保护未触发异常</td></tr><tr><td>通行证购买接管</td><td>✅ <strong>生效</strong>。<code>calls=1 ok=1</code>，<code>successFn</code> 成功解析（<code>0x7b591d0ad0</code>），调用后<strong>无崩溃</strong>（无 <code>xpmod_crash.txt</code>）</td></tr><tr><td>元数据解析</td><td>✅ <code>resolved=96/96</code>，全程无 <code>[x]</code> 行</td></tr></tbody></table></div>
+<h3>5.2 关于 <code>feat8 installed=0/11</code></h3>
+<p><strong>不是 bug</strong> —— 报告头部的 <code>toggles = 0=1 … 7=1 8=0 9=1</code> 表明&lt;br&gt;「去升级」是自己被关掉的（用户面板操作），所以 11 个目标全部 <code>patch_off</code>。&lt;br&gt;11 个目标本身都 <code>resolved</code>，无解析失败。</p>
+<h3>5.3 顺带修掉的真 bug：加速滑杆拖了不生效</h3>
+<p>同一份报告里 <code>speed = x7.00</code> 但 <code>feat10 installed=0/2</code> —— 滑杆拖到 7 倍却没挂钩。</p>
+<p>根因：<code>nativeSetSpeed()</code> 只设了 <code>g_speed</code> 就调 <code>apply_feature(FEAT_SPEED)</code>，&lt;br&gt;而 <code>apply_feature()</code> 读的是 <code>g_feat[FEAT_SPEED]</code>；启动时 speed=1.0 →&lt;br&gt;Java 侧把它当成「不启用」→ <code>g_feat[10]</code> 一直是 0 → <code>apply_feature</code> 走 <code>patch_off</code> 分支。</p>
+<p>修复：在 <code>nativeSetSpeed()</code> 里同步 <code>g_feat[FEAT_SPEED] = (v != 1.0f)</code>。</p>
+<p>同时修掉状态串里的字面量 <code>\n</code>（写成 <code>\\n</code>，导致报告头部挤成一整行）。</p>
+<blockquote>上述两项修复在 <code>out/XP_Hero_25.3.0_mod.apk</code>（14:30 构建）中，<br>需要在关闭游戏后卸载重装才会生效；本次已验证的核心功能（打怪经验 / 通行证购买）<br>在 14:25 构建里就已生效。</blockquote>
+<hr>
+<h2>六、迁移到 XP Hero 26.0.0（versionCode 76）</h2>
+<blockquote>起因：之前一直拿 25.3.0（<code>XP Hero_25.3.0.apks</code>）在做；实际目标文件是<br><code>/storage/emulated/0/Crack/XP Hero_26.0.0.apks</code>（14:07 替换，25.3.0 已不在）。<br>下面记录 26.0.0 的完整迁移过程与踩到的坑。</blockquote>
+<h3>6.1 版本差异</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>25.3.0</th><th>26.0.0</th></tr></thead><tbody><tr><td>versionCode / versionName</td><td>75 / 25.3.0</td><td><strong>76 / 26.0.0</strong></td></tr><tr><td>base.apk</td><td>223,085,282 B</td><td>226,694,749 B</td></tr><tr><td>split_config.arm64_v8a.apk</td><td>34,625,934 B</td><td>35,383,694 B</td></tr><tr><td>global-metadata.dat</td><td>17,489,932 B</td><td>18,263,796 B</td></tr><tr><td>libil2cpp.so</td><td>79,841,176 B</td><td>82,415,008 B</td></tr><tr><td>类型 / 方法</td><td>19473 / 134481</td><td>20250 / 139693</td></tr><tr><td>PairIP 所在 dex</td><td>classes2.dex</td><td>classes2.dex（仍是）</td></tr></tbody></table></div>
+<h3>6.2 挂钩表兼容性：<strong>100% 可原样复用</strong></h3>
+<p>mod 是在运行时用 il2cpp API 按「类名+方法名」解析挂钩点的，所以只要名字在就不受影响。</p>
+<p>逐个核对 96 个 TARGETS 条目：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>在 <span class="n">26.0</span>.<span class="n">0</span> 里缺失: <span class="n">0</span>
+flags/params 真正变化的: <span class="n">0</span>        ← 只有 token= 偏移，属版本间正常现象</code></pre></figure>
+<p><strong>结论：<code>xpmod.c</code> 的 TARGETS 表一行都不用改。</strong></p>
+<h3>6.3 必须重做的两处（版本相关）</h3>
+<p><strong>① PairIP 补丁（classes2.dex）</strong></p>
+<p>原来的 License 校验在 <code>com.pairip.application.Application.attachBaseContext</code>：</p>
+<figure class="code lang-smali"><figcaption>smali</figcaption><pre><code>invoke-static {p1}, Lcom/pairip/licensecheck/LicenseClient;-&gt;checkLicense(Landroid/content/Context;)V</code></pre></figure>
+<p>补丁把它整行替换为：</p>
+<figure class="code lang-smali"><figcaption>smali</figcaption><pre><code><span class="c"># [XPMOD] PairIP license/signature check removed, mod loader injected instead</span>
+invoke-static {p0}, Lcom/xpmod/ModEntry;-&gt;init(Landroid/app/Application;)V</code></pre></figure>
+<blockquote>工具：用 <code>nfbox/libs</code> 里的独立 <strong>smali / baksmali 2.5.2</strong>（入口是 <code>org.jf.*</code>，<br>不是 apktool 内嵌的 <code>com.android.tools.smali.*</code>，后者没有 main 方法）。<br>2.5.2 的 jar 也没有 Main-Class，必须用 <code>-cp</code> + 全限定类名调用。</blockquote>
+<p><strong>② AndroidManifest 两处改动</strong>（顺序不能反）</p>
+<figure class="code lang-bash"><figcaption>bash</figcaption><pre><code><span class="c"># 1) 剥掉「必须带 split」的强制属性 —— 否则单 APK 安装报</span>
+<span class="c">#    INSTALL_FAILED_MISSING_SPLIT: Missing split for io.supercent.weaponrpg</span>
+<span class="k">python3</span> tools/axml_strip_attrs.py &lt;原清单&gt; &lt;中间&gt; requiredSplitTypes splitTypes
+<span class="c"># 2) 注入悬浮面板权限</span>
+<span class="k">python3</span> tools/axml_add_perm.py    &lt;中间&gt; &lt;成品&gt; android.permission.SYSTEM_ALERT_WINDOW</code></pre></figure>
+<blockquote><code>requiredSplitTypes="base__abi"</code> 在两版里<strong>都存在</strong>。25.3.0 当时能装上，<br>正是因为旧流水线偷偷剥掉了它；这次迁移漏了这一步，才在第一次安装时暴露出来。</blockquote>
+<h3>6.4 26.0.0 实机验证结果（2026-09-14 14:41）</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>build    = <span class="n">3.9</span>-exp100-pass
+overlay  = granted
+libload  = ok
+
+== live == AddStackableItem: calls=<span class="n">62</span> scaled=<span class="n">62</span> (x100), last <span class="n">100</span> -&gt; <span class="n">10000</span>
+patched=<span class="n">83</span>/<span class="n">96</span>   report_dropped=<span class="n">0</span>
+   打怪经验x100: scaled=<span class="n">1</span> last <span class="n">14</span> -&gt; <span class="n">1400</span>
+     AddExp        calls=<span class="n">1</span> (arg x0,64bit=<span class="n">1</span>,static=<span class="n">1</span>) ready=<span class="n">1</span>
+     AddHunterExp  calls=<span class="n">0</span> (arg x0,64bit=<span class="n">1</span>,static=<span class="n">1</span>) ready=<span class="n">1</span>
+   通行证购买接管: successFn=<span class="n">0x7b5432a564</span> stepArg=<span class="n">0</span>
+
+resolved=<span class="n">96</span>/<span class="n">96</span>          ← 零 [x]
+feat0..feat7 全部 installed 满额
+feat9 installed=<span class="n">2</span>/<span class="n">2</span>     ← 打怪经验
+无 xpmod_crash.txt</code></pre></figure>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>26.0.0 结论</th></tr></thead><tbody><tr><td>PairIP 绕过</td><td>✅ 应用正常启动（前台 UnityPlayerActivity，进程存活）</td></tr><tr><td>挂钩点解析</td><td>✅ <code>resolved=96/96</code>，无 <code>[x]</code></td></tr><tr><td>打怪百倍经验</td><td>✅ <strong>实测生效</strong>：<code>last 14 -&gt; 1400</code>（×100）</td></tr><tr><td>经验实际入口</td><td>✅ 仍是 <code>AddExp</code>（calls=1）；<code>AddHunterExp</code> calls=0</td></tr><tr><td>通行证购买接管</td><td>✅ armed，<code>successFn</code> 解析成功</td></tr><tr><td>材料 ×100</td><td>✅ <code>calls=62 scaled=62</code></td></tr></tbody></table></div>
+<h3>6.5 26.0.0 流水线</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>bash mod/build.sh            <span class="c"># .so + dex（与版本无关，通用）</span>
+python3 tools/package26.py   <span class="c"># 组装 26.0.0 包（splits26 + work26/dex_patched + 26 清单）</span>
+bash tools/repack26.sh       <span class="c"># zipalign + v1/v2/v3 签名 → out/XP_Hero_26.0.0_mod.apk</span></code></pre></figure>
+<hr>
+<h2>七、回归事故：地图资源不再触发下载（26.0.0）</h2>
+<h3>7.1 症状</h3>
+<p>用户登录账号读取存档后：</p>
+<ul><li>想去下面的地图，<strong>不触发「下载地图弹窗」</strong></li><li>该地图里 <strong>打怪没有经验</strong>、<strong>物品捡不起来</strong></li><li>原版正常</li></ul>
+<h3>7.2 审计结论：没有文件级误操作</h3>
+<p>对整个 APK 做了逐条目 CRC 审计（原版 base+split 合并视图 vs 我的 mod 包）：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>原版条目 <span class="n">11822</span>  →  mod 条目 <span class="n">11826</span>
+
+内容被改变的 (<span class="n">2</span>)    AndroidManifest.xml     ← 意图内
+                    classes2.dex            ← 意图内（PairIP 补丁）
+新增的 (<span class="n">5</span>)          META-INF/MANIFEST.MF, XPMOD.RSA, XPMOD.SF
+                    classes18.dex, lib/arm64-v8a/libxpmod.so
+丢失的 (<span class="n">1</span>)          stamp-cert-sha256</code></pre></figure>
+<ul><li>11822 个条目里只有 2 个被改，<strong>没有夹带误伤</strong>（资源、assets、其他 dex 全部字节一致）。</li><li><code>stamp-cert-sha256</code> 在 <code>mod_unsigned.apk</code> 里是<strong>存在</strong>的，是 <strong><code>apksigner</code> 重签名时剥掉的</strong> （Google Play 源码戳与原签名绑定，重签必然失效）。这是所有重签包的固有现象， 25.3.0 那版同样如此，<strong>不是新引入的错误</strong>。</li></ul>
+<h3>7.3 根因：「去升级」篡改了全局版本比较（设计用力过猛）</h3>
+<p>游戏侧的下载门槛链：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>DevilHunterIdle.Chapter.ChapterBundleDownloadHelper::AreBundlesReady(int,int)
+DevilHunterIdle.Chapter.ChapterBundleDownloadHelper::TryEnsureBundlesReady(<span class="n">5</span> 参)
+  → UI.CommonUI.BundleDownloadView / DownloadMessageBoxView
+表字符串: CHAPTER_DOWNLOAD_MAIN_TITLE / DOWNLOAD_POPUP_TITLE / DownloadBundles
+内容版本: SaveData_Quest::LastCheckContentsVersion / OnFetchLastCheckContentsVersion
+          KEY_LAST_CHECK_CONTENTS_VERSION</code></pre></figure>
+<p><strong>这些方法一个都不在 mod 的挂钩表里</strong> —— 所以不是「直接改坏了下载逻辑」，&lt;br&gt;而是<strong>间接污染</strong>：</p>
+<p><code>DevilHunterIdle.Common.AppVersionComparer</code> 是整个 <code>DevilHunterIdle</code> 里<strong>唯一</strong>的&lt;br&gt;版本比较工具类，共 7 个方法：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>Compare  IsEqual  IsNotEqual  IsGreater  IsLess  IsGreaterOrEqual  IsLessOrEqual</code></pre></figure>
+<p>旧版 feat8 只把其中 <strong>3 个</strong>改成恒定值：</p>
+<figure class="code lang-c"><figcaption>c</figcaption><pre><code>{ FEAT_NO_UPDATE, <span class="s">"...AppVersionComparer"</span>, <span class="s">"Compare"</span>,     A_FALSE, <span class="s">'i'</span> },  <span class="c">// → 0</span>
+{ FEAT_NO_UPDATE, <span class="s">"...AppVersionComparer"</span>, <span class="s">"IsGreater"</span>,   A_FALSE, <span class="s">'b'</span> },  <span class="c">// → false</span>
+{ FEAT_NO_UPDATE, <span class="s">"...AppVersionComparer"</span>, <span class="s">"IsNotEqual"</span>,  A_FALSE, <span class="s">'b'</span> },  <span class="c">// → false</span></code></pre></figure>
+<p>于是出现<strong>自相矛盾</strong>的判定：<code>IsGreater</code> 说「不大于」、<code>IsNotEqual</code> 说「不相等」，&lt;br&gt;而未改的 <code>IsLess</code> 仍按真实值返回「小于」。任何复用这个工具做&lt;br&gt;「服务端内容版本 vs 本地内容版本」判断的逻辑，都会得到错乱结果 →&lt;br&gt;不再判定「需要拉取新的章节资源」→ 弹窗不出现 → 进图后资源缺失&lt;br&gt;（怪物没经验、物品捡不起来）。</p>
+<p>时间线也吻合：<code>8=0</code>（关）时正常，用户打开去升级（<code>8=1</code>）后才出问题。</p>
+<h3>7.4 修复</h3>
+<p><strong>只压弹窗，不篡改版本比较</strong>：从 feat8 移除上面 3 个 <code>AppVersionComparer</code> 挂钩&lt;br&gt;（11 → 8 个），保留 7 个弹窗入口钩子 —— 它们已足以实现「去升级」的本意&lt;br&gt;（不让升级弹窗出现）：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>UpdateNotifyHelper::get_IsVisiblePopup / ShowPopup / TryLoadView
+AppUpdateNotifyManager::get_IsVisiblePopup / ShowPopup
+AppUpdateNotifyPopupView::Show / RefreshView</code></pre></figure>
+<p><code>InvasionManager::get_IsClientVersionMismatch → false</code> 暂留（仅影响入侵玩法，&lt;br&gt;用户未反馈该处问题），但已在注释中标记同类风险。</p>
+<blockquote>输出：<code>out/XP_Hero_26.0.0_mod.apk</code>（15:02 构建）</blockquote>
+<h3>7.5 用户实测确认</h3>
+<p>用户关闭「9. 去升级」后<strong>下面地图恢复正常</strong> → 根因确认：&lt;br&gt;就是那 3 个 <code>AppVersionComparer</code> 算改污染了内容版本判定。</p>
+<h3>7.6 修复版实机验证（15:11）</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>build    = <span class="n">3.9</span>-exp100-pass
+libload  = ok
+toggles  = <span class="n">0</span>=<span class="n">1</span> <span class="n">1</span>=<span class="n">1</span> <span class="n">2</span>=<span class="n">1</span> <span class="n">3</span>=<span class="n">1</span> <span class="n">4</span>=<span class="n">1</span> <span class="n">5</span>=<span class="n">1</span> <span class="n">6</span>=<span class="n">1</span> <span class="n">7</span>=<span class="n">1</span> <span class="n">8</span>=<span class="n">0</span> <span class="n">9</span>=<span class="n">1</span>
+
+resolved=<span class="n">93</span>/<span class="n">93</span>            ← <span class="n">96</span> - <span class="n">3</span>（移除的算改）
+AppVersionComparer 命中数 = <span class="n">0</span>   ← 已彻底移出挂钩表
+feat8 installed=<span class="n">0</span>/<span class="n">8</span>       ← 当前开关为关（沿用你之前的设置）
+
+保留并已解析的 <span class="n">7</span> 个弹窗抑制钩子：
+  UpdateNotifyHelper::get_IsVisiblePopup / ShowPopup / TryLoadView
+  AppUpdateNotifyManager::get_IsVisiblePopup / ShowPopup
+  AppUpdateNotifyPopupView::Show / RefreshView</code></pre></figure>
+<p><strong>待最终确认</strong>：把「9. 去升级」重新打开，再进一次下层地图 ——&lt;br&gt;应当<strong>既能保持无升级弹窗、地图也能正常下载</strong>。</p>
+<h3>7.7 修复最终确认（15:13，用户实测「可以了」）</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>toggles  = <span class="n">0</span>=<span class="n">1</span> <span class="n">1</span>=<span class="n">1</span> <span class="n">2</span>=<span class="n">1</span> <span class="n">3</span>=<span class="n">1</span> <span class="n">4</span>=<span class="n">1</span> <span class="n">5</span>=<span class="n">1</span> <span class="n">6</span>=<span class="n">1</span> <span class="n">7</span>=<span class="n">1</span> 【<span class="n">8</span>=<span class="n">1</span>】<span class="n">9</span>=<span class="n">1</span>   ← 去升级已重新打开
+feat8 installed=<span class="n">8</span>/<span class="n">8</span>        ← 收窄后的 <span class="n">8</span> 个弹窗抑制钩子全部生效
+feat9 installed=<span class="n">2</span>/<span class="n">2</span>        ← 打怪经验
+resolved=<span class="n">93</span>/<span class="n">93</span>
+打怪经验x100: scaled=<span class="n">2</span>  last <span class="n">8500</span> -&gt; <span class="n">850000</span>    ← 实机 ×<span class="n">100</span> 已验证
+无 xpmod_crash.txt</code></pre></figure>
+<p><strong>结论：「去升级」现在既能抑制升级弹窗，又不再破坏章节地图资源下载。</strong>&lt;br&gt;问题彻底闭环。</p>
+</article></main>
+<footer class="footer"><p>© <span id="year"></span> Felix · Powered by GitHub Pages</p></footer>
+<button id="top" class="icon-btn top" aria-label="回到顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/dream.js"></script>
+</body>
+</html>

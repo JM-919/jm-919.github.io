@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WinZip Mac Edition 12 12.0.7282 授权机制分析与授权服务程序 · Felix</title>
+<meta name="description" content="样本: /storage/emulated/0/windows/winzipmacedition12.dmg 36,204,209 字节&amp;lt;br&amp;g…">
+<meta name="theme-color" content="#0b0716">
+<link rel="stylesheet" href="../assets/css/style.css">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<link rel="robots" href="../robots.txt">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="aurora"></div>
+<div class="stars"></div>
+<canvas id="dream-canvas"></canvas>
+<header class="nav glass">
+  <a class="brand" href="../"><span>Felix</span></a>
+  <nav>
+    <a href="../">首页</a>
+    <a href="../archive.html">归档</a>
+    <a href="../about.html">关于</a>
+    <button id="theme-btn" class="icon-btn" aria-label="切换主题">🌙</button>
+  </nav>
+</header>
+<main><article class="post">
+<a class="back" href="../">← 返回首页</a>
+<h1>WinZip Mac Edition 12 12.0.7282 授权机制分析与授权服务程序</h1>
+<p class="meta" style="color:var(--muted)">2026-09-22 · 28 分钟 · 29 段代码 · 5 张表格</p>
+<p>样本: /storage/emulated/0/windows/winzipmacedition12.dmg (36,204,209 字节)&lt;br&gt;目标: 逆向授权/注册机制, 并实现可签发合法注册码的 <strong>授权服务程序</strong>。</p>
+<blockquote>本文与随附代码用于授权的互操作/安全研究。所有结论均来自样本自身的静态分析 +<br>本机可复现的算法实现, 未对原始二进制做任何修改。</blockquote>
+<h3>0.2 第二处错误: SU_PRO 模数写错一个字节</h3>
+<p>首轮从 <code>WzEngine</code> 公钥表里抄 SU_PRO 的模数时手算 base64 出错, 把</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>MBcCEACx7J+5e1wOdEm9VbLuI8kCAwEAAQ==
+-&gt; DER 30 17 02 10 00 | B1 EC 9F B9 7B 5C 0E 74 49 BD 55 B2 EE 23 C9 | 02 03 01 00 01</code></pre></figure>
+<p>的首字节 <strong>B1</strong> 误写成 <strong>C1</strong> (n = 0xC1EC9FB97B5C0E7449BD55B2EE23C9)。&lt;br&gt;凑巧这个错误数字能被 13x19x463 整除 (正因如此当时 "分解成功" 看起来合理),&lt;br&gt;真正的 n 是 <strong>0xB1EC9FB97B5C0E7449BD55B2EE23C9</strong>, 60x60 均衡半素数:</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>SU_PRO = 0xCFDD47F0282160F x 0xDB206BCAA9240A7
+d      = 0x567B6C7BACB1672C3837056D189BAD      (ECM 15.7 s 命中)</code></pre></figure>
+<p>现象正好对应实测: SU_STD 注册码通过 (它的模数抄写正确), SU_PRO 注册码被拒。</p>
+<hr>
+<h2>0. 修订记录 (关键修复)</h2>
+<p>早期版本把被签名的消息当成 <code>SHA1(lower(name) + "-" + G6)[0:15]</code>, 结果应用端一律报&lt;br&gt;"Incorrect registration information"。重新逐指令核对 <code>su_license_verify</code> (WzEngine 0xf66a3)&lt;br&gt;末尾的比较块后确认: 应用端构造的是</p>
+<figure class="code lang-c"><figcaption>c</figcaption><pre><code>    <span class="k">unsigned</span> <span class="k">char</span> want[<span class="n">16</span>] = {<span class="n">0</span>};
+    memcpy(want + <span class="n">1</span>, sha1_digest, <span class="n">14</span>);          <span class="c">/* 不是 15! */</span>
+    RSA_public_decrypt(<span class="n">15</span>, sig, key, RSA_NO_PADDING);
+    <span class="k">if</span> (memcmp(want, decrypted, <span class="n">15</span>) == <span class="n">0</span>) ok;   <span class="c">/* 即 0x00 || sha1[0:14] */</span></code></pre></figure>
+<p>对应的 x86_64 指令 (0xf689c..0xf68cd):</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>    <span class="n">0xf689e</span>  mov qword [rbp-<span class="n">0x40</span>], rcx      ; want[<span class="n">0</span>..<span class="n">7</span>]  = <span class="n">0</span>   (<span class="n">16</span> 字节清零)
+    <span class="n">0xf68a2</span>  mov qword [rbp-<span class="n">0x39</span>], rcx      ; want[<span class="n">7</span>..<span class="n">14</span>] = <span class="n">0</span>
+    <span class="n">0xf68a6</span>  mov rax, [r14]                 ; sha1[<span class="n">0</span>..<span class="n">7</span>]
+    <span class="n">0xf68a9</span>  mov rdx, [r14 + <span class="n">6</span>]             ; sha1[<span class="n">6</span>..<span class="n">13</span>]
+    <span class="n">0xf68ad</span>  mov qword [rbp-<span class="n">0x39</span>], rdx      ; want[<span class="n">7</span>..<span class="n">14</span>] = sha1[<span class="n">6</span>..<span class="n">13</span>]
+    <span class="n">0xf68b1</span>  mov qword [rbp-<span class="n">0x3f</span>], rax      ; want[<span class="n">1</span>..<span class="n">8</span>]  = sha1[<span class="n">0</span>..<span class="n">7</span>]
+    <span class="n">0xf68b5</span>  mov rax, [rbp-<span class="n">0x40</span>]            ; want[<span class="n">0</span>..<span class="n">7</span>]
+    <span class="n">0xf68b9</span>  mov rdx, [rbp-<span class="n">0x39</span>]            ; want[<span class="n">7</span>..<span class="n">14</span>]
+    <span class="n">0xf68bd</span>  xor rax, [rbp-<span class="n">0x4f</span>]            ; ^= RSA 输出[<span class="n">0</span>..<span class="n">7</span>]
+    <span class="n">0xf68c1</span>  xor rdx, [rbp-<span class="n">0x48</span>]            ; ^= RSA 输出[<span class="n">7</span>..<span class="n">14</span>]</code></pre></figure>
+<p>两次重叠的 8 字节存储 = <code>memcpy(want + 1, sha1, 14)</code>, 因此签名消息是&lt;br&gt;<strong>0x00 || SHA1(...)[0:14]</strong> (112 bit)。副产品: 该值恒小于 n, 不再需要 "m &gt;= n 换后缀" 的重试。</p>
+<p>修正后 Python 与 Java (APK) 输出逐字符一致, 且旧码 (h[0..14] 约定) 会被正确判为无效。</p>
+<hr>
+<h2>1. 样本解包</h2>
+<div class="table-wrap"><table><thead><tr><th>层</th><th>格式</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td><strong>bzip2</strong> (111 个连续 stream)</td><td>外层被二次压缩, file 报 bzip2 compressed data</td></tr><tr><td>2</td><td><strong>UDIF (koly 尾部)</strong></td><td>尾部 512 字节 koly, XMLOffset=0x2283AAB 指向 blkx 分块表</td></tr><tr><td>3</td><td><strong>Apple 分区图 + HFS+</strong></td><td>block=4096, 581 个文件, WinZip.app</td></tr><tr><td>4</td><td><strong>Mach-O fat (x86_64 + arm64)</strong></td><td>主程序 + WzEngine.framework (未 strip, 符号齐全)</td></tr></tbody></table></div>
+<p>关键点: 外层 bzip2 解出来的是 <em>全部非零数据拼接流</em> (109,781,504 字节), 而磁盘镜像&lt;br&gt;应为 133,169,152 字节 —— 中间有 <strong>23 个 IGNORE 空洞</strong>。必须按 blkx 的&lt;br&gt;(type, sectorNumber, sectorCount, compressedOffset, compressedLength) 把每个 chunk&lt;br&gt;<strong>放回它自己的扇区</strong>, 否则 HFS+ 目录树会错位 (最初 catalog B-tree 读成 Mach-O 字符串&lt;br&gt;就是这个原因)。</p>
+<p>复现脚本见 tools/:</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>python3 tools/mkimg.py      <span class="c"># bzip2 + blkx -&gt; image.raw (133,169,152 B)</span>
+python3 tools/hfsread.py    <span class="c"># HFS+ 卷头 / catalog B-tree 解析</span>
+python3 tools/extract2.py   <span class="c"># 按目录树导出全部文件 (含 data fork / 溢出 extents)</span></code></pre></figure>
+<p>应用关键路径:</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>WinZip.app/Contents/MacOS/WinZip                          主程序 (授权界面/激活)
+WinZip.app/Contents/Frameworks/WzEngine.framework/...     授权核心 (RegActLib::WzReg)
+WzEngine.framework/Versions/A/Headers/WzReg.h             授权 API 头文件 (随包发布)</code></pre></figure>
+<p>WzReg.h 直接给出了入口:</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>+ (BOOL)authenticationPassesForLicenseId:(NSString *)user
+                              licenseCode:(NSString *)code
+                                  regType:(NSString **)type;
++ (BOOL)activeWithMutliUserLicenseFile:... ;
++ (NSData *)encryptedActivationDataForRequestString:(NSString *)request error:(NSError **)e;</code></pre></figure>
+<hr>
+<h2>2. 授权体系结构</h2>
+<figure class="code"><figcaption>text</figcaption><pre><code>用户输入: <span class="s">"Registered to"</span> 名字 + <span class="s">"Registration code"</span> 注册码 (长度 &lt;= <span class="n">255</span> 字节)
+        |
+        v
+ObjC wrapper  +[WzReg authenticationPassesForLicenseId:licenseCode:regType:]
+  - 名字: 仅把字母做 tolower()
+  - 注册码: FilterRegcodeString(大写; B-&gt;<span class="n">8</span>, I-&gt;<span class="n">1</span>, O-&gt;<span class="n">0</span>, S-&gt;<span class="n">5</span>; 允许 <span class="s">'-'</span>)
+        |
+        +--&gt; CheckSUAuth(<span class="s">"SU_PRO"</span>, name, code)   先试 PRO
+        |
+        +--&gt; CheckSUAuth(<span class="s">"SU_STD"</span>, name, code)   再试 STD
+        |
+        v  (成功 -&gt; regType=<span class="s">"PRO"</span>/<span class="s">"STD"</span>, 返回 YES)
+su_license_verify(handle, msg, msgLen, code29, <span class="n">30</span>)
+  - base32DecodeSpecial(code29 去 <span class="s">'-'</span> 后 <span class="n">25</span> 字符) -&gt; <span class="n">125</span> bit
+  - <span class="n">5</span> 组 <span class="n">25</span>/<span class="n">25</span>/<span class="n">25</span>/<span class="n">25</span>/<span class="n">20</span> 的奇偶校验位
+  - RSA_public_decrypt(<span class="n">15</span>, sig, key, RSA_NO_PADDING)
+  - == SHA1(msg)[<span class="n">0</span>:<span class="n">15</span>]</code></pre></figure>
+<p>编译单元 (符号表中的 .o 名) 与源码目录:</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>WzEngine/WzReg/License/{su_lic_v.c, su_licut.c, mu_lic_v.c, licutil.c, eay_load.c, info_enc.c, crc32.c}
+WzEngine/WzReg/LicenseKeys/LicenseKeys.c
+WzEngine/WzReg/RegActLib/WzReg.c</code></pre></figure>
+<p>加密原语通过 <em>g</em>Fv 函数表间接调用 (OpenSSL):</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>+<span class="n">0x28</span> BIO_new_mem_buf   +<span class="n">0x30</span> PEM_ASN1_read_bio   +<span class="n">0x38</span> RSA_size
++<span class="n">0x40</span> SHA1              +<span class="n">0x48</span> RSA_private_encrypt +<span class="n">0x50</span> RSA_public_decrypt</code></pre></figure>
+<hr>
+<h2>3. 注册码算法 (逐位)</h2>
+<h3>3.1 格式</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code><span class="n">35</span> 字符 = <span class="n">6</span> 组 x <span class="n">5</span> 字符, 组间 <span class="s">'-'</span>
+
+    G1-G2-G3-G4-G5 | G6
+    +-- <span class="n">25</span> 字符 --+   + <span class="n">5</span> 字符</code></pre></figure>
+<p>字母表 (专用于注册码, 32 字符, <strong>无 B I O S</strong> —— 与 B-&gt;8 / I-&gt;1 / O-&gt;0 / S-&gt;5 归一化对应):</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>ACDEFGHJKLMNPQRTUVWXYZ0123456789</code></pre></figure>
+<p>G1..G5 共 125 bit: 前 120 bit (15 字节) = RSA 签名块, 末 5 bit = 校验位。&lt;br&gt;G6 为 5 个自由字符, 它 (连同其前面的 '-') 会被附加到名字之后参与哈希, 因此受签名保护,&lt;br&gt;可安全地用作序列号/批次号。</p>
+<h3>3.2 关键代码 (WzEngine, x86_64 切片)</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>WzReg::FilterRegcodeString(char*, int, bool)              <span class="n">0xF6FE6</span>
+WzReg::PackRegCode(char*)                                 <span class="n">0xF726C</span>  去 <span class="s">'-'</span> 与空白
+WzReg::FormatSUCode(char* src, char* dst, int len)        <span class="n">0xF73AA</span>  <span class="n">30</span> 字符 -&gt; <span class="n">35</span> 字符
+WzReg::CheckSUAuth(keyId, name, code)                     <span class="n">0xF6DA0</span>
+su_license_verify(void* h, const char* msg, int n, char* code29, int <span class="n">30</span>)   <span class="n">0xF66A3</span>
+base32DecodeSpecial / base32EncodeSpecial                 <span class="n">0xF58D5</span> / <span class="n">0xF56D0</span>
+WzReg::FindPublicKey / LoadPublicKey / GetPublicKeyForKeyId  <span class="n">0xF6CEC</span>/<span class="n">0xF6C02</span>/<span class="n">0xF6984</span></code></pre></figure>
+<p>CheckSUAuth 的实际参数顺序是 (keyId, name, code), 由 ObjC wrapper 传入:</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>100AF7D  lea rsi, <span class="s">"SU_PRO"</span>           ; keyId
+100AF84  lea rdi, [wzreg object]
+100AF8B  lea rdx, [lowercased name]  ; name
+100AF92  lea rcx, [filtered code]    ; code
+100AF99  call CheckSUAuth</code></pre></figure>
+<p>其中 (来自 0xF6DA0):</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>buf   = name                       ; 拷贝
+local = code                       ; 拷贝
+if (strlen(code) &gt;= <span class="n">30</span>) {
+    buf  += code[<span class="n">29</span>..<span class="n">35</span>]           ; 即 <span class="s">"-G6"</span> (<span class="n">6</span> 字符, 会再 toupper)
+    local = code[<span class="n">0</span>..<span class="n">29</span>)            ; 截断为 <span class="n">29</span> 字符
+}
+if (strlen(code) &lt; <span class="n">35</span>) 失败
+su_license_verify(handle, buf, strlen(buf), local, strlen(local)+<span class="n">1</span> <span class="c">/*必须 == 30*/</span>)</code></pre></figure>
+<p>su_license_verify (0xF66A3):</p>
+<figure class="code"><figcaption>text</figcaption><pre><code><span class="n">1</span>. RSA_size(key) 必须 == <span class="n">15</span> (即 <span class="n">120</span> bit 模数)
+<span class="n">2</span>. local 去掉 <span class="s">'-'</span> -&gt; <span class="n">25</span> 字符, base32DecodeSpecial -&gt; <span class="n">125</span> bit
+<span class="n">3</span>. <span class="n">5</span> 个分组 (g_bitGrpLen = {<span class="n">25</span>,<span class="n">25</span>,<span class="n">25</span>,<span class="n">25</span>,<span class="n">20</span>}) 的偶校验位, 写在第 <span class="n">25</span> 个字符
+   (应用端实现为 *单边检查*: 校验位为 <span class="n">1</span> 时对应位必须置 <span class="n">1</span>)
+<span class="n">4</span>. RSA_public_decrypt(<span class="n">15</span>, sig, key, RSA_NO_PADDING) 输出 <span class="n">15</span> 字节, 与应用端构造的
+   want[<span class="n">16</span>] = {<span class="n">0</span>}; memcpy(want + <span class="n">1</span>, SHA1(buf), <span class="n">14</span>)  即 <span class="n">0x00</span> || SHA1(buf)[<span class="n">0</span>:<span class="n">14</span>] 逐字节比较</code></pre></figure>
+<p>因此签名方 (官方 keygen / 本服务) 需要做的是:</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>m = <span class="n">0x00</span> || SHA1(lower(name) + <span class="s">"-"</span> + G6)[<span class="n">0</span>:<span class="n">14</span>]   ; <span class="n">15</span> 字节, <span class="n">112</span> bit 载荷 (恒 &lt; n)
+s = m^d mod n                                    ; <span class="n">15</span> 字节
+G1..G5 = base32(s) + 校验字符</code></pre></figure>
+<hr>
+<h2>4. 密钥</h2>
+<p>公钥注册表 RegActLib::gpKeyRegistry (WzEngine __DATA 0x3370A0), 条目格式&lt;br&gt;{ char<em> name; void</em> key; u32 len; }:</p>
+<div class="table-wrap"><table><thead><tr><th>名称</th><th>用途</th><th>位数</th><th>备注</th></tr></thead><tbody><tr><td>WZ_LIC/SU_STD</td><td>单用户注册码 (标准版)</td><td><strong>120</strong></td><td>PEM, n=0xCA3E53D5A4F3C9639EBDF46F456435 <strong>已分解</strong></td></tr><tr><td>WZ_LIC/SU_PRO</td><td>单用户注册码 (专业版)</td><td><strong>120</strong></td><td>PEM, n=0xB1EC9FB97B5C0E7449BD55B2EE23C9 <strong>已分解</strong></td></tr><tr><td>WZ_LIC/HTTP_ENC</td><td>激活请求体加密</td><td>1024</td><td>PEM</td></tr><tr><td>WZ_LIC/MU_PK</td><td>多用户 MUL 许可证签名</td><td>1024</td><td>自定义 TLV + DER RSAPublicKey</td></tr></tbody></table></div>
+<p><strong>120 bit 模数可直接分解</strong>:</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>SU_PRO = <span class="n">0xCFDD47F0282160F</span> x <span class="n">0xDB206BCAA9240A7</span>          (各 <span class="n">60</span> bit, ECM <span class="n">15.7</span> s)
+SU_STD = <span class="n">0xCFA428EBF8EEF1F</span> x <span class="n">0xF95858470C7862B</span>          (各 <span class="n">60</span> bit, ECM <span class="n">18.8</span> s)
+         phi = (p-<span class="n">1</span>)(q-<span class="n">1</span>),  d = <span class="n">65537</span>^-<span class="n">1</span> mod phi</code></pre></figure>
+<p>应用先试 SU_PRO, 成功后 regType = "PRO", 因此 SU_PRO 私钥已足够签发可用注册码。</p>
+<p>SU_STD 已分解: n = 0xCFA428EBF8EEF1F x 0xF95858470C7862B (各 60 bit),&lt;br&gt;由 Lenstra ECM (Montgomery 曲线 + Suyama 参数化, <code>tools/ecm_factor.cjs</code>) 在&lt;br&gt;B1=50000 的第 39 条曲线上 18.8 秒命中; 两因子均为素数,&lt;br&gt;d = 65537^-1 mod (p-1)(q-1) = 0x73D57EEEBEAB627CF074A3AE07EB9。&lt;br&gt;此前 rho(4,680 万次) / p-1 / Fermat 均未命中, 换 ECM 后秒级解决。</p>
+<hr>
+<h2>5. 激活码 (Activation Code) 流程</h2>
+<p>应用内的另一条路径 (MZActivationController):</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>请求体 (<span class="n">0x100140C45</span> 起, URL-encoded):
+    actcode=%@&amp;name=%@&amp;emailaddr=%@[&amp;company=%@][&amp;cc=%@][&amp;addr1=%@][&amp;addr2=%@][&amp;city=%@]...
+WzReg::GetEncryptedSize / EncryptData -&gt; RSA_public_encrypt(..., WZ_LIC/HTTP_ENC, PKCS<span class="c">#1)</span>
+服务端: https:<span class="c">//activate.winzip.com/cgi-bin/suite_exp.cgi</span>
+响应: 注册码 (由服务端按上面的算法签发, 与名字绑定)</code></pre></figure>
+<p>官方请求体用 HTTP_ENC (1024 bit) 加密, 私钥不在样本中, 因此<strong>无法解密官方请求</strong>,&lt;br&gt;也就无法做到"对官方客户端完全透明"的服务端替换。本实现提供两种等价接口:</p>
+<ul><li>POST /api/activate (JSON) —— 明文参数, 语义与官方一致</li><li>POST /cgi-bin/suite_exp.cgi —— 与官方同名的表单/明文接口, 返回 status/name/regcode/regtype</li></ul>
+<p>两者都由同一套 120 bit 私钥签发注册码, 结果与官方注册码<strong>在应用侧等价</strong>。</p>
+<hr>
+<h2>5.5 第三种凭证: <strong>激活码 (Activation Code)</strong> —— 纯校验字符, 无签名</h2>
+<p><code>WzReg::IsActivationCode(char*)</code> <code> WzEngine </code>0xf766e@:</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>去掉 <span class="s">'-'</span> 后必须正好 <span class="n">20</span> 字符
+前 <span class="n">19</span> 字符必须落在 cd32 表内
+第 <span class="n">20</span> 字符 = cb32[ (SUM cd32[前 <span class="n">19</span> 字符]) &amp; <span class="n">0x1f</span> ]</code></pre></figure>
+<ul><li><code>cb32</code> (<code>__ZL4cb32</code> <code> 0x2bf860) = </code>0123456789ACDEFGHJKLMNPQRTUVWXYZ@ (32 字符, 无 B/I/O/S)</li><li><code>cd32</code> (<code>__ZL4cd32</code> @ 0x2e3150) = 256 字节查表: 字符 -&gt; 0..31, 非法 = 0xff; 字符 <code>=</code> 在表中值为 <strong>32</strong>; 小写 / 空格 / B I O S 均为 0xff</li><li>本仓库 <code>winzip_actcode.py</code> 的 <code>CD32</code> 与二进制 <strong>逐字节一致</strong>(ASCII 段全等), 已自检</li></ul>
+<p>=&gt; <strong>激活码可以本地批量生成</strong>: <code>python3 winzip_actcode.py 5</code>&lt;br&gt;(输出形如 <code>DXKEX-44895-PF5HN-N3CUF</code>, 5-5-5-5 分组显示)</p>
+<h3>激活码怎么用 (客户端流程, 0x100140805 / 0x100140b6f)</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>GET  http:<span class="c">//www.winzip.com/getActLoc.cgi   -&gt; 下发"激活服务地址"(明文!)</span>
+POST &lt;该地址&gt;  body = RSA(HTTP_ENC, 1024bit) 加密的
+                      <span class="s">"actcode=..&amp;name=..&amp;emailaddr=..&amp;ver=1472"</span>
+resp body 整个字符串被当作注册码 (含 <span class="s">"ERROR:"</span> 则视为失败)</code></pre></figure>
+<p>两点含义:</p>
+<ol><li>激活码本身只是 <strong>兑换券</strong> —— 应用侧不会本地换出注册码, 必须联网;</li><li>请求体私钥不可得 =&gt; 服务端解不开请求; <strong>但响应体就是客户端拿去自校验的注册码</strong>, 而校验用的名字是用户在对话框里自己填的 —— 所以固定一个服务名就能闭环。</li></ol>
+<p>本仓库 <code>license_server.py</code> 已实现这三个端点:</p>
+<div class="table-wrap"><table><thead><tr><th>端点</th><th>作用</th></tr></thead><tbody><tr><td><code>GET /getActLoc.cgi</code></td><td>下发自己的激活服务地址 (配合 hosts 把 www.winzip.com 指到本机)</td></tr><tr><td><code>POST /activate.cgi</code> (任意路径, 二进制体)</td><td>忽略加密体, 直接回 <code>--service-name</code> 的注册码纯文本</td></tr><tr><td><code>GET /api/actcode?count=N</code></td><td>批量生成激活码</td></tr><tr><td><code>POST /api/actcode/verify</code></td><td>校验激活码</td></tr></tbody></table></div>
+<p>用法: <code>python3 license_server.py --service-name BS</code>, 客户端激活窗口里把&lt;br&gt;Registered to Name 也填成 BS, 点激活即可拿到 PRO 注册码。</p>
+<h2>5.6 多用户 (MUL) 许可证 —— "第三把钥匙", 但 <strong>不可伪造</strong></h2>
+<p><code>licverify_init</code> <code> WzEngine </code>0xf6155@ 的文件结构与校验链:</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>文件 = <span class="s">"WZRF"</span> + base64(blob)
+blob = [u32 A][A 字节被签名消息][u32 B=<span class="n">128</span>][<span class="n">128</span> 字节签名][u32 CRC32]
+
+校验:
+  <span class="n">1</span>. crc32(blob, len-<span class="n">4</span>) == 末尾 u32
+  <span class="n">2</span>. SHA1(blob+<span class="n">4</span>, A)
+  <span class="n">3</span>. 签名先按字节反转, 再 RSA_public_decrypt(<span class="n">128</span>, sig, buf, MU_PK, RSA_PKCS1_PADDING)
+     必须返回 <span class="n">20</span> 字节且等于上式 SHA1
+  <span class="n">4</span>. RSA_size(MU_PK) == <span class="n">128</span>, 且 blob 中 A 的位置上 u32 == <span class="n">128</span>
+
+密钥来源: FindPublicKey(<span class="s">"MU_PK"</span>) -&gt; 内嵌 WZ_LIC/MU_PK (<span class="n">1024</span> bit), 不随文件变化</code></pre></figure>
+<p>结论: MUL(<code>MU_PRO</code> / <code>MU_STD</code>) 是 PKCS#1 v1.5 RSA-1024 签名, 公钥写死在二进制里,&lt;br&gt;120 bit 那套分解思路在这里无效 —— <strong>这条路做不了</strong>, 不做无效承诺。</p>
+<h2>5.7 授权类型一览</h2>
+<div class="table-wrap"><table><thead><tr><th>凭证</th><th>类型字符串</th><th>保护方式</th><th>能否本地伪造</th></tr></thead><tbody><tr><td>注册码 SU</td><td><code>SU_PRO</code> / <code>SU_STD</code> (regType 实测)</td><td>120 bit RSA</td><td>可以, 已实现</td></tr><tr><td>激活码</td><td>不由 regType 表达</td><td>20 位校验字符</td><td>可生成, 需服务器兑换</td></tr><tr><td>多用户 MUL</td><td><code>MU_PRO</code> / <code>MU_STD</code></td><td>1024 bit RSA PKCS#1</td><td>不可行</td></tr><tr><td>订阅 (Suite/Ultimate)</td><td>subscriptionStatus</td><td>Corel 服务端 (Roc / suite_exp)</td><td>不可行</td></tr></tbody></table></div>
+<blockquote>注: <code>+[WzReg authenticationPassesForLicenseId:licenseCode:regType:]</code> 实测写入的<br>regType 是 <strong>"SU_PRO" / "SU_STD"</strong> (不是 "PRO"/"STD"); MU 侧对应 MU_PRO/MU_STD。</blockquote>
+<h2>6. 多用户 (MUL) 授权</h2>
+<p>/Library/Preferences/WinZip/12/WinZipmc.mcmul + LicRegData 走另外一套:</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>licverify_init(data, len, ..., &amp;handle)      mu_lic_v.c
+licverify_getLicData(handle, buf, &amp;n)
+WzReg::CheckMuAuth / IsMuOptionSet / GetMuDatabaseCode
+签名密钥 = WZ_LIC/MU_PK (<span class="n">1024</span> bit, 含 OID <span class="n">1.2</span>.<span class="n">840.113549</span>.<span class="n">1.1</span>.<span class="n">1</span>)</code></pre></figure>
+<p>1024 bit 不可分解, <strong>该路径无法伪造</strong> (样本中的 BATMAP / cd32 表和 CreateB32ChkSum 只做&lt;br&gt;内部一致性校验, 替代不了 RSA 签名)。故本服务只覆盖单用户注册码。</p>
+<hr>
+<h2>7. 交付物与用法</h2>
+<figure class="code"><figcaption>text</figcaption><pre><code>winzip-license/
+  winzip_keygen.py     算法核心库 (编码/解码/签名/校验) + CLI
+  verify_app.py        应用端校验逻辑的逐指令等价实现 (交叉验证用)
+  license_server.py    **授权服务程序** (HTTP, 仅标准库)
+  winzip_client.py     服务客户端
+  selftest.py          端到端自检
+  tools/               DMG 解包 / HFS+ 提取脚本</code></pre></figure>
+<h3>7.1 直接生成注册码</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>$ python3 winzip_keygen.py <span class="s">"Zhang San"</span>
+注册名   : Zhang San
+密钥     : SU_PRO (<span class="n">120</span> bit)
+注册码   : Z9D56-24X2W-C1FGH-F7LAE-U5L07-<span class="n">00001</span>
+自检     : 通过
+
+$ python3 winzip_keygen.py --verify <span class="s">"Zhang San"</span> <span class="s">"Z9D56-24X2W-C1FGH-F7LAE-U5L07-00001"</span>
+result : 有效 (PRO)</code></pre></figure>
+<h3>7.2 启动授权服务</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>$ python3 license_server.py --host <span class="n">0.0</span>.<span class="n">0.0</span> --port <span class="n">8099</span> --actcodes actcodes.txt --token SECRET</code></pre></figure>
+<div class="table-wrap"><table><thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead><tbody><tr><td>GET</td><td>/api/keygen?name=&amp;type=SU_PRO&amp;suffix=</td><td>按名字签发注册码 (含 installCommands)</td></tr><tr><td>POST</td><td>/api/keygen</td><td>同上, JSON 入参</td></tr><tr><td>POST</td><td>/api/activate</td><td>激活码 -&gt; 注册码</td></tr><tr><td>POST</td><td>/cgi-bin/suite_exp.cgi</td><td>官方同名接口 (明文模式)</td></tr><tr><td>POST</td><td>/api/verify</td><td>校验 名字+注册码</td></tr><tr><td>GET</td><td>/api/keys, /api/issued, /healthz</td><td>密钥信息 / 签发审计 / 健康检查</td></tr></tbody></table></div>
+<figure class="code"><figcaption>text</figcaption><pre><code>$ curl -s <span class="s">"http://127.0.0.1:8099/api/keygen?name=Li%20Ming"</span>
+{ <span class="s">"ok"</span>: true, <span class="s">"name"</span>: <span class="s">"Li Ming"</span>,
+  <span class="s">"regcode"</span>: <span class="s">"HTGA4-ZARH5-2HXVQ-9RLZY-LJFKP-00000"</span>,
+  <span class="s">"regType"</span>: <span class="s">"PRO"</span>, <span class="s">"suffix"</span>: <span class="s">"00000"</span>,
+  <span class="s">"installCommands"</span>: [<span class="s">"defaults write com.winzip.WinZip-Mac licenseId "</span>Li Ming<span class="s">""</span>,
+                      <span class="s">"defaults write com.winzip.WinZip-Mac licenseCode "</span>HTGA4-...<span class="s">""</span>] }</code></pre></figure>
+<h3>7.3 在应用里使用</h3>
+<ol><li>启动 WinZip -&gt; "Thank you for trying WinZip" / Register 对话框;</li><li>填入注册名 (与签发时一致, 大小写不敏感) 与 35 字符注册码;</li><li>或直接写偏好 (应用启动时 -[MZRegStatus loadFromUserDefault] 读 licenseId/licenseCode):</li></ol>
+<figure class="code"><figcaption>text</figcaption><pre><code>defaults write com.winzip.WinZip-Mac licenseId   <span class="s">"Li Ming"</span>
+defaults write com.winzip.WinZip-Mac licenseCode <span class="s">"HTGA4-ZARH5-2HXVQ-9RLZY-LJFKP-00000"</span></code></pre></figure>
+<p>应用还会调用 -[MZRegStatus writeToSystem] 把状态落到系统偏好。</p>
+<h3>7.4 自检</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>$ python3 selftest.py
+...
+结果: 全部通过 (<span class="n">41</span> 项)</code></pre></figure>
+<p>覆盖: 10 组名字 (含中文/邮箱/长名) 签发+校验、大小写与 B/I/O/S 归一化、篡改/改名/去 '-' /&lt;br&gt;非法字符的拒绝, 以及服务端 issue() 的签发结果。</p>
+<hr>
+<h2>8. 结论 / 边界</h2>
+<ul><li>单用户注册码的签名密钥是 <strong>120 bit RSA</strong>, 已分解, 因此可以为任意注册名签发被应用接受的 注册码 —— 授权服务程序 (license_server.py) 即建立在此之上。</li><li>校验位检查是"单边"的 (见 3.2 第 3 步), 把第 25 个字符取全 1 也能通过; 本实现仍输出规范校验位。</li><li>激活请求体用 1024 bit HTTP_ENC 加密, 私钥不在样本内, 故服务端采用<strong>明文等价协议</strong>; 应用侧调用的是同一套注册码签发算法, 结果等价。</li><li>多用户 MUL 路径依赖 1024 bit MU_PK, 不可伪造, 未实现。</li></ul>
+</article></main>
+<footer class="footer"><p>© <span id="year"></span> Felix · Powered by GitHub Pages</p></footer>
+<button id="top" class="icon-btn top" aria-label="回到顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/dream.js"></script>
+</body>
+</html>

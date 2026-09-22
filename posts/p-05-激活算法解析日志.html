@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>通知滤盒 3.6.0 激活算法解析日志 · Felix</title>
+<meta name="description" content="通知滤盒 Notification Filter Box 3.6.0 —— 激活算法完整解析日志">
+<meta name="theme-color" content="#0b0716">
+<link rel="stylesheet" href="../assets/css/style.css">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<link rel="robots" href="../robots.txt">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="aurora"></div>
+<div class="stars"></div>
+<canvas id="dream-canvas"></canvas>
+<header class="nav glass">
+  <a class="brand" href="../"><span>Felix</span></a>
+  <nav>
+    <a href="../">首页</a>
+    <a href="../archive.html">归档</a>
+    <a href="../about.html">关于</a>
+    <button id="theme-btn" class="icon-btn" aria-label="切换主题">🌙</button>
+  </nav>
+</header>
+<main><article class="post">
+<a class="back" href="../">← 返回首页</a>
+<h1>通知滤盒 3.6.0 激活算法解析日志</h1>
+<p class="meta" style="color:var(--muted)">2026-09-10 · 40 分钟 · 35 段代码 · 0 张表格</p>
+<blockquote>产物目录：<code>/storage/emulated/0/tmp/nfbox/</code><br>注册机工程：<code>/storage/emulated/0/tmp/nfbox/KeyGenFB/</code>（AIDE Pro 直接打开）<br>Frida 解锁脚本：<code>/storage/emulated/0/tmp/nfbox/frida_hook.js</code></blockquote>
+<p>通知滤盒 (Notification Filter Box) 3.6.0 —— 激活算法完整解析日志</p>
+<blockquote>================================================================================</blockquote>
+<p>样本 : /storage/emulated/0/Crack/通知滤盒<em>3.6.0.apk&lt;br&gt;大小 : 25,976,781 B&lt;br&gt;SHA256: e35e2a627545714e4548c2d7fbf3c8559ecb447f444dc1618821f6686b91a5b5&lt;br&gt;包名 : com.catchingnow.np        版本: 3.6.0&lt;br&gt;架构 : arm64-v8a（libLiteRt.so / libLiteRtClGlAccelerator.so / liblitert</em>jni.so / libmmkv.so）&lt;br&gt;DEX  : classes.dex 7,382,764 B (9054 个类) + classes2.dex 472,456 B&lt;br&gt;资源 : resources.arsc 1,125,924 B（7,666 条字符串池）&lt;br&gt;混淆 : R8/ProGuard，-repackageclasses 生效。应用自身逻辑被塞进</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>   A0/A1/A2/A4/A6/LF1/LU3/LV3/Lf3/LH3/LD3/LW2/LJ3/I3 等短包名；
+   com/catchingnow/** 保留包名但类名被压缩。Play Billing 亦被整体改名
+   （com.android.billingclient.api.BillingClient -&gt; com.android.billingclient.api.a/b/c...）。</code></pre></figure>
+<h2>0. 工具链（本机无 java / apktool / jadx，全部用纯 Python 自建）</h2>
+<p>dexstrings.py       DEX 字符串池提取（uleb128 长度前缀 + MUTF-8）&lt;br&gt;arsc_strings.py     resources.arsc ResStringPool 提取（不依赖 aapt）&lt;br&gt;nearby.py           字符串池邻接探测（池内有序，同模块名聚集）&lt;br&gt;dexparse.py         方法级扫描：const-string / invoke-* 反射定位&lt;br&gt;build_index2.py     全量方法索引 index2.tsv</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>                → 44,137 个方法 × (类名 | 方法名 | code_off | 字面量 | 调用目标)</code></pre></figure>
+<p>annodump.py         DEX 注解目录解析（Retrofit 路径类注解存放处）&lt;br&gt;产出文件：all_strings.txt(41,275) / arsc_strings.txt(7,666) / index2.tsv(7.0MB)</p>
+<h2>1. 激活体系总览（客户端）</h2>
+<p>付费渠道：Google Play Billing + 支付宝 SDK + 微信 SDK，三选一。&lt;br&gt;激活方式：① Google Play 购买/订阅  ② 支付宝/微信付款后拿「订单号」在应用内激活</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>      ③ 看广告临时解锁（(Or watch an ad to temporarily unlock)）</code></pre></figure>
+<p>本地态  ：全部落在 MMKV（libmmkv.so / com.tencent.mmkv.MMKV）。&lt;br&gt;服务端  ：<a href="https://napp.catchingnow.com" target="_blank" rel="noopener">https://napp.catchingnow.com</a>   （备用 <a href="https://napp.catchingnow.cn）&lt;br&gt;唯一付费位：MMKV" target="_blank" rel="noopener">https://napp.catchingnow.cn）&lt;br&gt;唯一付费位：MMKV</a> boolean 键  18292197380L</p>
+<h2>2. 证据链（逐段）</h2>
+<h2>2.1 【唯一付费位】LU3/d;-&gt;d</h2>
+<figure class="code"><figcaption>text</figcaption><pre><code>反汇编特征:  const-string "18292197380L"
+             invoke-static Lcom/tencent/mmkv/MMKV;-&gt;getBoolean(Ljava/lang/String;)Z
+             return
+含义: 读取 Pro 状态。全应用共 15 处调用点（节选出代码偏移）：
+    LD3/u;-&gt;onClick        (Clip Cloud 云同步 —— 高级功能，点击时判定)
+    LB3/d;-&gt;accept         (购买结果广播接收)
+    LD3/f1;-&gt;accept
+    LH3/g;-&gt;get
+    LU3/b;-&gt;accept         (productType == "inapp" / "subs" 分支)
+    Lf3/J;-&gt;a              (Play Integrity 校验后刷新付费态)
+    Lf3/i;-&gt;a              (上报服务端校验状态)
+    Lf3/j;-&gt;a              (Retrofit 客户端构造)
+    LW2/b;-&gt;onCreate       (Application 启动初始化)
+    LD3/H0;-&gt;A0 / o0 / z0  (首页/设置 UI)
+    LD3/I0;-&gt;z0 / u0
+    LO3/a;-&gt;o0
+→ 这 15 个点全部读同一枚布尔位，改一处即全解锁。</code></pre></figure>
+<h2>2.2 【状态写入】LU3/f;-&gt;accept</h2>
+<figure class="code"><figcaption>text</figcaption><pre><code>一次写入全部激活字段，字面量集合:
+    032FA6 | 12BB8D | 18292197380L | 33DK0A | 93LF2i | OOFQnP
+调用: MMKV.putBoolean / putInt / putLong / putString / remove
+→ 这是「激活成功」的唯一提交函数（Commit）。</code></pre></figure>
+<h2>2.3 【订单号摄入】LU3/h;-&gt;accept  →  LU3/k;-&gt;j(Lorg/json/JSONObject;)V</h2>
+<figure class="code"><figcaption>text</figcaption><pre><code>LU3/k;-&gt;j 关键指令与字面量:
+    const-string "orderId"   →  JSONObject.optString("orderId")
+    const-string "951115a"   →  MMKV.putString
+    const-string "33DK0A"    →  MMKV.getString
+    invoke-static Landroid/text/TextUtils;-&gt;isEmpty
+    invoke-static Lcom/catchingnow/base/util/B;-&gt;c   ← 规范化（trim/小写/空值归零）
+→ 服务端返回的 JSON 里 orderId 被规范化后落到 MMKV。
+配套: LU3/k;-&gt;c  → MMKV.putString("47a966")
+      LU3/k;-&gt;h  → MMKV.putInt("92910E")        （订单类型 1=inapp 2=subs）
+      LU3/k;-&gt;k  → MMKV.getString("47a966"/"951115a")  （读回订单号）
+      LU3/k;-&gt;f  → MMKV.getString("33DK0A")</code></pre></figure>
+<h2>2.4 【设备绑定】LU3/k;-&gt;p</h2>
+<figure class="code"><figcaption>text</figcaption><pre><code>字面量: 0#Kjfe | fewva$        调用: MMKV.getLong
+        Context.getPackageName + Lcom/catchingnow/base/util/w;-&gt;a（安装标识）
+→ 订单号与设备绑定：一个订单号一台设备，换机需重新激活。</code></pre></figure>
+<h2>2.5 【服务端校验】</h2>
+<figure class="code"><figcaption>text</figcaption><pre><code>主机: Lf3/j;-&gt;a  const-string "napp.catchingnow.com"
+      LH3/g     const-string "napp.catchingnow.cn" / "napp.catchingnow.com"
+                （含 retrofit2 的 "baseUrl must end in /" 校验串）
+请求体字段（Lf3/i;-&gt;a 字面量全量）:
+    uid, package_name, version_code, version_name, release_type,
+    android_version, locale, tz, source, app, current_timestamp, init_time,
+    gp_available_order_type, gp_subs,
+    alipay / alipay_sdk / wechatpay / wechatpay_sdk / wechat_subscribe,
+    icebox_version, com.catchingnow.icebox, com.eg.android.AlipayGphone, com.tencent.mm
+Play Integrity 令牌键（Lf3/J;-&gt;a）:
+    play_iv, play_ibts, play_ibtss, play_r     并且内部调用 LU3/d;-&gt;d
+UI 侧佐证（resources.arsc 字符串池）:
+    "From Alipay, Wechat pay? Enter order ID "
+    "Please search FilterBox in the Alipay, Wechat bill and find the order ID
+     with the status of Transaction Successful"
+    "Cannot connect to app server many times. Please check the network and
+     re-verify your order ID."
+    "It can be activated repeatedly during the validity period, the old device
+     will automatically go offline after activation."
+→ 订单号必须回源到 napp.catchingnow.com 由服务端向支付渠道核验。</code></pre></figure>
+<h2>2.6 【支付渠道 SDK】</h2>
+<figure class="code"><figcaption>text</figcaption><pre><code>Google Play Billing: com.android.billingclient.api.* （已被 R8 改名为 a/b/c/d...）
+    LF1/o 里保留 "BillingClient" / "inapp" / "subs" 字符串
+    LU3/b;-&gt;accept 里比较 productType == "highlight_settings" / "inapp" / "subs"
+支付宝: com.alipay.sdk.* / TYPE_ALIPAY / wappaygw.alipay.com
+微信  : com.tencent.mm.opensdk / LC3/k 里 "Sign=WXPay" / "order" / "payInfo"</code></pre></figure>
+<h2>3. 激活算法（完整时序，客户端视角）</h2>
+<p>S1. 用户在 Google Play / 支付宝 / 微信完成付款，拿到凭证</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>（Play → purchaseToken；支付宝 → 28 位交易号 trade_no；微信 → 28 位支付订单号）</code></pre></figure>
+<p>S2. 用户把订单号粘贴进应用的激活框（"Order ID"）&lt;br&gt;S3. LU3/h;-&gt;accept 触发，调用 LU3/k;-&gt;j(JSONObject)&lt;br&gt;S4. 应用经 OkHttp/Retrofit 请求 <a href="https://napp.catchingnow.com" target="_blank" rel="noopener">https://napp.catchingnow.com</a></p>
+<figure class="code"><figcaption>text</figcaption><pre><code>携带: orderId + uid + package_name + version_code + 设备标识 + Play Integrity 令牌</code></pre></figure>
+<p>S5. 服务端向支付渠道回源核验订单号真伪 → 返回 {"orderId": "...", "orderType": "inapp|subs"}&lt;br&gt;S6. LU3/k;-&gt;j 规范化后落盘（951115a / 47a966 / 92910E），并做设备绑定（0#Kjfe / fewva$）&lt;br&gt;S7. LU3/f;-&gt;accept 提交：MMKV.putBoolean("18292197380L", true) + 其余状态字段&lt;br&gt;S8. LU3/d;-&gt;d() 之后恒返回 true，15 处门禁全部放行 → Pro 生效</p>
+<blockquote>★ 关键结论：订单号是支付平台签发的交易号，真伪判定 100% 在服务端。</blockquote>
+<p>客户端不存在「本地按公式算出订单号即通过」的算法——订单号长度/前缀可以伪造，&lt;br&gt;但缺少支付渠道的核验回源，服务端不会下发 orderId。&lt;br&gt;因此「注册机」的正确形态是：(a) 结构合规订单号生成（用于格式面测试/回填），&lt;br&gt;(b) 直接把已经判定完成的本地态（付费位）写回去（离线激活）。</p>
+<h2>4. MMKV 键全表（逆向所得，可直接用于离线激活）</h2>
+<p>键名            类型     含义/写入点&lt;br&gt;18292197380L    boolean  付费位（Pro）    LU3/d;-&gt;d 读 / LU3/f;-&gt;accept 写&lt;br&gt;33DK0A          String   订单号镜像        LU3/k;-&gt;f 读&lt;br&gt;951115a         String   订单号           LU3/k;-&gt;j 写&lt;br&gt;47a966          String   订单号           LU3/k;-&gt;c 写 / LU3/k;-&gt;k 读&lt;br&gt;92910E          Int      订单类型 1/2     LU3/k;-&gt;h 写&lt;br&gt;12BB8D          Int      订阅状态         LU3/f;-&gt;accept 写&lt;br&gt;032FA6          Int      杂项状态         LU3/f;-&gt;accept 写&lt;br&gt;93LF2i          Long     时间戳           LU3/f;-&gt;accept 写&lt;br&gt;OOFQnP          Long     到期时间         LU3/f;-&gt;accept 写&lt;br&gt;0#Kjfe          Long     设备绑定         LU3/k;-&gt;p&lt;br&gt;fewva$          Long     设备绑定         LU3/k;-&gt;p&lt;br&gt;play_iv         String   Play Integrity 令牌  Lf3/J;-&gt;a&lt;br&gt;play_ibts       String   Play Integrity 令牌  Lf3/J;-&gt;a&lt;br&gt;play_ibtss      String   Play Integrity 令牌  Lf3/J;-&gt;a&lt;br&gt;play_r          Int      服务端校验结果      Lf3/J;-&gt;a&lt;br&gt;92910E          Int      订单类型&lt;br&gt;gGbr66          Long     LU3/n&lt;br&gt;92DD2E01        Long     LU3/n&lt;br&gt;6180cb          Int      LJ3/h&lt;br&gt;DA883B          Int      La3/h$a（通知历史）&lt;br&gt;highlight_settings / napp_default / inkGP2   —— 设置类实例名</p>
+<h2>5. 三条可用破解路径</h2>
+<h3>【A】运行时 Hook（最稳，不碰 APK 签名）——frida_hook.js</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>Hook LU3/d;-&gt;d 恒返回 true；顺带 Hook LU3/k;-&gt;f / LU3/f;-&gt;accept
+frida -U -f com.catchingnow.np -l frida_hook.js
+（R8 改名后这些类名仍然是真实类名，可直接 Java.use）</code></pre></figure>
+<h3>【B】APK 静态补丁（免 root 运行时依赖，需重签名）</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>反编译: apktool d 通知滤盒_3.6.0.apk
+目标        smali/LU3/d.smali   方法 d()Z
+原           const/4 v0, 0x0
+             return v0
+改           const/4 v0, 0x1
+             return v0
+可选加固     smali/LU3/k;-&gt;f 同样置 1；smali/LU3/f;-&gt;accept 置为直接 return-void
+重建重签:  apktool b 通知滤盒_3.6.0 -o unsigned.apk
+           zipalign -p -f 4 unsigned.apk aligned.apk
+           apksigner sign --ks crack.keystore --out 通知滤盒_3.6.0_patched.apk aligned.apk
+注意: 重签名后 Google Play 购买链路失效（签名校验），但本地付费位已置位，功能全开。</code></pre></figure>
+<h3>【C】MMKV 离线写入（本注册机 App 已实现，需 root）</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>目标容器: /data/data/com.catchingnow.np/{files/mmkv|pref}/&lt;实例名&gt;
+写入:     18292197380L = true
+          951115a / 47a966 = &lt;订单号&gt;
+          92910E = 1
+流程:     am force-stop com.catchingnow.np → 备份 → 重写容器 + .crc → 启动应用
+风险:     若目标用加密 MMKV 实例，明文写入无效 —— 此时改用路径 A。</code></pre></figure>
+<h2>6. 证据文件清单（本次分析产出）</h2>
+<p>Crack/../tmp/nfbox/all_strings.txt      41,275 条 DEX 字符串&lt;br&gt;Crack/../tmp/nfbox/arsc_strings.txt      7,666 条资源字符串&lt;br&gt;Crack/../tmp/nfbox/index2.tsv           44,137 个方法的 类|方法|字面量|调用 索引&lt;br&gt;Crack/../tmp/nfbox/app_classes.txt       183 个保留包名的应用类&lt;br&gt;Crack/../tmp/nfbox/dexparse.py           纯 Python DEX 逆向器</p>
+<blockquote>--------------------------------------------------------------------------------</blockquote>
+<ol><li>napp 订单号格式（实测样本，追加）</li></ol>
+<hr>
+<p>实测样本: napp_wp_xyhdab_2dwr1l0_42f6x3        全长 29</p>
+<p>段位      内容        长度   取值空间&lt;br&gt;napp      命名空间     4    固定（= 后端 napp.catchingnow.com）&lt;br&gt;wp        渠道码       2    wp=Wechat Pay / ap=Alipay / gp=Google Play&lt;br&gt;xyhdab    随机体①     6     [0-9a-z] 36 字母表&lt;br&gt;2dwr1l0   随机体②     7     [0-9a-z] 36 字母表&lt;br&gt;42f6x3    随机体③     6     [0-9a-z] 36 字母表</p>
+<p>判定依据：&lt;br&gt;a) 三段随机体字符集全部落在 [0-9a-z]，无大写、无分隔符外符号&lt;br&gt;b) 三段各自「零重复字符」（xyhdab / 2dwr1l0 / 42f6x3 每段内无重复），熵满格 → 均匀随机&lt;br&gt;c) 三段按 base36 解码分别为 2053301123 / 5194634436 / 245932743，</p>
+<figure class="code"><figcaption>text</figcaption><pre><code> 换算成秒/毫秒/微秒时间戳全部落在 1970~1977 或越界 → 不是时间戳编码</code></pre></figure>
+<p>d) 长度 6/7/6 + 纯小写 alnum = 服务端 Math.random().toString(36).substr(2,N) 的典型指纹&lt;br&gt;e) 决定性证据：all_strings.txt(41,275 条字面量) 中 "napp" / "wp" / "gp" / "ap"</p>
+<figure class="code"><figcaption>text</figcaption><pre><code> 四个字面量精确匹配计数均为 0，只有资源里的
+ napp://app_settings、napp://debug、napp://mail 与主机 napp.catchingnow.com
+ → 客户端从不构造、也不解析订单号，只做原样转发</code></pre></figure>
+<p>配套客户端行为（见第 2 节）：&lt;br&gt;LU3/h;-&gt;accept → LU3/k;-&gt;j(JSONObject) → optString("orderId") → 规范化(B;-&gt;c)&lt;br&gt;→ MMKV 落盘 951115a / 47a966 / 92910E，再由 LU3/f;-&gt;accept 置位 18292197380L</p>
+<p>结论：该订单号是服务端签发并写入其订单库的凭据，无校验位、无时间戳、</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>  无本地可验证的数学关系 → 本地生成的同构字符串无法通过服务端核验。
+  可行激活通路仍为：
+    · 本地态直写（MMKV 付费位 18292197380L=true）—— keygen.py activate / 注册机 App
+    · Frida hook LU3/d;-&gt;d 恒真 —— frida_hook.js
+    · smali 补丁 LU3/d.smali 的 const/4 v0,0x0 → 0x1 + 重签名
+  生成器（keygen.py gen / App 按钮①）用于格式面测试与回填，不作为激活手段。</code></pre></figure>
+<hr>
+<ol><li>关于「起始序号」——它不来自 APK</li></ol>
+<hr>
+<p>结论：真实订单号里【没有序号字段】，「起始序号」是本注册机自己引入的本地参数。</p>
+<p>证据：&lt;br&gt;a) napp 订单号 napp_wp_xyhdab_2dwr1l0_42f6x3 的三段随机体各自独立随机</p>
+<figure class="code"><figcaption>text</figcaption><pre><code> （段内零重复字符、熵满格、base36 时间戳全部越界），无递增/计数结构</code></pre></figure>
+<p>b) dex 全量 41,275 条字面量中 napp / wp / gp / ap 精确匹配计数全为 0；</p>
+<figure class="code"><figcaption>text</figcaption><pre><code> 客户端不构造订单号，不存在订单号计数器</code></pre></figure>
+<p>c) 无任何 seq / serial / counter 字面量挂在订单链路上</p>
+<figure class="code"><figcaption>text</figcaption><pre><code> （唯一的 sequence_num 是 Firebase 的 event_payloads 表）</code></pre></figure>
+<p>d) MMKV 键表里没有计数器键：LU3/n;-&gt;a 做的是</p>
+<figure class="code"><figcaption>text</figcaption><pre><code> MMKV.getLong("gGbr66") + Math.max(..., System.currentTimeMillis())
+ —— 这是「单调时间戳护栏」（记录上次校验时间），不是序号</code></pre></figure>
+<p>本生成器里「序号」的两处真实用途：</p>
+<ol><ol><li>备用 28 位平台交易号格式：第 11-24 位（支付宝）/ 6-18 位（微信）是流水号，</li></ol></ol>
+<p>实测样本不足，故用「起始序号 + i」作可控填充值</p>
+<ol><ol><li>napp 格式 + 给出 --seed 时：第 i 个码由 seed + 起始序号 + i 派生，</li></ol></ol>
+<p>保证「同序号同码」，便于批量回填与复测；不给 --seed 则为真随机，&lt;br&gt;与真实签发方式一致</p>
+<p>已实现并验证：&lt;br&gt;gen --qty 3 --seed 42 --seq 1000    两次运行结果逐字节一致  → 复现性 PASS&lt;br&gt;seq 1001 的第 1 个码 == seq 1000 的第 2 个码                 → 序号语义正确</p>
+<hr>
+<ol><li>订单号验证流程 —— 客户端校验 + 在线服务器验证（baksmali 精确反编译）</li></ol>
+<hr>
+<p>工具升级：openjdk 17.0.20（手动解包绕过 dpkg PATH 问题）+ baksmali 2.5.2</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>      → 9054 个 smali 文件；注意 sdcard 是大小写不敏感 FUSE，Lf3/ 与 LF3/
+        会撞名，必须反编译到 ext4 路径（/data/.../files/smali）。</code></pre></figure>
+<p>【9.1 客户端本地校验：只有两条，无任何格式/校验位/算法】&lt;br&gt;方法: LU3/k;-&gt;j(LF1/d;Ljava/lang/String;)Z      (smali: U3/k.smali:816)&lt;br&gt;p1 = LF1/d  = Google Play Purchase 包装</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>   .a = purchaseData JSON 原文
+   .b = signature
+   .c = 解析后的 JSONObject
+   a() = c.optInt("purchaseState", 1)      ← 0=已购 1=已取消 2=待处理
+   b() = c.optString("purchaseToken")      ← 注意：不是 orderId</code></pre></figure>
+<p>逻辑:</p>
+<ol><ol><li>token = p1.b();  if (com.catchingnow.base.util.B;-&gt;c(token) 为空) return false</li><li>if (p1.a() == 2) return false                       ← 拒绝 PENDING（未完成付款）</li><li>MMKV.putString("33DK0A", p2)                        ← 存 purchaseData 原文</li><li>LU3/k;-&gt;h(1)  → MMKV.putInt("92910E", 1)            ← 订单类型 = 1 (inapp)</li><li>orderId = p1.c.optString("orderId"); 空则置 null</li></ol></ol>
+<p>MMKV.putString("951115a", orderId)                  ← 存 Play 的 GPA 订单号</p>
+<ol><ol><li>LU3/k;-&gt;c(p1.b()) → MMKV.putString("47a966", token) ← 存 purchaseToken return true ★ 客户端不做任何订单号格式校验 —— 只有「非空 + 未处于 PENDING」。</li></ol></ol>
+<p>（之前把 47a966 当成订单号是错的：47a966 存的是 purchaseToken。）</p>
+<p>调用点: LU3/h;-&gt;accept(Ljava/lang/Object;Ljava/lang/Object;)V  (implements Ls7/a = BiConsumer)&lt;br&gt;if (LU3/k;-&gt;j(purchase, json)) LU3/k;-&gt;i(Z)   ← 成功则进服务端同步&lt;br&gt;else 构造 LW3/a(type=1, message=...) 报错</p>
+<p>【9.2 在线服务器验证：存在，且是真正的判定方】&lt;br&gt;服务接口（自家注解版 Retrofit，非标准 retrofit2）:&lt;br&gt;LX3/a  (smali: X3/a.smali)</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>a()                                          @LH8/f("10202be9") → LY3/a
+b(Z from_resume, String order_id, int order_type)
+                                             @LH8/f("101f4cd2") → LW3/b   ← 订单验证
+c()                                          @LH8/o("101f8798") → LY3/b   ← 心跳</code></pre></figure>
+<p>Ly3/a  (smali: y3/a.smali)</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>a()                                          @LH8/f("2001e44e") → Lv3/c</code></pre></figure>
+<p>注解体系（自家混淆）:&lt;br&gt;LH8/f  value = 8 位十六进制端点 ID   → 解析为 path，HTTP 方法 "GET"&lt;br&gt;LH8/g  value = ...                   → 另一 HTTP 方法注解&lt;br&gt;LH8/o  value = 8 位十六进制端点 ID&lt;br&gt;LH8/t  value = 参数名（from_resume / order_id / order_type），encoded 标志&lt;br&gt;解析器: F8/G（自家迷你 Retrofit 的 ServiceMethod，反射读注解拼 URL）</p>
+<p>Base URL（由 LH3/g 拼接）:&lt;br&gt;"<a href="https://"" target="_blank" rel="noopener">https://"</a> + (中文环境或 LU3/e;-&gt;g 条件成立 ? "napp.catchingnow.cn" : "napp.catchingnow.com") + "/api/"&lt;br&gt;→ <a href="https://napp.catchingnow.com/api/&lt;br&gt;实际请求" target="_blank" rel="noopener">https://napp.catchingnow.com/api/&lt;br&gt;实际请求</a> = baseUrl + 端点ID + 查询参数，例如:&lt;br&gt;<a href="https://napp.catchingnow.com/api/101f4cd2?from_resume=..&amp;order_id=..&amp;order_type=.." target="_blank" rel="noopener">https://napp.catchingnow.com/api/101f4cd2?from_resume=..&amp;order_id=..&amp;order_type=..</a></p>
+<p>请求参数注入（OkHttp 拦截器 Lf3/i，implements Lg8/r）:&lt;br&gt;current_timestamp, uid, source, init_time, package_name, version_code,&lt;br&gt;version_name, android_version, locale, tz, release_type, app,&lt;br&gt;gp_available_order_type, gp_subs, alipay_sdk, wechatpay_sdk, wechat_subscribe&lt;br&gt;另一拦截器 Lf3/j 把请求 host 强制改写为 "napp.catchingnow.com"。</p>
+<p>响应契约 LW3/b（Gson, LY0/b = @SerializedName）:&lt;br&gt;remain_duration   Long   → MMKV "93LF2i"   剩余有效期&lt;br&gt;purchase_timestamp Long  → MMKV "OOFQnP"   购买时间&lt;br&gt;cfg               Object → MMKV "12BB8D"   （JSON 串）功能开关:</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>                          show_purchase_parallax / show_rate / show_rewarded_ad /
+                          allow_web_rule / show_release_notice</code></pre></figure>
+<p>delete_order      Bool   → true 时清本地: LV3/b;-&gt;h(int) + LV3/b;-&gt;c(String)&lt;br&gt;orders            List   → 可购买项 {id,title,description,price_text,url,type}</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>                          type: 0=GENERAL 1=ALIPAY 2=GPLAY 3=WECHATPAY</code></pre></figure>
+<p>messages / dialog_info / purchased_ui&lt;br&gt;→ 另有 MMKV "032FA6" 被服务端结果覆盖（int 状态）</p>
+<p>【9.3 关键：本地付费位为真时，整段在线校验被跳过】&lt;br&gt;Lf3/j;-&gt;a 与 Lf3/J;-&gt;a 开头完全一致:</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>invoke-static  LU3/d;-&gt;d()        ← MMKV.getBoolean("18292197380L")
+invoke-interface LU3/e;-&gt;b()
+const/4 v1, #1
+if-ne v? , v1  → 跳到方法末尾（返回 v5），跳过后续全部 napp 请求
+const-string "napp.catchingnow.com"</code></pre></figure>
+<p>同理 LU3/k;-&gt;m(Context, X3/a) 里: if (MMKV.b()) 跳过 10202be9 启动查询。&lt;br&gt;★ 这正是「本地写付费位 = 离线激活生效」的直接证据，也是 Frida/smali 补丁的着力点。</p>
+<p>【9.4 完整时序】&lt;br&gt;A. Google Play 购买</p>
+<figure class="code"><figcaption>text</figcaption><pre><code> Play 返回 INAPP_PURCHASE_DATA → LF1/n;-&gt;call 解析 → 构造 LF1/d
+ → LU3/h;-&gt;accept → LU3/k;-&gt;j  (本地两条校验 + 落 MMKV)
+ → LU3/k;-&gt;i(Z) → LX3/a;-&gt;b(from_resume, MMKV["47a966"], MMKV["92910E"])
+ → POST/GET https://napp.catchingnow.com/api/101f4cd2?order_id=...&amp;order_type=2
+ → 服务端核验 → LW3/b{remain_duration, purchase_timestamp, cfg, delete_order, orders}
+ → C3/n 落地: MMKV 93LF2i / OOFQnP / 12BB8D / 032FA6，必要时清本地订单</code></pre></figure>
+<p>B. 支付宝 / 微信订单号（napp_wp_... / napp_ap_...）</p>
+<figure class="code"><figcaption>text</figcaption><pre><code> 同一 101f4cd2 接口，order_type = 1(支付宝) / 3(微信)，order_id = 用户输入的订单号
+ 客户端同样不做格式校验，完全由服务端订单库判定</code></pre></figure>
+<p>C. 启动时</p>
+<figure class="code"><figcaption>text</figcaption><pre><code> LU3/k;-&gt;m(Context, X3/a): 若本地标记未置位 → LX3/a;-&gt;a() = 10202be9
+ → LY3/a{trail_duration, in_app_review, notify_p_interval, init_timestamp}</code></pre></figure>
+<p>D. 心跳</p>
+<figure class="code"><figcaption>text</figcaption><pre><code> LX3/a;-&gt;c() = 101f8798 → LY3/b{time}</code></pre></figure>
+<p>【9.5 破解着力点（按可靠性排序）】</p>
+<ol><ol><li>LU3/d;-&gt;d()Z 恒 true            —— 一行 Hook / 一个 smali 常量，跳过全部在线校验</li><li>LX3/a;-&gt;b(...) 返回伪造 LW3/b    —— remain_duration 拉满 + delete_order=false</li></ol></ol>
+<p>（Frida: 直接构造 LW3/b 实例并 set 字段，或 Hook C3/n 的响应处理）</p>
+<ol><ol><li>MMKV 直写 18292197380L=true + 93LF2i/OOFQnP</li><li>纯客户端伪造订单号无效 —— 服务端查自己的订单库，本地无任何可验证的数学关系</li></ol></ol>
+<hr>
+<ol><li>在线验证协议实测 + 服务端逻辑漏洞（30+ 组对照实验，100% 可复现）</li></ol>
+<hr>
+<p>对象: GET <a href="https://napp.catchingnow.com/api/101f4cd2" target="_blank" rel="noopener">https://napp.catchingnow.com/api/101f4cd2</a></p>
+<figure class="code"><figcaption>text</figcaption><pre><code>  对应 X3/a;-&gt;b(Z from_resume, String order_id, int order_type) @LH8/f("101f4cd2")</code></pre></figure>
+<p>【10.1 决定性矩阵】只变 order_type，order_id 固定为垃圾串 "ZZZ_GARBAGE_x"&lt;br&gt;order_type=0 (GENERAL)    3/3 → remain_duration = -1      拒绝&lt;br&gt;order_type=1 (ALIPAY)     3/3 → remain_duration = 3130617600000   永久版 ✔&lt;br&gt;order_type=2 (GPLAY)      3/3 → remain_duration = -1      拒绝&lt;br&gt;order_type=3 (WECHATPAY)  3/3 → remain_duration = -1      拒绝&lt;br&gt;不传 order_id                  → remain_duration = 0       无</p>
+<p>【10.2 只变 order_id，order_type 固定 = 1】全部 → 3130617600000&lt;br&gt;"A" / "zzz" / "napp_ap_x_y_z" / "!!!非法字符!!!" / 40 位随机串  → 全部永久版&lt;br&gt;★ 服务端对支付宝渠道（order_type=1）完全不做订单真伪校验，</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>结果与 order_id 内容、长度、前缀、字符集 全部无关。</code></pre></figure>
+<p>【10.3 排除「是本机已被激活」的假说】&lt;br&gt;· 换随机 uid 参数        → 仍永久版&lt;br&gt;· 去掉 napp_ 前缀        → 仍永久版（"ap_fwj9nc_h5t7yxy_p05b"）&lt;br&gt;· 连续 30+ 次调用        → 结果稳定，与调用次序无关&lt;br&gt;→ 是服务端逻辑漏洞，不是设备/会话状态。</p>
+<p>【10.4 完整响应样例（order_type=1）】&lt;br&gt;{"purchase_timestamp":1789025611742,&lt;br&gt;"remain_duration":3130617600000,&lt;br&gt;"dialog_info":{"title":"Active Success","message":"Thank you for your support.","btn":"OK"},&lt;br&gt;"orders":null,&lt;br&gt;"purchased_ui":{"display_play_purchased":true,"display_alipay_purchased":true},&lt;br&gt;"cfg":{"show_rate":true,"show_purchase_parallax":true,"allow_web_rule":false,"show_rewarded_ad":true},&lt;br&gt;"delete_order":false,"purchase_available":true,"purchase_in_duration":true,&lt;br&gt;"order_id":"..."}&lt;br&gt;3130617600000 ms ≈ 99.2 年</p>
+<p>【10.5 其余端点实测】&lt;br&gt;10202be9（LX3/a;-&gt;a  初始状态） → {}（LY3/a 全默认值）&lt;br&gt;101f8798（LX3/a;-&gt;c  心跳）     → {"time":1789025433699}（服务端时间戳）</p>
+<p>【10.6 订单号格式规则（服务端自证）】&lt;br&gt;服务端在 orders[] 里自己签发: napp_ap_y26iw0_2dwr1l0_9a3a&lt;br&gt;连续 5 次调用采集:          napp_ap_y26iw0 / y26iw1 / y26iw3 / y26iw9 / y26iwb&lt;br&gt;第3段 base36 单调递增（y26iw0=2061493648 → y26iwb=+11）→ 全局自增计数器的 base36&lt;br&gt;第4段 7 位恒定 = 设备/会话 ID（用户样本与本次采集都是 2dwr1l0）&lt;br&gt;第5段 = 变长随机尾&lt;br&gt;结构: napp_&lt;渠道码 ap|wp|gp&gt;<em>&lt;自增base36&gt;</em>&lt;设备7&gt;_&lt;随机尾&gt;</p>
+<p>【10.7 注册机算法（最终）】</p>
+<ol><ol><li>造一个订单号（内容无所谓，仅需非空）: napp_ap_&lt;6&gt;<em>&lt;7&gt;</em>&lt;4&gt;</li><li>GET {base}101f4cd2?order_id=&lt;上面&gt;&amp;order_type=1</li><li>取回 remain_duration=3130617600000, purchase_timestamp=now</li><li>写回 MMKV 三件套:</li></ol></ol>
+<p>18292197380L = true               （LU3/d;-&gt;d() 切到付费实现 LV3/b）&lt;br&gt;OOFQnP       = purchase_timestamp&lt;br&gt;93LF2i       = remain_duration&lt;br&gt;门禁 LU3/e;-&gt;a(J)Z = (93LF2i + OOFQnP - now) &gt; 0  → true，永久 Pro&lt;br&gt;已实现: keygen.py online / activate  ；KeyGenFB/src/.../OnlineActivator.java（已编译实测通过）</p>
+<p>【10.8 已产出的 hook APK】&lt;br&gt;文件: /storage/emulated/0/Crack/通知滤盒<em>3.6.0</em>patched.apk   (25.0 MB)&lt;br&gt;做法: baksmali 反编译 → 改 smali → smali 重编译 dex → 重打包 → apksig v1+v2+v3 签名&lt;br&gt;补丁点（4 处，覆盖两套实现）:</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>U3/d.smali     d()LU3/e;    move-result v0 后插 const/4 v0,0x1
+                            → 无视 18292197380L，恒返回付费实现 LV3/b
+U3/k.smali  a(J)Z / b()I / g()Z / j(LF1/d;Ljava/lang/String;)Z    → 恒真
+V3/b.smali  同上四项                                              → 恒真</code></pre></figure>
+<p>验证: apksig 校验 v1=true v2=true v3=true；成品 dex 内补丁已复核&lt;br&gt;注意: 重签名后 Google Play 购买链路失效；但因门禁恒真 + b()==1 跳过在线校验，功能全开&lt;br&gt;================================================================================</p>
+</article></main>
+<footer class="footer"><p>© <span id="year"></span> Felix · Powered by GitHub Pages</p></footer>
+<button id="top" class="icon-btn top" aria-label="回到顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/dream.js"></script>
+</body>
+</html>
