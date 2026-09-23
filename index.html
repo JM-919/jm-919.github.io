@@ -1206,8 +1206,9 @@ html[data-theme="dark"] .sidebar-profile{background:#0e1014 !important}
   <div class="foot-rule"></div>
   <div class="copyright">© 2026 - <span id="year"></span> ZY驿站 · 保留所有权利</div>
   <div class="foot-stats">
-    <span>浏览量 <b id="visit-pv">—</b></span>
-    <span>访客数 <b id="visit-uv">—</b></span>
+    <span>浏览量 <b id="busuanzi_value_site_pv">—</b></span>
+    <span>访客数 <b id="busuanzi_value_site_uv">—</b></span>
+    <span>本页阅读 <b id="busuanzi_value_page_pv">—</b></span>
     <span>本站已运行 <b id="runtime" data-start="2026-09-22">—</b></span>
   </div>
   <div class="foot-note">felixdsh2.eu.cc</div>
@@ -1624,31 +1625,16 @@ window.__FX = { on: true, snowResume: null, dreamResume: null };
   if (y) y.textContent = new Date().getFullYear();
   if (y2) y2.textContent = new Date().getFullYear();
 
-  /* ---- 真实统计：不蒜子（busuanzi）---- */
-  var pe = document.getElementById('visit-pv'), ue = document.getElementById('visit-uv');
-  function busuanzi() {
-    var pv = document.getElementById('busuanzi_value_site_pv');
-    var uv = document.getElementById('busuanzi_value_site_uv');
-    var ok = false;
-    if (pv && /^\d/.test(pv.textContent || '')) { pe.textContent = (+pv.textContent).toLocaleString() + ' 次'; ok = true; }
-    if (uv && /^\d/.test(uv.textContent || '')) { ue.textContent = (+uv.textContent).toLocaleString() + ' 人'; ok = true; }
-    return ok;
-  }
-  var bs = document.createElement('script');
-  bs.async = true;
-  bs.src = 'https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js';
-  bs.onload = function () { setTimeout(busuanzi, 900); setTimeout(function () { if (!busuanzi()) fallback(); }, 3200); };
-  bs.onerror = function () { fallback(); };
-  document.head.appendChild(bs);
-  setTimeout(function () { if (!busuanzi()) fallback(); }, 4500);   // 脚本被墙/超时兜底
-  function fallback() {
-    try {
-      var n = parseInt(localStorage.getItem('felix_pv') || '0', 10) + 1;
-      localStorage.setItem('felix_pv', String(n));
-      if (pe) pe.textContent = '—';
-      if (ue) ue.textContent = '—';
-    } catch (e) { if (pe) pe.textContent = '—'; if (ue) ue.textContent = '—'; }
-  }
+  /* ---- 浏览量 / 访客数 / 本页阅读（不蒜子 2.4，写入 busuanzi_value_* 元素）---- */
+  (function () {
+    var IDS = ['busuanzi_value_site_pv', 'busuanzi_value_site_uv', 'busuanzi_value_page_pv'];
+    var slot = document.getElementById('busuanzi_value_site_pv');
+    if (!slot) return;
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js';
+    document.head.appendChild(s);   /* 由脚本直接写入上面三个元素；不可用时保持 — */
+  })();
 
   /* ---- 在线留言 ---- */
   var ut = document.getElementById('ut-box');
