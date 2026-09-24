@@ -1054,8 +1054,21 @@ html[data-theme="dark"] .brand-seal{background:#d98b8b !important;color:#14161a 
 html[data-theme="dark"] .sidebar-profile{background:#0e1014 !important}
 .sidebar-profile h3{color:#ffffff !important}
 .sidebar-profile p{color:#cfc8ba !important}
+
+/* ==================== 文章配图：.post-figure（图 + 图注）==================== */
+.article-body img{max-width:100%;height:auto;border-radius:0}
+.post-figure{margin:28px 0;padding:0;text-align:center}
+.post-figure img{display:block;width:100%;max-width:100%;height:auto;background:#fffdf9;
+  border:3px solid #23201a !important;box-shadow:10px 10px 0 rgba(176,141,87,.55) !important}
+.post-figure figcaption{margin-top:12px;font-family:"STKaiti","KaiTi",Georgia,serif;font-size:13.5px;
+  letter-spacing:.14em;color:#6d675c !important;text-align:center}
+.post-figure figcaption::before{content:"—— "}
+.post-figure figcaption::after{content:" ——"}
+html[data-theme="dark"] .post-figure img{background:#1e2029;border-color:#e9e5da !important;
+  box-shadow:10px 10px 0 rgba(0,0,0,.55) !important}
+html[data-theme="dark"] .post-figure figcaption{color:#b3ada0 !important}
 </style>
-<script>window.__VQ="?v=mue5159q";</script>
+<script>window.__VQ="?v=mufoubee";</script>
     <script>window.__POSTS=[];</script>
 </head>
 <body data-depth="1">
@@ -1064,7 +1077,7 @@ html[data-theme="dark"] .sidebar-profile{background:#0e1014 !important}
 <canvas id="dream-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:60"></canvas>
 <header class="site-header" id="site-header">
   <a class="menu-btn" id="menu-btn" href="javascript:;" aria-label="菜单"><i></i><i></i><i></i></a>
-  <a class="header-brand" href="../index.html?v=mue5159q"><span class="brand-seal">Z</span>ZY驿站</a>
+  <a class="header-brand" href="../index.html?v=mufoubee"><span class="brand-seal">Z</span>ZY驿站</a>
   <nav class="header-icons">
     <a href="javascript:;" id="search-btn" aria-label="检索"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></a>
     <a href="javascript:;" id="theme-btn" aria-label="切换昼夜">墨</a>
@@ -1080,13 +1093,13 @@ html[data-theme="dark"] .sidebar-profile{background:#0e1014 !important}
     <div class="cloud-rule"></div>
   </div>
   <nav class="sidebar-menu">
-    <a href="../index.html?v=mue5159q"><i class="ch">首</i><span class="lb">首页</span></a>
-    <a href="../tags.html?v=mue5159q"><i class="ch">签</i><span class="lb">标签</span></a>
-    <a href="../categories.html?v=mue5159q"><i class="ch">类</i><span class="lb">分类</span></a>
-    <a href="../archive.html?v=mue5159q"><i class="ch">档</i><span class="lb">归档</span></a>
-    <a href="../about.html?v=mue5159q"><i class="ch">关</i><span class="lb">关于</span></a>
-    <a href="../contact.html?v=mue5159q"><i class="ch">言</i><span class="lb">留言板</span></a>
-    <a href="../friends.html?v=mue5159q"><i class="ch">链</i><span class="lb">友情链接</span></a>
+    <a href="../index.html?v=mufoubee"><i class="ch">首</i><span class="lb">首页</span></a>
+    <a href="../tags.html?v=mufoubee"><i class="ch">签</i><span class="lb">标签</span></a>
+    <a href="../categories.html?v=mufoubee"><i class="ch">类</i><span class="lb">分类</span></a>
+    <a href="../archive.html?v=mufoubee"><i class="ch">档</i><span class="lb">归档</span></a>
+    <a href="../about.html?v=mufoubee"><i class="ch">关</i><span class="lb">关于</span></a>
+    <a href="../contact.html?v=mufoubee"><i class="ch">言</i><span class="lb">留言板</span></a>
+    <a href="../friends.html?v=mufoubee"><i class="ch">链</i><span class="lb">友情链接</span></a>
     <a href="https://github.com/JM-919" target="_blank" rel="noopener"><i class="ch">码</i><span class="lb">GitHub</span></a>
   </nav>
   <div class="sidebar-foot">
@@ -1104,7 +1117,7 @@ html[data-theme="dark"] .sidebar-profile{background:#0e1014 !important}
       <span>12796 字</span><i>·</i>
       <span>约 27 分钟</span>
     </div>
-    <div class="post-tags"><a class="tag-pill" href="../index.html?tag=%E8%A1%A5%E4%B8%81%E6%94%B9%E9%80%A0&v=mue5159q">#补丁改造</a><a class="tag-pill" href="../index.html?tag=Android&v=mue5159q">#Android</a></div>
+    <div class="post-tags"><a class="tag-pill" href="../index.html?tag=%E8%A1%A5%E4%B8%81%E6%94%B9%E9%80%A0&v=mufoubee">#补丁改造</a><a class="tag-pill" href="../index.html?tag=Android&v=mufoubee">#Android</a></div>
   </div>
   <div class="post-wrap">
     <article class="article-body">
@@ -1237,8 +1250,8 @@ bash 奥维一键补丁/一键补丁.sh 新版官方.apk 新版_VIP.apk   <span 
 bash 奥维一键补丁/换版清理.sh              <span class="c"># 5) 预演</span>
 bash 奥维一键补丁/换版清理.sh --yes        <span class="c"># 6) 确认无误再清旧版</span></code></pre></figure>
     </article>
-    <div class="prev-next"><a class="pn-item" href="p-01-CodeRunner4.5_授权算法解剖与验证报告.html?v=mue5159q"><div class="pn-label">上一篇</div><div>CodeRunner 4.5 授权机制解剖 · 算法定位与实现验证报告</div></a><a class="pn-item" href="p-02-README.html?v=mue5159q"><div class="pn-label">下一篇</div><div>WinZip Mac Edition 12 12.0.7282 授权机制分析与授权服务程序</div></a></div>
-    <p class="back-wrap"><a class="back" href="../?v=mue5159q">← 返回首页</a></p>
+    <div class="prev-next"><a class="pn-item" href="p-01-CodeRunner4.5_授权算法解剖与验证报告.html?v=mufoubee"><div class="pn-label">上一篇</div><div>CodeRunner 4.5 授权机制解剖 · 算法定位与实现验证报告</div></a><a class="pn-item" href="p-02-README.html?v=mufoubee"><div class="pn-label">下一篇</div><div>WinZip Mac Edition 12 12.0.7282 授权机制分析与授权服务程序</div></a></div>
+    <p class="back-wrap"><a class="back" href="../?v=mufoubee">← 返回首页</a></p>
     <section class="comments">
       <div class="panel-head">评论</div>
       <div class="ut-box" id="ut-box"></div>
