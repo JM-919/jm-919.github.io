@@ -1,0 +1,2275 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PikachuTV —— 手机端影视聚合播放器（基于 videodl 的改造版） · ZY驿站</title>
+<meta name="description" content="代码 · 逆向 · 一直在路上">
+<meta name="theme-color" content="#f6f3ec">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%225%22%20fill%3D%22%239d2933%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2245%22%20font-family%3D%22STKaiti%2CKaiTi%2CGeorgia%2Cserif%22%20font-size%3D%2238%22%20text-anchor%3D%22middle%22%20fill%3D%22%23fdfaf4%22%3EZ%3C%2Ftext%3E%3C%2Fsvg%3E">
+<style>/* ZY · 古典水墨主题 */
+:root{
+  --bg:#0b0716; --bg2:#150c2b;
+  --panel:rgba(255,255,255,.06); --panel2:rgba(255,255,255,.10);
+  --line:rgba(216,180,254,.18);
+  --fg:#f3ecff; --muted:#b9a8d8;
+  --p1:#9d2933; --p2:#9d2933; --p3:#7d776c; --p4:#e6e0d3;
+  --brand:#9d2933; --brand2:#7d776c;
+  --radius:20px;
+  --shadow:0 18px 50px rgba(88,28,135,.45);
+  --glow:0 22px 60px rgba(240,171,252,.28);
+}
+html[data-theme="light"]{
+  --bg:#fdf7ff; --bg2:#f3e8ff;
+  --panel:rgba(255,255,255,.72); --panel2:rgba(255,255,255,.9);
+  --line:rgba(139,92,246,.18);
+  --fg:#2c1e45; --muted:#6d5a95;
+  --shadow:0 16px 40px rgba(139,92,246,.18);
+  --glow:0 20px 50px rgba(236,72,153,.18);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);overflow-x:hidden;
+  font:16px/1.8 -apple-system,"PingFang SC","Noto Sans SC",system-ui,sans-serif}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;border-radius:16px}
+::selection{background:rgba(240,171,252,.35)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--p1),var(--p2));border-radius:9px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* 流光画布：全局跟随鼠标/手指 */
+#dream-canvas{position:fixed;inset:0;z-index:60;pointer-events:none;mix-blend-mode:screen}
+html[data-theme="light"] #dream-canvas{mix-blend-mode:multiply;opacity:.75}  to{transform:translate3d(4%,-5%,0) scale(1.14)}
+}to{opacity:.9}}
+.glass{background:var(--panel);backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);
+  border:1px solid var(--line)}
+.progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:99;
+  background:linear-gradient(90deg,var(--p1),var(--p2),var(--p3));transition:width .1s linear;
+  box-shadow:0 0 14px rgba(240,171,252,.7)}
+
+.nav{position:sticky;top:0;z-index:70;display:flex;align-items:center;justify-content:space-between;
+  padding:12px 22px;border-left:0;border-right:0;border-top:0;border-radius:0}
+.brand{font-weight:800;letter-spacing:.4px;display:flex;gap:8px;align-items:center;white-space:nowrap}
+.brand span{background:linear-gradient(90deg,var(--p2),var(--p1),var(--p3));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.nav nav{display:flex;gap:6px;align-items:center}
+.nav nav a{padding:7px 13px;border-radius:999px;color:var(--muted);transition:.25s}
+.nav nav a:hover{color:var(--fg);background:var(--panel2);box-shadow:0 0 18px rgba(240,171,252,.35)}
+.icon-btn{border:1px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer;
+  border-radius:999px;width:38px;height:38px;font-size:16px;line-height:1;transition:.25s}
+.icon-btn:hover{transform:translateY(-2px);border-color:var(--p2);box-shadow:0 0 22px rgba(240,171,252,.45)}
+
+main{max-width:1040px;margin:0 auto;padding:0 20px 60px}
+.hero{text-align:center;padding:74px 0 34px}
+@keyframes bob{50%{transform:translateY(-12px) rotate(2deg)}}
+.hero-title{font-size:clamp(26px,5.4vw,44px);margin:0 0 10px;line-height:1.3;font-weight:800}
+.hero-title em{font-style:normal;
+  background:linear-gradient(100deg,var(--p2),var(--p1) 45%,var(--p3));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 24px rgba(240,171,252,.55))}
+.hero-sub{color:var(--muted);margin:0 0 18px}
+.tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.chip{font-size:13px;padding:4px 13px;border-radius:999px;border:1px solid var(--line);
+  color:var(--muted);background:var(--panel);transition:.25s}
+.chip:hover{color:var(--fg);border-color:var(--p2);box-shadow:0 0 18px rgba(240,171,252,.4);transform:translateY(-2px)}
+
+.search-bar{margin:10px auto 28px;max-width:520px}
+.search-bar input{width:100%;padding:13px 18px;border-radius:999px;border:1px solid var(--line);
+  background:var(--panel);color:var(--fg);outline:none;font-size:15px;transition:.25s}
+.search-bar input::placeholder{color:var(--muted)}
+.search-bar input:focus{border-color:var(--p2);box-shadow:0 0 0 4px rgba(240,171,252,.18),0 0 30px rgba(167,139,250,.35)}
+
+.grid{display:grid;gap:22px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.card{position:relative;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);
+  transition:.35s cubic-bezier(.2,.7,.3,1);display:flex;flex-direction:column;isolation:isolate}
+.card::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;opacity:0;transition:.35s;
+  background:linear-gradient(120deg,var(--p2),var(--p1),var(--p3));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.card:hover{transform:translateY(-8px) scale(1.012);box-shadow:var(--glow)}
+.card:hover::after{opacity:1}
+.card-cover{height:136px;display:grid;place-items:center;font-size:46px;position:relative;
+  background:linear-gradient(135deg,var(--g1),var(--g2))}
+.card-cover::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(60% 60% at 70% 20%,rgba(255,255,255,.35),transparent 70%)}
+.card-body{padding:18px 18px 16px}
+.card h2{font-size:18px;margin:0 0 8px;line-height:1.45}
+.card p{color:var(--muted);font-size:14px;margin:0 0 12px}
+.meta{display:flex;gap:8px;color:var(--muted);font-size:13px}
+
+article.post{position:relative;max-width:780px;margin:0 auto;padding:44px 0 20px}
+article.post h1{font-size:clamp(24px,4.6vw,36px);line-height:1.32;
+  background:linear-gradient(100deg,var(--p2),var(--p1),var(--p3));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+article.post h2{margin-top:38px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+article.post h2::before{content:"▍ ";color:var(--p2)}
+article.post blockquote{margin:18px 0;padding:12px 18px;border-left:3px solid var(--p2);
+  background:var(--panel);border-radius:0 14px 14px 0;color:var(--muted)}
+article.post pre{background:rgba(11,7,22,.86);color:#f3ecff;border:1px solid var(--line);
+  border-radius:16px;padding:16px;overflow:auto;box-shadow:0 12px 36px rgba(88,28,135,.4)}
+article.post code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px}
+article.post :not(pre) > code{background:var(--panel2);padding:2px 7px;border-radius:7px;border:1px solid var(--line)}
+article.post table{width:100%;border-collapse:collapse;margin:18px 0}
+article.post th,article.post td{border:1px solid var(--line);padding:9px 12px;text-align:left}
+article.post th{background:var(--panel)}
+.back{display:inline-block;margin-bottom:8px;color:var(--muted);transition:.25s}
+.back:hover{color:var(--p2);transform:translateX(-3px)}
+.footer{text-align:center;color:var(--muted);font-size:14px;padding:44px 20px}
+.top{position:fixed;right:18px;bottom:22px;opacity:0;pointer-events:none;transition:.25s;
+  background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:0;
+  box-shadow:0 12px 34px rgba(240,171,252,.5)}
+.top.show{opacity:1;pointer-events:auto}
+.empty{text-align:center;color:var(--muted)}
+
+@media (max-width:560px){
+  .nav{padding:10px 14px}
+  .nav nav a{padding:6px 8px;font-size:14px}
+  .hero{padding:46px 0 24px}
+}
+@media (prefers-reduced-motion: reduce){  .card:hover{transform:none}
+}
+/* ================= VARIABLE FALLBACK（主题层兜底，勿删）================= */
+:root{--bg:#0b1220;--bg2:#111a2e;--panel:rgba(255,255,255,.06);--panel2:rgba(255,255,255,.1);
+  --line:rgba(255,255,255,.14);--fg:#eef2ff;--muted:#a8b3cf;--p1:#9d2933;--p2:#9d2933;--p3:#7d776c;--p4:#e6e0d3;
+  --radius:16px;--shadow:0 14px 40px rgba(8,10,30,.45);--glow:0 18px 50px rgba(167,139,250,.35)}
+/* ==================== 主题层（布局 / 组件）==================== */
+/* ================= ZY博客 · 主题层（布局 / 组件）================= */
+
+/* ---------- 顶部导航 ---------- */
+.site-header{position:fixed;top:0;left:0;right:0;z-index:80;display:flex;align-items:center;gap:12px;
+  padding:9px 16px;transition:.35s cubic-bezier(.2,.7,.3,1);color:#fff}
+.site-header.solid{background:linear-gradient(90deg,var(--p1),var(--p3));box-shadow:0 6px 24px rgba(30,27,75,.35);
+  backdrop-filter:blur(10px)}
+.site-header .menu-btn{display:inline-flex;flex-direction:column;gap:4px;padding:8px;border-radius:10px;transition:.25s}
+.site-header .menu-btn i{display:block;width:20px;height:2px;background:currentColor;border-radius:2px;transition:.25s}
+.site-header .menu-btn:hover{background:rgba(255,255,255,.18)}
+.site-header .menu-btn:hover i:nth-child(1){width:14px}
+.site-header .menu-btn:hover i:nth-child(3){width:26px}
+.header-brand{font-size:19px;font-weight:800;letter-spacing:.5px;display:flex;align-items:center;gap:8px;
+  text-shadow:0 2px 12px rgba(0,0,0,.35)}
+.brand-dot{width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 0 12px #fff}
+.header-icons{margin-left:auto;display:flex;gap:6px;align-items:center}
+.header-icons a{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:17px;
+  transition:.25s;background:rgba(255,255,255,.10)}
+.header-icons a:hover{background:rgba(255,255,255,.28);transform:translateY(-2px)}
+
+/* ---------- 侧栏 ---------- */
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:288px;z-index:95;background:var(--bg2);
+  border-right:1px solid var(--line);transform:translateX(-102%);transition:transform .38s cubic-bezier(.2,.7,.3,1);
+  overflow-y:auto;box-shadow:12px 0 40px rgba(0,0,0,.35)}
+.sidebar.open{transform:none}
+.sidebar-mask{position:fixed;inset:0;z-index:90;background:rgba(6,4,18,.55);opacity:0;pointer-events:none;transition:.3s}
+.sidebar-mask.show{opacity:1;pointer-events:auto}
+.sidebar-profile{padding:26px 22px 20px;text-align:center;
+  background:linear-gradient(160deg,var(--p1),var(--p3))}
+.scroll-hint{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:3;
+  width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:26px;
+  border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.08);animation:hintBounce 2s ease-in-out infinite}
+.scroll-hint:hover{background:#fff;color:#2c1e45}
+@keyframes hintBounce{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,10px)}}
+.sidebar-profile h3{margin:14px 0 6px;color:#fff;font-size:20px;letter-spacing:.5px}
+.sidebar-profile p{margin:0;color:rgba(255,255,255,.9);font-size:13px}
+.sidebar-menu{padding:12px 0 40px}
+.sidebar-menu a{display:flex;align-items:center;gap:14px;padding:12px 22px;color:var(--muted);
+  font-size:15px;transition:.22s;border-left:3px solid transparent}
+.sidebar-menu a:hover,.sidebar-menu a.active{color:var(--fg);background:var(--panel);
+  border-left-color:var(--p2);padding-left:30px}
+.sidebar-menu .mi{font-size:17px;width:22px;text-align:center}
+
+/* ---------- 首页 banner ---------- */
+.banner{position:relative;min-height:clamp(200px,30vh,300px);display:grid;place-items:center;overflow:hidden;isolation:isolate}
+.banner-media{position:absolute;inset:0;z-index:-2;
+  background-image:var(--bg-img);background-size:cover;background-position:center;
+  animation:kenburns 26s ease-in-out infinite alternate}
+@keyframes kenburns{from{transform:scale(1)}to{transform:scale(1.12) translateY(-1.5%)}}
+.banner::after{content:"";position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(180deg,rgba(10,12,30,.45),rgba(10,12,30,.62) 55%,rgba(10,12,30,.82))}
+.banner-inner{text-align:center;color:#fff;padding:72px 16px 52px;width:100%}
+.banner-inner h1{margin:0 0 8px;font-size:clamp(25px,6.4vw,40px);font-weight:900;letter-spacing:.06em;
+  text-shadow:0 6px 30px rgba(0,0,0,.5)}
+.typed-wrap{min-height:24px;font-size:clamp(12.5px,3.2vw,16px);color:rgba(255,255,255,.94);letter-spacing:.04em}
+.typed-cursor{display:inline-block;width:10px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.banner-btns{margin-top:14px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-round{min-width:106px;padding:9px 18px;font-size:13.5px;border-radius:999px;border:1px solid rgba(255,255,255,.75);
+  color:#fff;font-size:15px;letter-spacing:.08em;transition:.28s;backdrop-filter:blur(6px);
+  background:rgba(255,255,255,.08)}
+.btn-round:hover{background:#fff;color:#2c1e45;transform:translateY(-3px);box-shadow:0 14px 34px rgba(0,0,0,.3)}
+.banner-social{position:absolute;left:0;right:0;bottom:26px;display:flex;gap:20px;justify-content:center;color:rgba(255,255,255,.9)}
+.banner-social a{font-size:19px;opacity:.85;transition:.25s}
+.banner-social a:hover{opacity:1;transform:translateY(-3px)}
+/* ---------- 主体容器 ---------- */
+.container{width:100%;max-width:1080px;margin:0 auto;padding:0 18px}
+.page-main{padding:12px 16px 40px;position:relative;z-index:2}
+.page-head{text-align:center;margin:6px 0 18px}
+.page-head h1{font-size:clamp(24px,5vw,36px);margin:0 0 8px}
+.page-head .tip{color:var(--muted);margin:0}
+
+/* ---------- 分类条 ---------- */
+.cat-strip{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;margin:0 0 12px;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.cat-strip::-webkit-scrollbar{display:none}
+.cat-pill{white-space:nowrap;flex:0 0 auto}
+.cat-pill{padding:6px 15px;border-radius:999px;border:1px solid var(--line);background:var(--panel);
+  color:var(--muted);font-size:14px;cursor:pointer;transition:.25s}
+.cat-pill:hover{color:var(--fg);border-color:var(--p2);transform:translateY(-2px)}
+.cat-pill.on{color:#fff;background:linear-gradient(90deg,var(--p1),var(--p3));border-color:transparent;
+  box-shadow:0 10px 26px rgba(167,139,250,.4)}
+
+/* ---------- 文章卡片 ---------- */
+.post-list{display:grid;gap:14px}
+.post-card{display:grid;grid-template-columns:1fr;border-radius:16px;overflow:hidden;background:var(--panel);
+  border:1px solid var(--line);box-shadow:var(--shadow);transition:.35s cubic-bezier(.2,.7,.3,1)}
+.post-card:hover{transform:translateY(-6px);box-shadow:var(--glow)}
+.post-card .card-img{position:relative;display:block;height:150px;aspect-ratio:16/9;overflow:hidden;background:linear-gradient(135deg,var(--p1),var(--p3))}
+.post-card .card-img img{width:100%;height:100%;object-fit:cover;transition:.5s}
+.post-card:hover .card-img img{transform:scale(1.07)}
+.post-card .cat-badge{position:absolute;left:14px;bottom:14px;padding:5px 14px;border-radius:999px;
+  background:rgba(0,0,0,.55);color:#fff;font-size:13px;backdrop-filter:blur(6px)}
+.post-card .card-body{padding:13px 15px 12px;display:flex;flex-direction:column}
+.post-card h2{margin:0 0 8px;font-size:19px;line-height:1.45;transition:.25s}
+.post-card:hover h2{color:var(--p2)}
+.post-card .excerpt{color:var(--muted);font-size:14.5px;margin:0 0 14px;flex:1;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card-meta{display:flex;align-items:center;gap:14px;color:var(--muted);font-size:13px;flex-wrap:wrap}
+.card-meta .author{display:flex;align-items:center;gap:6px}
+.card-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.tag-pill{font-size:12.5px;padding:3px 12px;border-radius:999px;color:#fff;
+  background:linear-gradient(90deg,var(--p1),var(--p2))}
+.tag-pill.alt{background:linear-gradient(90deg,var(--p3),var(--p1))}
+@media (min-width:880px){
+  .post-list{grid-template-columns:repeat(2,1fr)}
+  .post-card.hero-card{grid-column:span 2;grid-template-columns:1.15fr 1fr;align-items:stretch}
+  .post-card.hero-card .card-img{height:100%;min-height:250px}
+}
+.tip{color:var(--muted)}
+.center{text-align:center}
+
+/* ---------- 归档时间轴 ---------- */
+.timeline{position:relative;margin:0 auto;max-width:760px;padding-left:26px}
+.timeline::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;
+  background:linear-gradient(180deg,var(--p1),var(--p3))}
+.tl-item{position:relative;padding:12px 0 12px 22px}
+.tl-item::before{content:"";position:absolute;left:-24px;top:20px;width:12px;height:12px;border-radius:50%;
+  background:var(--p2);box-shadow:0 0 0 4px rgba(240,171,252,.22)}
+.tl-date{color:var(--muted);font-size:13px}
+.tl-title{font-size:16.5px;font-weight:600}
+.tl-title:hover{color:var(--p2)}
+
+/* ---------- 标签/分类墙 ---------- */
+.wall{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.wall .wall-item{padding:12px 22px;border-radius:14px;background:var(--panel);border:1px solid var(--line);
+  transition:.28s;display:flex;align-items:center;gap:10px}
+.wall .wall-item:hover{transform:translateY(-4px);border-color:var(--p2);box-shadow:var(--glow)}
+.wall .count{font-size:12.5px;color:#fff;background:linear-gradient(90deg,var(--p1),var(--p3));
+  padding:2px 10px;border-radius:999px}
+
+/* ---------- 关于 / 留言 ---------- */
+.about-card,.panel-card{max-width:760px;margin:0 auto;background:var(--panel);border:1px solid var(--line);
+  border-radius:18px;padding:28px 26px;box-shadow:var(--shadow);text-align:center}
+.about-meta{list-style:none;padding:0;margin:20px 0;display:grid;gap:10px;text-align:left;
+  max-width:420px;margin-inline:auto;color:var(--muted)}
+.about-meta a{color:var(--p2)}
+.msg-form{display:grid;gap:12px;text-align:left;max-width:560px;margin:0 auto}
+.msg-form input,.msg-form textarea{width:100%;padding:12px 15px;border-radius:12px;border:1px solid var(--line);
+  background:var(--bg2);color:var(--fg);font:inherit;outline:none}
+.msg-form input:focus,.msg-form textarea:focus{border-color:var(--p2);box-shadow:0 0 0 4px rgba(240,171,252,.16)}
+.msg-form button{padding:12px;border:0;border-radius:12px;cursor:pointer;font:inherit;color:#fff;
+  background:linear-gradient(90deg,var(--p1),var(--p3));transition:.25s}
+.msg-form button:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(167,139,250,.42)}
+.msg-list{margin-top:22px;display:grid;gap:12px;text-align:left}
+.msg-item{padding:14px 16px;border-radius:14px;background:var(--bg2);border:1px solid var(--line)}
+.msg-item .who{font-size:13px;color:var(--p2)}
+.msg-item .when{font-size:12px;color:var(--muted);margin-left:8px}
+
+/* ---------- 页脚 ---------- */
+.site-footer{margin-top:30px;padding:34px 18px 26px;text-align:center;color:rgba(255,255,255,.92);
+  background:linear-gradient(120deg,var(--p1),var(--p3))}
+.site-footer .foot-stats{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;margin:16px 0 10px;
+  font-size:14px;opacity:.95}
+.site-footer .foot-social{display:flex;gap:18px;justify-content:center;margin-bottom:14px;font-size:19px}
+.site-footer a{color:#fff}
+.site-footer .copyright{font-size:13px;opacity:.9;line-height:1.9}
+
+/* ---------- 搜索弹窗 ---------- */
+.search-modal{position:fixed;inset:0;z-index:130;background:rgba(8,6,22,.62);display:grid;place-items:start center;
+  padding:70px 16px;backdrop-filter:blur(6px)}
+.search-modal[hidden]{display:none !important}
+.search-result .sr-item{display:block}
+body.modal-open{overflow:hidden}
+.search-box{width:min(720px,100%);background:var(--bg2);border:1px solid var(--line);border-radius:18px;
+  padding:22px;box-shadow:0 30px 70px rgba(0,0,0,.5);animation:pop .28s cubic-bezier(.2,.7,.3,1)}
+@keyframes pop{from{transform:translateY(-14px) scale(.98);opacity:0}}
+.search-head{display:flex;justify-content:space-between;align-items:center;font-size:19px;font-weight:700;
+  margin-bottom:14px}
+.search-head a{color:var(--muted);font-size:17px}
+#search-input{width:100%;padding:13px 16px;border-radius:12px;border:1px solid var(--line);background:var(--bg);
+  color:var(--fg);font:inherit;outline:none}
+#search-input:focus{border-color:var(--p2);box-shadow:0 0 0 4px rgba(240,171,252,.16)}
+.search-result{margin-top:16px;max-height:52vh;overflow:auto;display:grid;gap:10px}
+.sr-item{display:block;padding:12px 15px;border-radius:12px;background:var(--panel);border:1px solid var(--line);
+  transition:.22s}
+.sr-item:hover{border-color:var(--p2);transform:translateX(4px)}
+.sr-item .sr-t{font-weight:600}
+.sr-item .sr-d{font-size:12.5px;color:var(--muted);margin-top:4px}
+
+/* ---------- 回到顶部 ---------- */
+.to-top{position:fixed;right:18px;bottom:24px;z-index:70;width:46px;height:46px;border:0;border-radius:50%;
+  cursor:pointer;color:#fff;font-size:19px;opacity:0;pointer-events:none;transition:.28s;
+  background:linear-gradient(135deg,var(--p2),var(--p1));box-shadow:0 14px 34px rgba(240,171,252,.5)}
+.to-top.show{opacity:1;pointer-events:auto}
+.to-top:hover{transform:translateY(-3px)}
+
+/* ---------- 文章正文排版 ---------- */
+.post-wrap{max-width:820px;margin:0 auto;padding:22px 0 40px}
+.post-header{text-align:center;padding:120px 18px 26px}
+.post-header h1{font-size:clamp(23px,4.8vw,34px);margin:0 0 14px;line-height:1.35;
+  background:linear-gradient(100deg,var(--p2),var(--p1),var(--p3));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.post-tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.post-meta{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;color:var(--muted);font-size:13.5px;
+  align-items:center}
+.article-body{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px 24px;
+  box-shadow:var(--shadow)}
+.article-body h2{margin:34px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.article-body h2::before{content:"▍ ";color:var(--p2)}
+.article-body h3{margin:26px 0 10px;color:var(--p2)}
+.article-body p{margin:12px 0}
+.article-body blockquote{margin:18px 0;padding:12px 18px;border-left:3px solid var(--p2);
+  background:var(--bg2);border-radius:0 14px 14px 0;color:var(--muted)}
+.article-body ul,.article-body ol{padding-left:24px}
+.article-body li{margin:6px 0}
+.table-wrap{overflow:auto;margin:18px 0;border-radius:12px;border:1px solid var(--line)}
+.article-body table{width:100%;border-collapse:collapse;font-size:14px}
+.article-body th,.article-body td{border:1px solid var(--line);padding:9px 12px;text-align:left}
+.article-body th{background:var(--bg2);white-space:nowrap}
+.code{margin:18px 0;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#0d1020}
+.code figcaption{padding:7px 14px;font-size:12.5px;color:#c9c3f0;background:rgba(255,255,255,.06);
+  letter-spacing:.06em;text-transform:lowercase}
+.code pre{margin:0;padding:15px 16px;overflow:auto}
+.code code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13.5px;line-height:1.72;
+  color:#e9e6ff;white-space:pre}
+.code .k{color:#c084fc;font-weight:700}
+.code .s{color:#86efac}
+.code .c{color:#7c8aa5;font-style:italic}
+.code .n{color:#fbbf24}
+.article-body :not(pre) > code{background:var(--bg2);border:1px solid var(--line);border-radius:7px;
+  padding:2px 6px;font-size:13.5px}
+.prev-next{display:grid;gap:14px;margin-top:26px}
+@media (min-width:720px){.prev-next{grid-template-columns:1fr 1fr}}
+.pn-item{padding:14px 16px;border-radius:14px;background:var(--panel);border:1px solid var(--line);transition:.25s}
+.pn-item:hover{border-color:var(--p2);transform:translateY(-3px)}
+.pn-item .pn-label{font-size:12.5px;color:var(--muted)}
+
+/* ---------- 桌面端固定侧栏 ---------- */
+@media (min-width:1180px){
+  body.fixed-side .sidebar{transform:none;box-shadow:none}
+  body.fixed-side .site-header,body.fixed-side main,body.fixed-side .site-footer,body.fixed-side .banner-inner{
+    margin-left:288px}
+  body.fixed-side .sidebar-mask{display:none}
+  body.fixed-side .menu-btn{display:none}
+}
+@media (prefers-reduced-motion: reduce){
+  .banner-media{animation:none}
+  .scroll-hint{animation:none}
+}
+/* ---------- 超矮屏（<680px 高）再收一档 ---------- */
+@media (max-height:680px){
+  .banner{min-height:min(300px,46vh)}
+  .banner-inner{padding:84px 16px 62px}
+  .banner-inner h1{font-size:clamp(26px,7vw,40px)}
+  .banner-btns{margin-top:16px}
+  .btn-round{min-width:112px;padding:10px 20px;font-size:14px}
+  .page-main{padding-top:14px}
+}
+/* ---------- 首页卡片列表紧凑模式 ---------- */
+@media (max-width:640px){
+  .post-list{gap:16px}
+  .post-card .card-body{padding:14px 15px 13px}
+  .post-card .excerpt{-webkit-line-clamp:2}
+  .card-meta{gap:10px;font-size:12.5px}
+}
+/* ================= 尺寸分层：手机优先紧凑，桌面再放宽 ================= */
+@media (min-width:900px){
+  .banner{min-height:clamp(280px,34vh,340px)}
+  .banner-inner{padding:92px 20px 74px}
+  .banner-inner h1{font-size:clamp(32px,5vw,56px)}
+  .typed-wrap{min-height:30px;font-size:clamp(14px,1.6vw,19px)}
+  .banner-btns{margin-top:20px}
+  .btn-round{min-width:120px;padding:11px 24px;font-size:14.5px}
+  .page-main{padding:18px 18px 48px}
+  .cat-strip{justify-content:center;flex-wrap:wrap;overflow:visible}
+  .post-list{gap:20px}
+  .post-card .card-img{height:196px}
+  .post-card .card-body{padding:18px 20px 16px}
+}
+@media (max-width:700px){
+  .scroll-hint{display:none}
+}
+/* ---------- 筛选提示条 ---------- */
+.filter-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;
+  margin:0 0 12px;padding:9px 15px;border-radius:12px;font-size:14px;color:var(--muted);
+  background:var(--panel);border:1px solid var(--line)}
+.filter-bar b{color:var(--fg)}
+.filter-bar a{color:var(--p2);border-bottom:1px dashed currentColor}
+/* ---------- 渐变封面（替代图片，防止破图）---------- */
+.cover-grad{position:absolute;inset:0;display:grid;place-items:center;font-size:44px;
+  background:linear-gradient(135deg,var(--g1,#9d2933),var(--g2,#7d776c))}
+.cover-grad::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(60% 60% at 72% 18%,rgba(255,255,255,.34),transparent 70%)}
+.post-card .card-img{position:relative}
+/* ---------- 背景画布必须脱离文档流（否则画布会撑出一整屏空白）---------- */
+body > canvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;
+  pointer-events:none;z-index:1}
+#snow-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+#dream-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:60;
+  mix-blend-mode:screen}
+html[data-theme="light"] #dream-canvas{mix-blend-mode:multiply;opacity:.75}
+/* ==================== 古典水墨主题层（覆盖，勿删）==================== */
+:root{
+  --bg:#f6f3ec; --bg2:#efeae0;
+  --panel:rgba(255,255,255,.62); --panel2:#fffdf8;
+  --line:rgba(32,30,26,.16);
+  --fg:#232019; --muted:#6d675c;
+  --p1:#9d2933; --p2:#3d3a34; --p3:#7d776c; --p4:#c9c2b4;
+  --radius:4px;
+  --shadow:0 1px 6px rgba(40,36,28,.06);
+  --glow:0 6px 20px rgba(40,36,28,.10);
+}
+html[data-theme="dark"]{
+  --bg:#131210; --bg2:#1a1815; --panel:rgba(255,255,255,.045); --panel2:rgba(255,255,255,.07);
+  --line:rgba(255,255,255,.14); --fg:#e9e4d9; --muted:#9d968a;
+  --shadow:0 1px 8px rgba(0,0,0,.5); --glow:0 6px 22px rgba(0,0,0,.5);
+}
+body{
+  font:16px/2.05 "Songti SC","Noto Serif SC","Source Han Serif SC",Georgia,"STSong","SimSun",serif;
+  background:var(--bg);
+  background-image:radial-gradient(circle at 20% 12%,rgba(190,182,166,.16),transparent 42%),
+                   radial-gradient(circle at 82% 78%,rgba(190,182,166,.13),transparent 45%);
+}
+h1,h2,h3,.hero-title,.post-card h2,.tl-title,.header-brand{
+  font-family:"STKaiti","Kaiti SC","KaiTi","Songti SC","Noto Serif SC",serif;
+  letter-spacing:.07em; font-weight:600;
+}
+/* 顶栏：宣纸 + 发丝线 */
+.site-header{background:rgba(246,243,236,.94);color:var(--fg);backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--line);box-shadow:none}
+.site-header.solid{background:rgba(246,243,236,.97);box-shadow:0 1px 0 var(--line)}
+html[data-theme="dark"] .site-header{background:rgba(19,18,16,.94)}
+html[data-theme="dark"] .site-header.solid{background:rgba(19,18,16,.97)}
+.header-brand{font-size:20px}
+.brand-dot{width:9px;height:9px;border-radius:1px;background:var(--p1);box-shadow:none;transform:rotate(45deg)}
+.header-icons a{background:transparent;border:0}
+.header-icons a:hover{background:rgba(157,41,51,.10);transform:none}
+/* Banner：水墨远山 */
+.banner::after{background:linear-gradient(180deg,rgba(246,243,236,.04),rgba(246,243,236,.28) 66%,var(--bg))}
+html[data-theme="dark"] .banner::after{background:linear-gradient(180deg,rgba(10,9,7,.30),rgba(10,9,7,.55) 62%,var(--bg))}
+html[data-theme="dark"] .banner-media{filter:brightness(.42) contrast(1.05)}
+.banner-inner h1{color:var(--fg);text-shadow:none;font-weight:600;letter-spacing:.16em}
+.typed-wrap{color:var(--muted);letter-spacing:.14em;font-size:clamp(12.5px,3.2vw,16px)}
+.typed-cursor{display:none}
+.btn-round{border:1px solid var(--fg);border-radius:2px;color:var(--fg);background:transparent;
+  backdrop-filter:none;letter-spacing:.18em;padding:9px 22px}
+.btn-round:hover{background:transparent;border-color:var(--p1);color:var(--p1);transform:none;
+  box-shadow:0 0 0 1px var(--p1) inset}.scroll-hint{border-radius:2px;border-color:var(--line);color:var(--muted);animation:none}
+.banner-social{color:var(--muted)}
+/* 分类/标签：细框，选中为朱砂 */
+.cat-strip{gap:10px}
+.cat-pill{border-radius:2px;background:transparent;border:1px solid var(--line);color:var(--muted);
+  letter-spacing:.08em}
+.cat-pill:hover{transform:none;border-color:var(--fg);color:var(--fg)}
+.cat-pill.on{background:transparent;color:var(--p1);border-color:var(--p1);box-shadow:none;font-weight:600}
+.tag-pill,.tag-pill.alt{background:transparent;border:1px solid var(--line);color:var(--muted);
+  border-radius:2px;letter-spacing:.06em}
+.post-tags a.tag-pill:hover{color:var(--p1);border-color:var(--p1)}
+/* 卡片：宣纸 */
+.post-card{background:var(--panel2);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow)}
+.post-card:hover{transform:none;border-color:var(--p1);box-shadow:var(--glow)}
+.post-card .card-img{border-bottom:1px solid var(--line);width:100%;aspect-ratio:auto}
+.cover-grad{background:linear-gradient(160deg,var(--g1),var(--g2));position:absolute;inset:0;
+  display:grid;place-items:center}
+.cover-grad::after{content:"";position:absolute;inset:0;background:none}
+.cover-grad{font-family:"STKaiti","Kaiti SC","KaiTi",serif;font-size:58px;color:rgba(35,32,26,.17);width:100%;height:100%}
+html[data-theme="dark"] .cover-grad{color:rgba(233,228,217,.16)}
+.cat-badge{background:rgba(35,32,26,.62);border-radius:2px;letter-spacing:.08em}
+.card-meta,.excerpt{letter-spacing:.02em}
+/* 归档时间轴：墨点 + 细线 */
+.timeline::before{background:var(--line);width:1px}
+.tl-item::before{background:var(--p1);border-radius:1px;box-shadow:none;width:8px;height:8px;
+  left:-21px;transform:rotate(45deg)}
+.tl-title:hover{color:var(--p1)}
+/* 筛选条 */
+.filter-bar{border-radius:2px;background:transparent;border:1px dashed var(--line);letter-spacing:.06em}
+.filter-bar a{color:var(--p1);border-bottom:0}
+/* 搜索弹窗：宣纸 */
+.search-box{border-radius:4px;background:var(--panel2);box-shadow:0 18px 50px rgba(30,26,20,.18)}
+#search-input{border-radius:2px;background:transparent;border:1px solid var(--line)}
+.sr-item{border-radius:2px;background:transparent}
+.sr-item:hover{border-color:var(--p1);transform:none;background:rgba(157,41,51,.05)}
+/* 侧栏：卷轴 */
+.sidebar{background:var(--bg2);border-right:1px solid var(--line);box-shadow:8px 0 26px rgba(30,26,20,.10)}
+.sidebar-profile{background:linear-gradient(180deg,rgba(190,182,166,.28),transparent)}
+.sidebar-badge{border-radius:2px;color:var(--fg);background:transparent;border:1px solid var(--line);
+  font-family:"STKaiti","Kaiti SC","KaiTi",serif}
+.sidebar-profile h3{color:var(--fg);letter-spacing:.12em}
+.sidebar-profile p{color:var(--muted)}
+.sidebar-menu a{letter-spacing:.08em}
+.sidebar-menu a:hover,.sidebar-menu a.active{color:var(--p1);border-left-color:var(--p1);background:rgba(157,41,51,.05)}
+.sidebar-menu .mi{opacity:.75;font-size:15px}
+/* 页脚：素纸 + 朱砂点 */
+.site-footer{background:transparent;border-top:1px solid var(--line);color:var(--muted)}
+.site-footer a{color:var(--p1)}
+/* 回到顶部 */
+.to-top{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:2px;box-shadow:none}
+.to-top:hover{background:transparent;color:var(--p1);border-color:var(--p1);transform:none}
+/* 正文：宣纸排版 + 水墨标题 */
+.article-body{background:var(--panel2);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow)}
+.article-body h2{border-bottom:1px solid var(--line)}
+.article-body h2::before{content:"▪ ";color:var(--p1);font-size:.72em}
+.article-body h3{color:var(--fg)}
+.article-body blockquote{border-left:2px solid var(--p1);background:rgba(190,182,166,.14);border-radius:0 2px 2px 0}
+.article-body th{background:rgba(190,182,166,.16)}
+.post-header h1{background:none;color:var(--fg);-webkit-text-fill-color:var(--fg)}
+/* 代码块：淡墨 */
+.code{background:#f4f0e8;border:1px solid var(--line);border-radius:2px}
+html[data-theme="dark"] .code{background:#1c1a17}
+.code figcaption{background:rgba(35,32,26,.05);color:var(--muted);letter-spacing:.12em;text-transform:none}
+.code code{color:#2c2925}
+html[data-theme="dark"] .code code{color:#e6e1d6}
+.code .k{color:#8c2b2b;font-weight:600}
+.code .s{color:#46603f}
+.code .c{color:#8d877a;font-style:italic}
+.code .n{color:#7a5a33}
+html[data-theme="dark"] .code .k{color:#d98b8b}
+html[data-theme="dark"] .code .s{color:#9dbf96}
+html[data-theme="dark"] .code .c{color:#8a8478}
+html[data-theme="dark"] .code .n{color:#d8b98a}
+.article-body :not(pre) > code{background:rgba(190,182,166,.22);border:1px solid var(--line);border-radius:2px}
+/* 进度条：一道朱砂细线 */
+.progress{height:2px;background:var(--p1);box-shadow:none}
+/* 关于/留言卡 */
+.about-card,.panel-card{background:var(--panel2);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow)}
+.msg-form input,.msg-form textarea{border-radius:2px;background:transparent}
+.msg-form button{border-radius:2px;background:transparent;color:var(--fg);border:1px solid var(--fg);letter-spacing:.14em}
+.msg-form button:hover{color:var(--p1);border-color:var(--p1);box-shadow:none;transform:none}
+.msg-item{border-radius:2px;background:transparent}
+.wall .wall-item{border-radius:2px;background:transparent}
+.wall .wall-item:hover{border-color:var(--p1);box-shadow:none;transform:none}
+.wall .count{background:transparent;color:var(--p1);border:1px solid var(--p1);border-radius:2px}
+
+/* ==================== 长文本防越界（关键修复）==================== */
+.article-body,.article-body p,.article-body li,.article-body td,.article-body th,
+.article-body h1,.article-body h2,.article-body h3,.article-body blockquote,
+.post-header h1,.post-header .post-meta,.post-card h2,.post-card .excerpt,
+.card-meta,.card-tags,.tag-pill,.cat-badge,.tl-title,.tl-date,.filter-bar,
+.search-result .sr-item,.about-card,.msg-item,.wall-item{
+  overflow-wrap:anywhere; word-break:break-word; min-width:0;
+}
+.article-body pre{white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word; overflow-x:auto}
+.article-body pre code{white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word}
+.article-body a{word-break:break-all}
+.table-wrap{overflow-x:auto; max-width:100%}
+.article-body table{table-layout:auto}
+.card-img,.post-wrap{min-width:0}
+/* ---------- 特效开关（关闭时画布不显示）---------- */
+/* 兜底：封面/卡片图区一律撑满，禁止被 aspect-ratio 压窄 */
+.post-card .card-img{width:100% !important;aspect-ratio:auto !important}
+.cover-grad{position:absolute;inset:0;width:100%;height:100%}
+/* ==================== 武侠水墨增补 ==================== */
+/* 朱砂印章 */
+.seal{width:58px;height:58px;margin:0 auto;display:grid;place-items:center;border-radius:3px;
+  background:#9d2933;color:#f8f5ef;font-family:"STKaiti","Kaiti SC","KaiTi",serif;font-size:32px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.25),0 2px 8px rgba(120,30,35,.28);
+  transform:rotate(-2.5deg);letter-spacing:0}
+.seal-banner{width:52px;height:52px;font-size:28px;margin:0 auto 14px;opacity:.95}
+.brand-seal{display:inline-grid;place-items:center;width:20px;height:20px;margin-right:7px;
+  border-radius:2px;background:#9d2933;color:#f8f5ef;font-size:12px;font-family:"STKaiti","KaiTi",serif;
+  transform:rotate(-3deg)}
+/* 笔触分隔 */
+.brush-rule{width:132px;height:2px;margin:16px auto 2px;border-radius:2px;
+  background:linear-gradient(90deg,transparent,rgba(35,32,26,.55) 22%,rgba(35,32,26,.55) 78%,transparent)}
+html[data-theme="dark"] .brush-rule{background:linear-gradient(90deg,transparent,rgba(235,229,214,.5) 22%,rgba(235,229,214,.5) 78%,transparent)}
+/* 顶栏图标：单色线条 + 文字符 */
+.header-icons a{display:inline-grid;place-items:center;width:38px;height:38px;color:var(--fg);border-radius:2px;
+  font-family:"STKaiti","KaiTi",serif;font-size:16px;letter-spacing:0}
+.header-icons a svg{display:block}
+.header-icons a:hover{background:rgba(157,41,51,.10);color:var(--p1)}
+/* 侧栏：素纸 + 印章，去掉一切彩色渐变 */
+.sidebar{background:var(--bg2);background-image:none}
+.sidebar-profile{background:transparent;border-bottom:1px solid var(--line);padding:30px 22px 22px}
+.sidebar-profile h3{letter-spacing:.22em;margin:16px 0 6px}
+.sidebar-profile p{letter-spacing:.12em}
+.sidebar-menu .mi{width:20px;height:20px;display:inline-grid;place-items:center;color:var(--muted)}
+.sidebar-menu .mi svg{width:17px;height:17px}
+.sidebar-menu a:hover .mi,.sidebar-menu a.active .mi{color:var(--p1)}
+.sidebar-menu a{letter-spacing:.14em}
+/* Banner：印章居中 + 三个单色图标入流 */
+.banner-inner h1{letter-spacing:.30em;text-indent:.30em;font-weight:500}
+.typed-wrap{letter-spacing:.20em}
+.banner-social{position:static;margin:20px 0 0;display:flex;gap:26px;justify-content:center;color:var(--muted)}
+.banner-social a{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:2px;opacity:.9}
+.banner-social a svg{width:18px;height:18px}
+.banner-social a:hover{opacity:1;color:var(--p1);background:rgba(157,41,51,.08);transform:none}
+/* 正文与页脚的分隔符、说明 */
+.card-meta i,.post-meta i{font-style:normal;color:var(--line)}
+.post-meta{gap:8px}
+.post-meta span{letter-spacing:.06em}
+.back-wrap{text-align:center;margin:26px 0 0}
+.foot-rule{width:58px;height:1px;margin:0 auto 16px;background:var(--line)}
+.foot-note{font-size:12.5px;color:var(--muted);letter-spacing:.08em;margin-top:8px}
+.foot-stats{letter-spacing:.06em}
+.pn-item.disabled{opacity:.42}
+.pn-item{border-radius:2px}
+/* 文章标题的朱砂小点 */
+.article-body h2::before{content:"▍ ";color:var(--p1);font-size:.78em}
+/* 分类角标：方角墨底 */
+.cat-badge{border-radius:2px;letter-spacing:.10em}
+/* 大标题下的笔触 */
+.post-header{padding-top:96px}
+/* ==================== 仙侠层（云海 · 仙山 · 描金）==================== */
+:root{--jin:#b08d57;--qing:#4f7d78;--yun:#eef2f4}
+body{background-image:
+  radial-gradient(circle at 12% 6%,rgba(238,242,244,.95),transparent 44%),
+  radial-gradient(circle at 88% 84%,rgba(238,242,244,.8),transparent 46%)}
+/* 云纹分隔（如意图案） */
+.cloud-rule{height:20px;margin:12px auto 0;max-width:520px;opacity:.55;background-repeat:repeat-x;
+  background-position:center;background-size:auto 20px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='20' viewBox='0 0 96 20'%3E%3Cg fill='none' stroke='%23b08d57' stroke-opacity='.6' stroke-width='1.1'%3E%3Cpath d='M2 14c5 0 7-4 12-4s7 4 12 4 7-4 12-4 7 4 12 4 7-4 12-4 7 4 12 4 7-4 12-4'/%3E%3C/g%3E%3Ccircle cx='14' cy='8' r='2' fill='%23b08d57' fill-opacity='.32'/%3E%3Ccircle cx='62' cy='8' r='2' fill='%23b08d57' fill-opacity='.32'/%3E%3C/svg%3E")}
+.site-footer .cloud-rule{margin-bottom:10px}
+/* 描金发丝线 */
+.site-header{border-bottom:1px solid rgba(176,141,87,.26)}
+.site-footer{border-top:0}
+.foot-rule{width:84px;height:1px;margin:0 auto 12px;
+  background:linear-gradient(90deg,transparent,var(--jin),transparent)}
+/* 玉牌卡片 */
+.post-card{background:#fffdf9;border-color:rgba(176,141,87,.26)}
+.post-card:hover{border-color:var(--jin);box-shadow:0 10px 30px rgba(79,125,120,.15)}
+.post-card .card-img{border-bottom:1px solid rgba(176,141,87,.22)}
+.cover-grad{background:linear-gradient(165deg,#f4f7f6,#eaf0ef)}
+.cover-grad{color:rgba(79,125,120,.22)}
+/* 链接与强调：青碧 / 描金 */
+.site-footer a,.about-meta a,.filter-bar a{color:var(--qing)}
+.tag-pill:hover,.post-tags a.tag-pill:hover{color:var(--jin);border-color:var(--jin)}
+.cat-pill:hover{border-color:var(--qing);color:var(--qing)}
+.cat-pill.on{color:var(--jin);border-color:var(--jin)}
+.header-icons a:hover{color:var(--jin);background:rgba(176,141,87,.10)}
+.sidebar{border-right-color:rgba(176,141,87,.22)}
+.sidebar-menu a:hover,.sidebar-menu a.active{color:var(--qing);border-left-color:var(--jin);background:rgba(176,141,87,.06)}
+.sidebar-profile{border-bottom-color:rgba(176,141,87,.22)}
+.article-body h2::before{content:"▍ ";color:var(--jin)}
+.article-body h2{border-bottom-color:rgba(176,141,87,.22)}
+.article-body blockquote{border-left-color:var(--jin);background:rgba(238,242,244,.6)}
+.wall .wall-item:hover{border-color:var(--jin)}
+.filter-bar{border-color:rgba(176,141,87,.3)}
+.to-top{border-color:rgba(176,141,87,.35)}
+.to-top:hover{color:var(--jin);border-color:var(--jin)}
+/* 夜境：墨夜 + 淡金 */
+html[data-theme="dark"]{--bg:#12131a;--bg2:#191a22;--fg:#e9e6de;--muted:#a09a8e;
+  --line:rgba(200,169,120,.20);--jin:#c8a978;--qing:#7fa8a2}
+html[data-theme="dark"] body{background-image:
+  radial-gradient(circle at 14% 8%,rgba(44,54,74,.75),transparent 45%),
+  radial-gradient(circle at 86% 82%,rgba(58,46,74,.6),transparent 46%)}
+html[data-theme="dark"] .post-card{background:#1b1c24}
+html[data-theme="dark"] .cover-grad{background:linear-gradient(165deg,#232630,#1b1e26);color:rgba(200,169,120,.20)}
+/* 云雾缓动 */
+@keyframes mistdrift{from{transform:translateX(-1.5%) scale(1)}to{transform:translateX(1.5%) scale(1.03)}}
+.banner-media{animation:mistdrift 38s ease-in-out infinite alternate}
+/* ==================== 侧栏重做（仙侠卷轴）==================== */
+.sidebar{width:256px;background:#fbfaf6;background-image:
+  radial-gradient(circle at 20% 4%,rgba(238,242,244,.9),transparent 46%),
+  radial-gradient(circle at 90% 92%,rgba(238,242,244,.7),transparent 44%);
+  border-right:1px solid rgba(176,141,87,.30);box-shadow:10px 0 34px rgba(60,50,30,.10)}
+html[data-theme="dark"] .sidebar{background:#191a22;background-image:
+  radial-gradient(circle at 20% 4%,rgba(44,54,74,.6),transparent 46%)}
+.sidebar-close{position:absolute;top:12px;right:14px;width:30px;height:30px;display:grid;place-items:center;
+  color:var(--muted);font-size:20px;line-height:1;border-radius:2px}
+.sidebar-close:hover{color:var(--p1);background:rgba(157,41,51,.08)}
+.sidebar-profile{position:relative;padding:34px 22px 16px;text-align:center;background:transparent;
+  border-bottom:0}
+.sidebar-profile .seal{width:54px;height:54px;font-size:29px}
+.sidebar-profile h3{margin:15px 0 4px;font-family:"STKaiti","Kaiti SC","KaiTi",serif;
+  font-size:21px;letter-spacing:.26em;text-indent:.26em;color:var(--fg)}
+.sidebar-profile p{margin:0;font-size:12.5px;letter-spacing:.10em;color:var(--muted)}
+.sidebar-profile .cloud-rule{margin:14px auto 0;max-width:none;opacity:.5}
+/* 菜单：单字篆意 + 墨字 */
+.sidebar-menu{padding:10px 0 6px}
+.sidebar-menu a{display:flex;align-items:center;gap:14px;padding:13px 22px;border-left:0;
+  color:var(--fg);opacity:.9;transition:.22s;letter-spacing:.14em}
+.sidebar-menu a .ch{width:26px;height:26px;flex:0 0 26px;display:grid;place-items:center;
+  font-family:"STKaiti","Kaiti SC","KaiTi",serif;font-size:15px;color:#f8f5ef;
+  background:#3d3a34;border-radius:2px;transform:rotate(-2deg);opacity:.88;transition:.22s}
+.sidebar-menu a .lb{font-size:15px}
+.sidebar-menu a:hover{background:linear-gradient(90deg,rgba(176,141,87,.12),transparent);
+  padding-left:26px;opacity:1;border-left:0}
+.sidebar-menu a:hover .ch{background:#9d2933;opacity:1;transform:rotate(0deg)}
+.sidebar-menu a.active .ch{background:#9d2933}
+.sidebar-foot{padding:0 0 30px;text-align:center}
+.sidebar-foot .cloud-rule{margin:6px auto 12px;opacity:.45}
+.sidebar-foot p{margin:0;font-size:11.5px;letter-spacing:.08em;color:var(--muted)}
+
+/* ==================== 封面与图标美化 + 在线留言 ==================== */
+/* 封面：绢本拓片 —— 内描金框 + 云纹底 + 淡墨单字 + 朱砂小印 */
+.post-card .card-img{background:linear-gradient(165deg,#f7f9f8,#eef2f1)}
+.cover-grad{background:linear-gradient(165deg,#f7f9f8,#e9efee);display:grid;place-items:center;overflow:hidden}
+.cover-grad::before{content:"";position:absolute;inset:9px;border:1px solid rgba(176,141,87,.38);border-radius:2px}
+.cover-grad::after{content:"";position:absolute;inset:0;opacity:.5;background-repeat:repeat;background-size:84px 22px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='22' viewBox='0 0 84 22'%3E%3Cg fill='none' stroke='%234f7d78' stroke-opacity='.22' stroke-width='1'%3E%3Cpath d='M2 15c5 0 7-4 12-4s7 4 12 4 7-4 12-4 7 4 12 4'/%3E%3C/g%3E%3C/svg%3E")}
+.cover-ch{position:relative;z-index:2;font-family:"STKaiti","Kaiti SC","KaiTi",serif;font-size:66px;
+  color:rgba(35,32,26,.16);letter-spacing:0;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+html[data-theme="dark"] .cover-ch{color:rgba(200,169,120,.20)}
+.post-card .card-img .cat-badge{background:rgba(35,32,26,.70);border-radius:2px;letter-spacing:.10em}
+/* meta 小图标 */
+.card-meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.card-meta span{display:inline-flex;align-items:center;gap:5px}
+.card-meta svg{width:14px;height:14px;flex:0 0 14px;color:var(--jin);opacity:.85}
+.post-meta span{display:inline-flex;align-items:center;gap:5px}
+/* 在线留言 */
+.panel-head{font-family:"STKaiti","Kaiti SC","KaiTi",serif;font-size:17px;letter-spacing:.18em;
+  color:var(--fg);margin:0 0 12px;padding-left:10px;border-left:2px solid var(--jin)}
+.ut-box{min-height:96px;margin:0 0 18px}
+.ut-box iframe{width:100%;border:1px solid rgba(176,141,87,.25);border-radius:2px;background:#fff}
+#ut-fallback .panel-head{margin-top:20px}
+#ut-fallback{border-top:1px solid rgba(176,141,87,.22);padding-top:6px;margin-top:6px}
+/* 雪常开：清掉旧的关闭规则 */
+
+/* ==================== 水墨山水封面 / 预览图 ==================== */
+.cover-grad{background-size:cover;background-position:center;background-repeat:no-repeat}
+.cover-grad::after{content:"";position:absolute;inset:0;z-index:1;
+  background-image:linear-gradient(180deg,rgba(250,251,250,.22),rgba(250,251,250,.08)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='22' viewBox='0 0 84 22'%3E%3Cg fill='none' stroke='%234f7d78' stroke-opacity='.20' stroke-width='1'%3E%3Cpath d='M2 15c5 0 7-4 12-4s7 4 12 4 7-4 12-4 7 4 12 4'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:auto,84px 22px;background-repeat:no-repeat,repeat}
+html[data-theme="dark"] .cover-grad::after{background-image:
+  linear-gradient(180deg,rgba(20,21,28,.38),rgba(20,21,28,.55)),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='22' viewBox='0 0 84 22'%3E%3Cg fill='none' stroke='%23c8a978' stroke-opacity='.18' stroke-width='1'%3E%3Cpath d='M2 15c5 0 7-4 12-4s7 4 12 4 7-4 12-4 7 4 12 4'/%3E%3C/g%3E%3C/svg%3E")}
+.cover-ch{z-index:2}
+/* 文章页顶部预览图 */
+.post-cover{position:relative;height:clamp(190px,36vh,330px);margin:0 0 -6px;
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+  border-bottom:1px solid rgba(176,141,87,.30)}
+.post-cover::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(248,250,249,.06),rgba(248,250,249,.62))}
+html[data-theme="dark"] .post-cover::after{background:linear-gradient(180deg,rgba(18,19,26,.3),rgba(18,19,26,.86))}
+.post-header{padding-top:26px}
+
+/* ==================== 深色模式对比度修正（审计后补齐）==================== */
+html[data-theme="dark"]{--qing:#8fbdb6;--jin:#c8a978;--p1:#d98b8b;--fg:#eae5da;--muted:#b3ada0}
+html[data-theme="dark"] body{color:#eae5da}
+html[data-theme="dark"] .article-body{background:#1e2029;color:#eae5da}
+html[data-theme="dark"] .article-body p,html[data-theme="dark"] .article-body li,
+html[data-theme="dark"] .article-body td,html[data-theme="dark"] .article-body th{color:#eae5da}
+html[data-theme="dark"] .article-body blockquote{background:rgba(255,255,255,.07);color:#ded9cc}
+html[data-theme="dark"] .article-body h3,html[data-theme="dark"] .post-card:hover h2{color:#eae5da}
+html[data-theme="dark"] .article-body h2::before{color:#d98b8b}
+html[data-theme="dark"] .code .k{color:#e39b9b}
+html[data-theme="dark"] .code .s{color:#9dbf96}
+html[data-theme="dark"] .code .n{color:#d8b98a}
+html[data-theme="dark"] .code .c{color:#9a9488}
+html[data-theme="dark"] .code code{color:#e6e1d6}
+html[data-theme="dark"] .btn-round:hover,html[data-theme="dark"] .scroll-hint:hover{color:#f4efe4;border-color:#d98b8b}
+html[data-theme="dark"] .site-footer a,html[data-theme="dark"] .about-meta a,
+html[data-theme="dark"] .filter-bar a,html[data-theme="dark"] .back,
+html[data-theme="dark"] .tl-title:hover,html[data-theme="dark"] .msg-item .who{color:#8fbdb6}
+html[data-theme="dark"] .post-tags a.tag-pill:hover,html[data-theme="dark"] .cat-pill.on,
+html[data-theme="dark"] .wall .count,html[data-theme="dark"] .header-icons a:hover,
+html[data-theme="dark"] .sidebar-menu a:hover,html[data-theme="dark"] .sidebar-menu a.active,
+html[data-theme="dark"] .to-top:hover,html[data-theme="dark"] .banner-social a:hover,
+html[data-theme="dark"] .msg-form button:hover,html[data-theme="dark"] .sidebar-close:hover{color:#d98b8b}
+html[data-theme="dark"] .card-meta i,html[data-theme="dark"] .post-meta i{color:rgba(200,169,120,.45)}
+html[data-theme="dark"] .cover-ch{color:rgba(200,169,120,.22)}
+
+/* ==================== 深色模式「保险丝」（最后写入，!important 确保生效）==================== */
+html[data-theme="dark"] body,html[data-theme="dark"] .hero-sub,html[data-theme="dark"] .page-head .tip,
+html[data-theme="dark"] .article-body,html[data-theme="dark"] .article-body p,html[data-theme="dark"] .article-body li,
+html[data-theme="dark"] .article-body td,html[data-theme="dark"] .article-body th,
+html[data-theme="dark"] .article-body h1,html[data-theme="dark"] .article-body h2,html[data-theme="dark"] .article-body h3,
+html[data-theme="dark"] .post-header h1,html[data-theme="dark"] .post-card h2,html[data-theme="dark"] .post-card h2 a,
+html[data-theme="dark"] .card-body h2{color:#e9e5da !important}
+html[data-theme="dark"] .article-body blockquote,html[data-theme="dark"] .article-body blockquote p,
+html[data-theme="dark"] .article-body blockquote em,html[data-theme="dark"] .article-body blockquote strong
+{color:#ded9cc !important;background:rgba(255,255,255,.07) !important;border-left-color:#c8a978 !important}
+html[data-theme="dark"] .article-body pre code,html[data-theme="dark"] .code code{color:#e6e1d6 !important}
+html[data-theme="dark"] .article-body .k,html[data-theme="dark"] .code .k{color:#eaa1a1 !important}
+html[data-theme="dark"] .article-body .s,html[data-theme="dark"] .code .s{color:#a6c79d !important}
+html[data-theme="dark"] .article-body .n,html[data-theme="dark"] .code .n{color:#dcbf8f !important}
+html[data-theme="dark"] .article-body .c,html[data-theme="dark"] .code .c{color:#9c968a !important}
+html[data-theme="dark"] .article-body :not(pre) > code{color:#efeae0 !important;background:rgba(255,255,255,.10) !important}
+html[data-theme="dark"] a,html[data-theme="dark"] .back,html[data-theme="dark"] .tl-title,
+html[data-theme="dark"] .site-footer a,html[data-theme="dark"] .about-meta a,html[data-theme="dark"] .filter-bar a,
+html[data-theme="dark"] .msg-item .who{color:#93c0b9 !important}
+html[data-theme="dark"] .tip,html[data-theme="dark"] .card-meta,html[data-theme="dark"] .card-meta span,
+html[data-theme="dark"] .post-meta,html[data-theme="dark"] .post-meta span,html[data-theme="dark"] .excerpt,
+html[data-theme="dark"] .foot-note,html[data-theme="dark"] .copyright,html[data-theme="dark"] .tl-date,
+html[data-theme="dark"] .pn-label,html[data-theme="dark"] .card-meta i,html[data-theme="dark"] .post-meta i
+{color:#b6b0a3 !important}
+html[data-theme="dark"] .cat-pill,html[data-theme="dark"] .tag-pill{color:#cdc7ba !important;border-color:rgba(200,169,120,.35) !important}
+html[data-theme="dark"] .cat-pill.on,html[data-theme="dark"] .tag-pill:hover,html[data-theme="dark"] .post-tags a.tag-pill:hover
+{color:#d98b8b !important;border-color:#d98b8b !important}
+html[data-theme="dark"] .sidebar-menu a{color:#ddd8cc !important}
+html[data-theme="dark"] .sidebar-menu a .ch{background:#2b2e38 !important;color:#e9e5da !important}
+html[data-theme="dark"] .sidebar-menu a:hover,html[data-theme="dark"] .sidebar-menu a.active{color:#93c0b9 !important}
+html[data-theme="dark"] .seal,html[data-theme="dark"] .brand-seal{background:#8f2a33 !important}
+html[data-theme="dark"] .pn-item{color:#ddd8cc !important;background:rgba(255,255,255,.05)}
+html[data-theme="dark"] .pn-item.disabled{color:#8d877c !important}
+html[data-theme="dark"] .header-icons a{color:#e9e5da !important}
+html[data-theme="dark"] .btn-round{color:#e9e5da !important;border-color:rgba(233,229,218,.7) !important}
+html[data-theme="dark"] .btn-round:hover{color:#d98b8b !important;border-color:#d98b8b !important}
+html[data-theme="dark"] .to-top{color:#e9e5da !important;background:#1e2029 !important;border-color:rgba(200,169,120,.35) !important}
+html[data-theme="dark"] .wall .count{color:#d98b8b !important;border-color:#d98b8b !important}
+html[data-theme="dark"] .about-card,html[data-theme="dark"] .panel-card,html[data-theme="dark"] .msg-item{background:#1e2029 !important;color:#e9e5da !important}
+html[data-theme="dark"] .msg-form input,html[data-theme="dark"] .msg-form textarea{background:#15161d !important;color:#e9e5da !important;border-color:rgba(200,169,120,.3) !important}
+html[data-theme="dark"] .search-box{background:#1e2029 !important}
+html[data-theme="dark"] #search-input{background:#15161d !important;color:#e9e5da !important}
+html[data-theme="dark"] .sr-item{color:#e9e5da !important}
+html[data-theme="dark"] .sr-item .sr-d{color:#b6b0a3 !important}
+html[data-theme="dark"] .code{background:#15171f !important;border-color:rgba(200,169,120,.22) !important}
+html[data-theme="dark"] .table-wrap{border-color:rgba(200,169,120,.22) !important}
+html[data-theme="dark"] .article-body th{background:rgba(255,255,255,.06) !important;color:#e9e5da !important}
+html[data-theme="dark"] .article-body h2{border-bottom-color:rgba(200,169,120,.28) !important}
+html[data-theme="dark"] .article-body h2::before{color:#d98b8b !important}
+
+/* ==================== 最终风格：稳重厚实 · 大气优雅 ==================== */
+body{font-size:16.5px;line-height:2.0}
+.container{max-width:1080px}
+.site-header{background:#f4f1ea;color:var(--fg);border-bottom:2px solid rgba(35,32,26,.85);
+  box-shadow:0 2px 0 rgba(176,141,87,.55);backdrop-filter:none}
+.site-header.solid{background:#f4f1ea;box-shadow:0 2px 0 rgba(176,141,87,.55)}
+.header-brand{font-weight:700;letter-spacing:.18em;font-size:21px}
+.brand-seal{width:22px;height:22px;font-size:13px;border-radius:0}
+.header-icons a{width:40px;height:40px;font-size:17px;border-radius:0}
+.banner-inner h1{font-weight:700;letter-spacing:.34em;text-indent:.34em}
+.brush-rule{height:3px;width:190px;background:linear-gradient(90deg,transparent,rgba(35,32,26,.8) 26%,rgba(35,32,26,.8) 74%,transparent)}
+.seal{border-radius:0;box-shadow:0 3px 0 rgba(0,0,0,.20)}
+.btn-round{border:2px solid rgba(35,32,26,.85);border-radius:0;font-weight:700;letter-spacing:.22em;padding:12px 26px}
+.btn-round:hover{background:var(--p1);border-color:var(--p1);color:#fff}
+.post-card{border:2px solid rgba(35,32,26,.55);border-radius:0;background:#fffdf8;
+  box-shadow:7px 7px 0 rgba(176,141,87,.20)}
+.post-card:hover{border-color:var(--p1);box-shadow:11px 11px 0 rgba(157,41,51,.18);transform:none}
+.post-card .card-img{border-bottom:2px solid rgba(35,32,26,.5)}
+.post-card .card-body{border-top:2px solid rgba(35,32,26,.5)}
+.post-card h2{font-weight:700}
+.cat-badge{background:rgba(35,32,26,.88);border-radius:0;font-weight:600;letter-spacing:.14em}
+.cat-pill,.tag-pill{border-width:1.5px;border-radius:0;font-weight:600}
+.cat-pill.on{background:var(--p1);color:#fff;border-color:var(--p1)}
+.tag-pill:hover{border-color:var(--p1)}
+.article-body{border:2px solid rgba(35,32,26,.45);border-radius:0;background:#fffdf8}
+.article-body h2{border-bottom:2px solid rgba(35,32,26,.5);font-weight:700;letter-spacing:.06em}
+.article-body h3{font-weight:700}
+.post-header h1{font-weight:700;letter-spacing:.04em}
+.post-cover{border-bottom:2px solid rgba(35,32,26,.5)}
+.code{border:2px solid rgba(35,32,26,.45);border-radius:0}
+.table-wrap{border:2px solid rgba(35,32,26,.45);border-radius:0}
+.article-body th{font-weight:700}
+.sidebar{border-right:2px solid rgba(35,32,26,.55);box-shadow:10px 0 0 rgba(176,141,87,.14)}
+.sidebar-menu a{border-bottom:1px solid rgba(35,32,26,.14);padding:15px 22px;letter-spacing:.16em}
+.sidebar-menu a .ch{border-radius:0;background:rgba(35,32,26,.9);font-weight:600}
+.sidebar-menu a:hover .ch{background:var(--p1)}
+.site-footer{background:#26241f;color:#e8e3d8;border-top:3px double var(--jin);padding:42px 18px 34px}
+.site-footer .copyright,.site-footer .foot-stats,.site-footer .foot-note{color:#cfc8ba}
+.site-footer a{color:#dcbd91}
+.foot-rule{background:var(--jin);height:2px;width:120px}
+.site-footer .cloud-rule{opacity:.30}
+.panel-card,.about-card{border:2px solid rgba(35,32,26,.45);border-radius:0;box-shadow:7px 7px 0 rgba(176,141,87,.18);background:#fffdf8}
+.panel-head{border-left:4px solid var(--p1);font-weight:700;letter-spacing:.22em;padding-left:12px}
+.ut-box iframe{border:2px solid rgba(35,32,26,.35);border-radius:0;background:#fff}
+.tip.small{font-size:12.5px;opacity:.85}
+.msg-form input,.msg-form textarea{border:2px solid rgba(35,32,26,.35);border-radius:0;background:#fff}
+.msg-form button{background:var(--p1);color:#fff;border:0;border-radius:0;font-weight:700;letter-spacing:.22em;padding:14px}
+.msg-form button:hover{background:#7d1f27;transform:none;box-shadow:none}
+.wall .wall-item{border:2px solid rgba(35,32,26,.4);border-radius:0}
+.timeline::before{width:2px;background:rgba(35,32,26,.4)}
+.tl-item::before{background:var(--p1)}
+.to-top{border:2px solid rgba(35,32,26,.8);border-radius:0;background:#fbfaf6;color:var(--fg);font-size:20px}
+.search-box{border:2px solid rgba(35,32,26,.45);border-radius:0}
+/* 深色镜像（保持高对比） */
+html[data-theme="dark"]{--fg:#eae5da;--muted:#b6b0a3}
+html[data-theme="dark"] .site-header,html[data-theme="dark"] .site-header.solid{background:#171821;border-bottom-color:#eae5da;box-shadow:0 2px 0 rgba(200,169,120,.45)}
+html[data-theme="dark"] .post-card{border-color:rgba(234,229,218,.5);background:#1b1d25;box-shadow:7px 7px 0 rgba(200,169,120,.14)}
+html[data-theme="dark"] .post-card .card-img,html[data-theme="dark"] .post-card .card-body{border-color:rgba(234,229,218,.4)}
+html[data-theme="dark"] .cat-badge{background:#eae5da;color:#171821}
+html[data-theme="dark"] .article-body{border-color:rgba(234,229,218,.4);background:#1e2029}
+html[data-theme="dark"] .article-body h2{border-bottom-color:rgba(234,229,218,.4)}
+html[data-theme="dark"] .code,html[data-theme="dark"] .table-wrap{border-color:rgba(234,229,218,.35)}
+html[data-theme="dark"] .sidebar{border-right-color:rgba(234,229,218,.5);box-shadow:10px 0 0 rgba(200,169,120,.10)}
+html[data-theme="dark"] .sidebar-menu a{border-bottom-color:rgba(234,229,218,.14)}
+html[data-theme="dark"] .sidebar-menu a .ch{background:#eae5da;color:#171821}
+html[data-theme="dark"] .site-footer{background:#0f1015;border-top-color:var(--jin);color:#e8e3d8}
+html[data-theme="dark"] .site-footer .copyright,html[data-theme="dark"] .site-footer .foot-stats,html[data-theme="dark"] .site-footer .foot-note{color:#c8c2b4}
+html[data-theme="dark"] .panel-card,html[data-theme="dark"] .about-card{background:#1e2029;border-color:rgba(234,229,218,.4)}
+html[data-theme="dark"] .msg-form input,html[data-theme="dark"] .msg-form textarea{background:#15161d;color:#eae5da}
+html[data-theme="dark"] .to-top{background:#1e2029;color:#eae5da;border-color:rgba(234,229,218,.7)}
+html[data-theme="dark"] .wall .wall-item{border-color:rgba(234,229,218,.35)}
+html[data-theme="dark"] .btn-round{border-color:rgba(234,229,218,.8);color:#eae5da}
+html[data-theme="dark"] .btn-round:hover{background:#d98b8b;border-color:#d98b8b;color:#171821}
+html[data-theme="dark"] .ut-box iframe{border-color:rgba(234,229,218,.3)}
+
+/* ==================== 终版：稳重厚实 · 大气优雅（强覆盖，最后生效）==================== */
+:root{--paper:#f5f2ea;--ink:#23201a;--seal:#9d2933;--gold:#b08d57;--gold-l:#c8a978}
+body{background:var(--paper) !important;background-image:none !important;color:var(--ink) !important;
+  font:17px/2.05 "Songti SC","Noto Serif SC",Georgia,"STSong",serif !important}
+h1,h2,h3,.hero-title,.post-card h2,.header-brand,.panel-head,.sidebar-profile h3{
+  font-family:"STKaiti","Kaiti SC","KaiTi",serif !important;font-weight:700 !important;letter-spacing:.18em}
+.site-header,.site-header.solid{background:var(--ink) !important;color:#f3efe6 !important;
+  border-bottom:2px solid var(--gold) !important;box-shadow:none !important;backdrop-filter:none !important}
+.header-brand,.header-brand span{color:#f3efe6 !important;text-shadow:none !important}
+.header-icons a{color:#f3efe6 !important;background:transparent !important;border:0 !important}
+.header-icons a:hover{background:rgba(255,255,255,.14) !important;color:#fff !important}
+.brand-seal{background:var(--seal) !important;color:#fff !important;border-radius:0 !important;transform:none !important}
+.banner{display:block !important;min-height:auto !important;padding:24px 0 8px !important;background:var(--paper) !important}
+.banner::after{display:none !important}
+.banner-media{position:relative !important;inset:auto !important;height:clamp(150px,26vh,230px) !important;
+  margin:0 16px !important;border:3px solid var(--ink) !important;
+  box-shadow:9px 9px 0 rgba(176,141,87,.30) !important;animation:none !important;z-index:1 !important}
+.banner-inner{padding:20px 16px 6px !important;color:var(--ink) !important}
+.banner-inner h1{font-size:clamp(30px,7.4vw,54px) !important;color:var(--ink) !important;
+  letter-spacing:.30em !important;text-indent:.30em !important;margin:14px 0 6px !important;text-shadow:none !important}
+.typed-wrap{color:#6b6459 !important;letter-spacing:.18em !important}
+.brush-rule{width:150px !important;height:4px !important;background:var(--seal) !important;margin:12px auto 0 !important}
+.cloud-rule{opacity:.32 !important}
+.seal{border-radius:0 !important;background:var(--seal) !important;color:#fff !important;
+  box-shadow:3px 3px 0 rgba(35,32,26,.26) !important;transform:none !important}
+.seal-banner{width:46px !important;height:46px !important;font-size:23px !important;margin:0 auto !important}
+.btn-round{background:var(--ink) !important;color:#f3efe6 !important;border:2px solid var(--ink) !important;
+  border-radius:0 !important;font-weight:700 !important;letter-spacing:.20em !important;padding:12px 24px !important}
+.btn-round:hover{background:var(--seal) !important;border-color:var(--seal) !important;color:#fff !important}
+.banner-social a{color:#5f594e !important}
+.banner-social a:hover{color:var(--seal) !important;background:transparent !important}
+.page-main{padding:22px 16px 46px !important;max-width:1060px !important}
+.page-head h1{letter-spacing:.26em !important;text-indent:.26em !important}
+.cat-strip{gap:8px !important;margin:0 0 16px !important}
+.cat-pill{background:transparent !important;border:2px solid rgba(35,32,26,.55) !important;border-radius:0 !important;
+  color:#3c372d !important;font-weight:700 !important;letter-spacing:.10em !important;padding:6px 14px !important}
+.cat-pill.on{background:var(--seal) !important;border-color:var(--seal) !important;color:#fff !important}
+.post-card{background:#fffdf7 !important;border:3px solid var(--ink) !important;border-radius:0 !important;
+  box-shadow:10px 10px 0 rgba(176,141,87,.30) !important;overflow:hidden !important}
+.post-card:hover{transform:none !important;border-color:var(--seal) !important;
+  box-shadow:10px 10px 0 rgba(157,41,51,.28) !important}
+.post-card .card-img{border-bottom:3px solid var(--ink) !important;height:170px !important;aspect-ratio:auto !important}
+.post-card .card-body{padding:16px 18px 15px !important;border-top:0 !important}
+.post-card h2{font-size:20px !important;line-height:1.5 !important}
+.cat-badge{background:var(--ink) !important;color:#f6f2e9 !important;border-radius:0 !important;
+  font-weight:700 !important;letter-spacing:.14em !important;padding:5px 12px !important}
+.card-meta{color:#6b6459 !important;font-size:13px !important}
+.tag-pill{background:transparent !important;border:2px solid rgba(35,32,26,.42) !important;border-radius:0 !important;
+  color:#4a4438 !important;font-weight:600 !important}
+.tag-pill:hover{border-color:var(--seal) !important;color:var(--seal) !important}
+.post-cover{height:clamp(170px,30vh,280px) !important;border:3px solid var(--ink) !important;border-radius:0 !important;
+  box-shadow:10px 10px 0 rgba(176,141,87,.28) !important;margin:18px 16px 0 !important}
+.post-header{padding:22px 16px 14px !important}
+.post-header h1{font-size:clamp(23px,4.8vw,34px) !important;letter-spacing:.06em !important}
+.post-meta{color:#6b6459 !important}
+.post-wrap{padding:0 16px !important}
+.article-body{background:#fffdf7 !important;border:3px solid var(--ink) !important;border-radius:0 !important;
+  box-shadow:10px 10px 0 rgba(176,141,87,.24) !important;padding:24px 22px !important}
+.article-body h2{border-bottom:2px solid rgba(35,32,26,.55) !important;padding:0 0 8px 16px !important;
+  position:relative !important;font-weight:700 !important}
+.article-body h2::before{content:"" !important;position:absolute !important;left:0 !important;top:5px !important;
+  width:6px !important;height:22px !important;background:var(--seal) !important}
+.article-body h3{font-weight:700 !important}
+.article-body blockquote{background:#f1ece1 !important;border-left:5px solid var(--seal) !important;
+  border-radius:0 !important;color:#4a4438 !important}
+.code{background:#f4f0e6 !important;border:2px solid rgba(35,32,26,.5) !important;border-radius:0 !important}
+.table-wrap{border:2px solid rgba(35,32,26,.5) !important;border-radius:0 !important}
+.article-body th{background:var(--ink) !important;color:#f6f2e9 !important;font-weight:700 !important}
+.sidebar{background:var(--paper) !important;border-right:3px solid var(--ink) !important;
+  box-shadow:12px 0 0 rgba(176,141,87,.18) !important}
+.sidebar-profile{background:var(--ink) !important;padding:26px 20px 20px !important}
+.sidebar-profile h3,.sidebar-profile p{color:#f3efe6 !important}
+.sidebar-menu a{border-bottom:1px solid rgba(35,32,26,.2) !important;color:#2f2b23 !important;
+  font-weight:600 !important;letter-spacing:.16em !important;padding:14px 20px !important}
+.sidebar-menu a:hover,.sidebar-menu a.active{background:#efe9dc !important;border-left:5px solid var(--seal) !important}
+.sidebar-menu a .ch{background:transparent !important;color:var(--seal) !important;
+  border:1px solid rgba(157,41,51,.45) !important;border-radius:0 !important;transform:none !important;font-weight:700 !important}
+.site-footer{background:var(--ink) !important;color:#e9e3d6 !important;
+  border-top:3px solid var(--gold) !important;padding:34px 18px 28px !important;margin-top:34px !important}
+.site-footer .copyright,.site-footer .foot-stats,.site-footer .foot-note{color:#cdc6b6 !important}
+.site-footer a{color:var(--gold-l) !important}
+.foot-rule{background:var(--gold) !important;height:2px !important;width:110px !important}
+.panel-card,.about-card{background:#fffdf7 !important;border:3px solid var(--ink) !important;border-radius:0 !important;
+  box-shadow:10px 10px 0 rgba(176,141,87,.24) !important}
+.panel-head{border-left:5px solid var(--seal) !important;font-weight:700 !important;letter-spacing:.20em !important}
+.ut-box iframe{border:2px solid rgba(35,32,26,.5) !important;border-radius:0 !important}
+.msg-form input,.msg-form textarea{border:2px solid rgba(35,32,26,.45) !important;border-radius:0 !important;background:#fff !important}
+.msg-form button{background:var(--seal) !important;color:#fff !important;border:0 !important;border-radius:0 !important;
+  font-weight:700 !important;letter-spacing:.20em !important;padding:14px !important}
+.wall .wall-item{border:2px solid rgba(35,32,26,.5) !important;border-radius:0 !important;background:#fffdf7 !important}
+.to-top{background:var(--ink) !important;color:#f6f2e9 !important;border:2px solid var(--gold) !important;border-radius:0 !important}
+.search-box{background:#fffdf7 !important;border:3px solid var(--ink) !important;border-radius:0 !important}
+html[data-theme="dark"]{--paper:#15161d;--ink:#eae5da;--seal:#d98b8b;--gold:#c8a978;--gold-l:#d9b98a}
+html[data-theme="dark"] body{background:#15161d !important;color:#eae5da !important}
+html[data-theme="dark"] .site-header,html[data-theme="dark"] .site-header.solid{background:#0f1015 !important}
+html[data-theme="dark"] .banner{background:#15161d !important}
+html[data-theme="dark"] .banner-media{border-color:#eae5da !important;box-shadow:9px 9px 0 rgba(200,169,120,.18) !important}
+html[data-theme="dark"] .banner-inner,html[data-theme="dark"] .banner-inner h1{color:#eae5da !important}
+html[data-theme="dark"] .typed-wrap{color:#b8b2a5 !important}
+html[data-theme="dark"] .btn-round{background:#eae5da !important;color:#15161d !important;border-color:#eae5da !important}
+html[data-theme="dark"] .btn-round:hover{background:var(--seal) !important;border-color:var(--seal) !important;color:#15161d !important}
+html[data-theme="dark"] .cat-pill{border-color:rgba(234,229,218,.5) !important;color:#ded8cb !important}
+html[data-theme="dark"] .cat-pill.on{background:var(--seal) !important;border-color:var(--seal) !important;color:#15161d !important}
+html[data-theme="dark"] .post-card{background:#1c1e26 !important;border-color:#eae5da !important;box-shadow:10px 10px 0 rgba(200,169,120,.16) !important}
+html[data-theme="dark"] .post-card .card-img{border-bottom-color:#eae5da !important}
+html[data-theme="dark"] .cat-badge{background:#eae5da !important;color:#15161d !important}
+html[data-theme="dark"] .tag-pill{border-color:rgba(234,229,218,.42) !important;color:#ded8cb !important}
+html[data-theme="dark"] .article-body{background:#1c1e26 !important;border-color:#eae5da !important}
+html[data-theme="dark"] .article-body h2{border-bottom-color:rgba(234,229,218,.45) !important}
+html[data-theme="dark"] .article-body blockquote{background:#242732 !important;color:#ded9cc !important}
+html[data-theme="dark"] .code{background:#15171f !important;border-color:rgba(234,229,218,.4) !important}
+html[data-theme="dark"] .table-wrap{border-color:rgba(234,229,218,.4) !important}
+html[data-theme="dark"] .article-body th{background:#eae5da !important;color:#15161d !important}
+html[data-theme="dark"] .sidebar{background:#15161d !important;border-right-color:#eae5da !important}
+html[data-theme="dark"] .sidebar-profile{background:#0f1015 !important}
+html[data-theme="dark"] .sidebar-menu a{color:#ded8cb !important;border-bottom-color:rgba(234,229,218,.18) !important}
+html[data-theme="dark"] .sidebar-menu a:hover,html[data-theme="dark"] .sidebar-menu a.active{background:#1c1e26 !important;border-left-color:var(--seal) !important}
+html[data-theme="dark"] .sidebar-menu a .ch{color:var(--seal) !important;border-color:rgba(217,139,139,.5) !important}
+html[data-theme="dark"] .site-footer{background:#0f1015 !important;color:#e9e3d6 !important}
+html[data-theme="dark"] .panel-card,html[data-theme="dark"] .about-card{background:#1c1e26 !important;border-color:#eae5da !important}
+html[data-theme="dark"] .msg-form input,html[data-theme="dark"] .msg-form textarea{background:#15171f !important;color:#eae5da !important}
+html[data-theme="dark"] .to-top{background:#eae5da !important;color:#15161d !important}
+html[data-theme="dark"] .wall .wall-item{background:#1c1e26 !important;border-color:rgba(234,229,218,.45) !important}
+html[data-theme="dark"] .search-box{background:#1c1e26 !important;border-color:#eae5da !important}
+
+/* ==================== 卡片封面：双剑（剑尖相对）==================== */
+.cover-ch{display:none !important}
+.cover-swords{position:absolute;z-index:2;width:74%;height:50%;left:13%;top:25%;
+  background-repeat:no-repeat;background-position:center;background-size:contain;
+  filter:drop-shadow(0 1px 0 rgba(255,255,255,.5))}
+.cover-swords{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20260%2060%27%3E%3Cg%20transform%3D%27translate(0%2C10)%27%3E%3Cg%3E%3Cpath%20d%3D%27M22%2020%20L104%2016.4%20L112%2020%20L104%2023.6%20Z%27%20fill%3D%27%232b2820%27%2F%3E%3Cpath%20d%3D%27M26%2020%20L104%2018.9%20L108.5%2020%20L104%2021.1%20Z%27%20fill%3D%27%23c8a978%27%20fill-opacity%3D%27.55%27%2F%3E%3Crect%20x%3D%2714%27%20y%3D%279.5%27%20width%3D%277%27%20height%3D%2721%27%20rx%3D%271.5%27%20fill%3D%27%23b08d57%27%20stroke%3D%27%232b2820%27%20stroke-width%3D%271%27%2F%3E%3Crect%20x%3D%272.6%27%20y%3D%2716%27%20width%3D%2712%27%20height%3D%278%27%20rx%3D%272%27%20fill%3D%27%232b2820%27%2F%3E%3Cg%20stroke%3D%27%239d2933%27%20stroke-width%3D%271.3%27%3E%3Cpath%20d%3D%27M5.4%2016.5v7M8.8%2016.5v7M12.2%2016.5v7%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%272.6%27%20cy%3D%2720%27%20r%3D%273.3%27%20fill%3D%27%239d2933%27%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate(260%2C10)%20scale(-1%2C1)%27%3E%3Cg%3E%3Cpath%20d%3D%27M22%2020%20L104%2016.4%20L112%2020%20L104%2023.6%20Z%27%20fill%3D%27%232b2820%27%2F%3E%3Cpath%20d%3D%27M26%2020%20L104%2018.9%20L108.5%2020%20L104%2021.1%20Z%27%20fill%3D%27%23c8a978%27%20fill-opacity%3D%27.55%27%2F%3E%3Crect%20x%3D%2714%27%20y%3D%279.5%27%20width%3D%277%27%20height%3D%2721%27%20rx%3D%271.5%27%20fill%3D%27%23b08d57%27%20stroke%3D%27%232b2820%27%20stroke-width%3D%271%27%2F%3E%3Crect%20x%3D%272.6%27%20y%3D%2716%27%20width%3D%2712%27%20height%3D%278%27%20rx%3D%272%27%20fill%3D%27%232b2820%27%2F%3E%3Cg%20stroke%3D%27%239d2933%27%20stroke-width%3D%271.3%27%3E%3Cpath%20d%3D%27M5.4%2016.5v7M8.8%2016.5v7M12.2%2016.5v7%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%272.6%27%20cy%3D%2720%27%20r%3D%273.3%27%20fill%3D%27%239d2933%27%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3Cpath%20d%3D%27M118%2030h24%27%20stroke%3D%27%23b08d57%27%20stroke-width%3D%271.2%27%20stroke-dasharray%3D%273%204%27%20stroke-opacity%3D%27.75%27%2F%3E%3C%2Fsvg%3E")}
+html[data-theme="dark"] .cover-swords{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20260%2060%27%3E%3Cg%20transform%3D%27translate(0%2C10)%27%3E%3Cg%3E%3Cpath%20d%3D%27M22%2020%20L104%2016.4%20L112%2020%20L104%2023.6%20Z%27%20fill%3D%27%23eae5da%27%2F%3E%3Cpath%20d%3D%27M26%2020%20L104%2018.9%20L108.5%2020%20L104%2021.1%20Z%27%20fill%3D%27%238a7350%27%20fill-opacity%3D%27.55%27%2F%3E%3Crect%20x%3D%2714%27%20y%3D%279.5%27%20width%3D%277%27%20height%3D%2721%27%20rx%3D%271.5%27%20fill%3D%27%23c8a978%27%20stroke%3D%27%23eae5da%27%20stroke-width%3D%271%27%2F%3E%3Crect%20x%3D%272.6%27%20y%3D%2716%27%20width%3D%2712%27%20height%3D%278%27%20rx%3D%272%27%20fill%3D%27%23eae5da%27%2F%3E%3Cg%20stroke%3D%27%23d98b8b%27%20stroke-width%3D%271.3%27%3E%3Cpath%20d%3D%27M5.4%2016.5v7M8.8%2016.5v7M12.2%2016.5v7%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%272.6%27%20cy%3D%2720%27%20r%3D%273.3%27%20fill%3D%27%23d98b8b%27%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate(260%2C10)%20scale(-1%2C1)%27%3E%3Cg%3E%3Cpath%20d%3D%27M22%2020%20L104%2016.4%20L112%2020%20L104%2023.6%20Z%27%20fill%3D%27%23eae5da%27%2F%3E%3Cpath%20d%3D%27M26%2020%20L104%2018.9%20L108.5%2020%20L104%2021.1%20Z%27%20fill%3D%27%238a7350%27%20fill-opacity%3D%27.55%27%2F%3E%3Crect%20x%3D%2714%27%20y%3D%279.5%27%20width%3D%277%27%20height%3D%2721%27%20rx%3D%271.5%27%20fill%3D%27%23c8a978%27%20stroke%3D%27%23eae5da%27%20stroke-width%3D%271%27%2F%3E%3Crect%20x%3D%272.6%27%20y%3D%2716%27%20width%3D%2712%27%20height%3D%278%27%20rx%3D%272%27%20fill%3D%27%23eae5da%27%2F%3E%3Cg%20stroke%3D%27%23d98b8b%27%20stroke-width%3D%271.3%27%3E%3Cpath%20d%3D%27M5.4%2016.5v7M8.8%2016.5v7M12.2%2016.5v7%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%272.6%27%20cy%3D%2720%27%20r%3D%273.3%27%20fill%3D%27%23d98b8b%27%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3Cpath%20d%3D%27M118%2030h24%27%20stroke%3D%27%23c8a978%27%20stroke-width%3D%271.2%27%20stroke-dasharray%3D%273%204%27%20stroke-opacity%3D%27.75%27%2F%3E%3C%2Fsvg%3E")}
+@media (max-width:420px){.cover-swords{width:82%;height:46%;left:9%;top:27%}}
+
+/* ==================== 顶栏配色统一（品牌 / 印章 / 图标同色阶）==================== */
+.site-header,.site-header.solid{background:#1c1a16 !important}
+html[data-theme="dark"] .site-header,html[data-theme="dark"] .site-header.solid{background:#0e1014 !important}
+.header-brand,.header-brand span{color:#ffffff !important}
+.brand-seal{background:#9d2933 !important;color:#ffffff !important;border:1px solid rgba(255,255,255,.35) !important;
+  font-family:"STKaiti","KaiTi",Georgia,serif !important;font-size:14px !important;letter-spacing:0 !important}
+.header-icons a{color:#f2eee6 !important}
+.header-icons a:hover{color:#ffffff !important;background:rgba(255,255,255,.14) !important}
+html[data-theme="dark"] .brand-seal{background:#d98b8b !important;color:#14161a !important}
+/* 侧栏顶部同名色阶 */
+.sidebar-profile{background:#1c1a16 !important}
+html[data-theme="dark"] .sidebar-profile{background:#0e1014 !important}
+.sidebar-profile h3{color:#ffffff !important}
+.sidebar-profile p{color:#cfc8ba !important}
+
+/* ==================== 文章配图：.post-figure（图 + 图注）==================== */
+.article-body img{max-width:100%;height:auto;border-radius:0}
+.post-figure{margin:28px 0;padding:0;text-align:center}
+.post-figure img{display:block;width:100%;max-width:100%;height:auto;background:#fffdf9;
+  border:3px solid #23201a !important;box-shadow:10px 10px 0 rgba(176,141,87,.55) !important}
+.post-figure figcaption{margin-top:12px;font-family:"STKaiti","KaiTi",Georgia,serif;font-size:13.5px;
+  letter-spacing:.14em;color:#6d675c !important;text-align:center}
+.post-figure figcaption::before{content:"—— "}
+.post-figure figcaption::after{content:" ——"}
+html[data-theme="dark"] .post-figure img{background:#1e2029;border-color:#e9e5da !important;
+  box-shadow:10px 10px 0 rgba(0,0,0,.55) !important}
+html[data-theme="dark"] .post-figure figcaption{color:#b3ada0 !important}
+</style>
+<script>window.__VQ="?v=mufoubee";</script>
+    <script>window.__POSTS=[];</script>
+</head>
+<body data-depth="1">
+<div class="progress" id="progress"></div>
+<canvas id="snow-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1"></canvas>
+<canvas id="dream-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:60"></canvas>
+<header class="site-header" id="site-header">
+  <a class="menu-btn" id="menu-btn" href="javascript:;" aria-label="菜单"><i></i><i></i><i></i></a>
+  <a class="header-brand" href="../index.html?v=mufoubee"><span class="brand-seal">Z</span>ZY驿站</a>
+  <nav class="header-icons">
+    <a href="javascript:;" id="search-btn" aria-label="检索"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></a>
+    <a href="javascript:;" id="theme-btn" aria-label="切换昼夜">墨</a>
+  </nav>
+</header>
+<div class="sidebar-mask" id="sidebar-mask"></div>
+<aside class="sidebar" id="sidebar">
+  <a href="javascript:;" class="sidebar-close" id="sidebar-close" aria-label="收起">×</a>
+  <div class="sidebar-profile">
+    <div class="seal">Z</div>
+    <h3>ZY驿站</h3>
+    <p>代码 · 逆向 · 一直在路上</p>
+    <div class="cloud-rule"></div>
+  </div>
+  <nav class="sidebar-menu">
+    <a href="../index.html?v=mufoubee"><i class="ch">首</i><span class="lb">首页</span></a>
+    <a href="../tags.html?v=mufoubee"><i class="ch">签</i><span class="lb">标签</span></a>
+    <a href="../categories.html?v=mufoubee"><i class="ch">类</i><span class="lb">分类</span></a>
+    <a href="../archive.html?v=mufoubee"><i class="ch">档</i><span class="lb">归档</span></a>
+    <a href="../about.html?v=mufoubee"><i class="ch">关</i><span class="lb">关于</span></a>
+    <a href="../contact.html?v=mufoubee"><i class="ch">言</i><span class="lb">留言板</span></a>
+    <a href="../friends.html?v=mufoubee"><i class="ch">链</i><span class="lb">友情链接</span></a>
+    <a href="https://github.com/JM-919" target="_blank" rel="noopener"><i class="ch">码</i><span class="lb">GitHub</span></a>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="cloud-rule"></div>
+  </div>
+</aside>
+<main>
+  <div class="post-cover" style="background-image:url(data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%201200%20600%27%3E%3Crect%20width%3D%271200%27%20height%3D%27600%27%20fill%3D%27%23f7f4ec%27%2F%3E%3Cpath%20d%3D%27M0%20470%20C%20180%20420%20320%20460%20470%20424%20C%20620%20388%20780%20448%20940%20420%20C%201060%20400%201140%20424%201200%20412%20L1200%20600%20L0%20600%20Z%27%20fill%3D%27%238fa3a6%27%20fill-opacity%3D%27.14%27%2F%3E%3Crect%20x%3D%27376%27%20y%3D%2776%27%20width%3D%27448%27%20height%3D%27448%27%20fill%3D%27%23e8d9b6%27%20stroke%3D%27%23b08d57%27%20stroke-width%3D%273%27%2F%3E%3Cpath%20d%3D%27M402%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%272.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20102H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%272.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M424%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20124H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M446%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20146H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M468%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20168H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M490%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20190H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M512%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20212H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M534%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20234H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M556%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20256H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M578%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20278H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M600%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.9%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20300H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.9%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M622%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20322H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M644%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20344H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M666%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20366H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M688%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20388H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M710%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20410H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M732%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20432H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M754%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20454H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M776%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20476H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%271.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M798%20102V498%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%272.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Cpath%20d%3D%27M402%20498H798%27%20stroke%3D%27%232f2a22%27%20stroke-width%3D%272.2%27%20stroke-opacity%3D%27.85%27%2F%3E%3Ccircle%20cx%3D%27468%27%20cy%3D%27168%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27468%27%20cy%3D%27300%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27468%27%20cy%3D%27432%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27168%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27300%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27432%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27732%27%20cy%3D%27168%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27732%27%20cy%3D%27300%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27732%27%20cy%3D%27432%27%20r%3D%272.6%27%20fill%3D%27%232f2a22%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27300%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27597%27%20cy%3D%27296.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27622%27%20cy%3D%27300%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27619%27%20cy%3D%27296.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27322%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27597%27%20cy%3D%27318.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27622%27%20cy%3D%27322%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27619%27%20cy%3D%27318.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27578%27%20cy%3D%27300%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27575%27%20cy%3D%27296.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27644%27%20cy%3D%27322%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27641%27%20cy%3D%27318.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27278%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27597%27%20cy%3D%27274.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27622%27%20cy%3D%27344%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27619%27%20cy%3D%27340.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27578%27%20cy%3D%27278%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27575%27%20cy%3D%27274.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27644%27%20cy%3D%27344%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27641%27%20cy%3D%27340.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27556%27%20cy%3D%27300%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27553%27%20cy%3D%27296.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27666%27%20cy%3D%27322%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27663%27%20cy%3D%27318.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27600%27%20cy%3D%27256%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27597%27%20cy%3D%27252.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27622%27%20cy%3D%27366%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27619%27%20cy%3D%27362.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27534%27%20cy%3D%27234%27%20r%3D%2710%27%20fill%3D%27%231f1c18%27%2F%3E%3Ccircle%20cx%3D%27531%27%20cy%3D%27230.6%27%20r%3D%273%27%20fill%3D%27%235a5247%27%20opacity%3D%27.55%27%2F%3E%3Ccircle%20cx%3D%27666%27%20cy%3D%27366%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27663%27%20cy%3D%27362.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Ccircle%20cx%3D%27468%27%20cy%3D%27168%27%20r%3D%2710%27%20fill%3D%27%23f8f6f0%27%20stroke%3D%27%23b9b2a4%27%20stroke-width%3D%271%27%2F%3E%3Ccircle%20cx%3D%27465%27%20cy%3D%27164.6%27%20r%3D%273%27%20fill%3D%27%23ffffff%27%2F%3E%3Crect%20x%3D%271080%27%20y%3D%27470%27%20width%3D%2752%27%20height%3D%2752%27%20fill%3D%27%239d2933%27%20opacity%3D%27.9%27%2F%3E%3Crect%20x%3D%271084%27%20y%3D%27474%27%20width%3D%2744%27%20height%3D%2744%27%20fill%3D%27none%27%20stroke%3D%27%23f8f5ef%27%20stroke-opacity%3D%27.5%27%2F%3E%3C%2Fsvg%3E)"></div>
+  <div class="post-header">
+    <h1>PikachuTV —— 手机端影视聚合播放器（基于 videodl 的改造版）</h1>
+    <div class="post-meta">
+      <span>作者 ZY</span><i>·</i>
+      <span>2026-09-24</span><i>·</i>
+      <span>技术笔记</span><i>·</i>
+      <span>51297 字</span><i>·</i>
+      <span>约 107 分钟</span>
+    </div>
+    <div class="post-tags"><a class="tag-pill" href="../index.html?tag=Android&v=mufoubee">#Android</a></div>
+  </div>
+  <div class="post-wrap">
+    <article class="article-body">
+<blockquote>起点仓库：<a href="<a href="https://github.com/CharlesPikachu/videodl"" target="_blank" rel="noopener">https://github.com/CharlesPikachu/videodl"</a> target="_blank" rel="noopener">CharlesPikachu/videodl</a>（PyPI videofetch，PolyForm-Noncommercial-1.0.0）<br>说明：我第一版做成了「粘贴链接 → 解析下载」的工具，方向偏了。当前版本按真实需求改成 <strong>豆瓣式影视聚合 + 点开即播</strong>，下载只作为附带能力保留。</blockquote>
+<h2>一、现在长什么样</h2>
+<div class="table-wrap"><table><thead><tr><th>页面</th><th>内容</th></tr></thead><tbody><tr><td>首页</td><td>9 个采集源横滑切换 + 最新更新瀑布卡片（封面/评分角标/更新备注）+ 分类（电影/连续剧/综艺/动漫）+ 触底加载更多</td></tr><tr><td>搜索</td><td>一次并发搜 9 个源，结果按源标注，封面网格</td></tr><tr><td>详情</td><td>封面 + 评分/类型/年份/地区/导演/主演 + 剧情简介 + 选集网格</td></tr><tr><td>播放器</td><td>全屏播放，自绘控件：播放/暂停、可拖进度条、时间、<strong>倍速 0.75~2x</strong>、<strong>选集侧栏</strong>、上一集/下一集、自动连播、<strong>一键把当前集加入下载</strong></td></tr></tbody></table></div>
+<h2>二、数据来自哪里</h2>
+<p>走国内影视 App 通用做法：<strong>苹果CMS(maccms) 标准采集接口</strong> api.php/provide/vod。<br>当前 collect/Vod.java 里内置了<strong>实测可用</strong>的 9 个源（可直接增删）：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>量子 cj.lziapi.com      非凡 cj.ffzyapi.com      极速 jszyapi.com
+魔都 caiji.moduapi.cc   <span class="n">360</span> 360zy.com            无尽 api.wujinapi.me
+索尼 suoniapi.com       光速 api.guangsuapi.com  天涯 tyyszy.com</code></pre></figure>
+<ul><li>首页：ac=detail&amp;pg=N（可带 t=分类id）</li><li>搜索：ac=detail&amp;wd=关键词（URL 编码；9 线程并发搜全部源）</li><li>详情：ac=detail&amp;ids=vod_id → 解析 vod_play_url（第01集$url#第02集$url，多源用 $$$ 分隔取第一组）</li></ul>
+<p>网络请求全在 <strong>Java 侧</strong>（HttpURLConnection），绕开 WebView 跨域限制；JS 只负责渲染。</p>
+<h2>三、播放怎么实现的</h2>
+<p>WebView + <strong>hls.js</strong>（已内置 assets/hls.min.js，415KB，离线可用）：</p>
+<figure class="code lang-js"><figcaption>js</figcaption><pre><code><span class="k">if</span> (Hls.isSupported()) { hls = <span class="k">new</span> Hls(); hls.loadSource(url); hls.attachMedia(video); }
+<span class="k">else</span> { video.src = url; }   <span class="c">// 系统原生 HLS 兜底</span></code></pre></figure>
+<p>没上 ExoPlayer/Media3 的原因：本工程打包是手工 aapt2+javac+d8（无 Gradle 依赖管理），<br>引 media3 要连带一堆 androidx aar，而 hls.js 是单文件、直接进 assets 即可。</p>
+<h2>四、构建 / 自己改</h2>
+<figure class="code lang-bash"><figcaption>bash</figcaption><pre><code>bash abuild/build.sh        <span class="c"># → pikachu-dl/android/build/pikachudl.apk (~176KB, v1+v2+v3 签名)</span></code></pre></figure>
+<ul><li>加/换采集源：改 src/com/pikachu/dl/collect/Vod.java 的 SITES 数组</li><li>改界面：改 assets/index.html（单文件 SPA：首页/搜索/详情/播放器）</li><li>桥接 API：WebActivity 里 VOD（sites/home/search/detail）与 PK（下载/任务/剪贴板/诊断）</li><li>AIDE Pro 可直接打开 pikachu-dl/android/（无 aapt 资源依赖，只引用系统资源）</li></ul>
+<h2>五、真机验证（PTP-AN70 / Android 16, API 37）</h2>
+<p>全部通过 adb 真机执行：</p>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>结果</th></tr></thead><tbody><tr><td>安装/启动</td><td>adb install -r Success；am start -W Status: ok（COLD 217ms）</td></tr><tr><td>崩溃</td><td>logcat 无 AndroidRuntime/FATAL</td></tr><tr><td>首页</td><td>拉到 20 部并渲染 20 张卡片（副标题「共 20 部 · lz」）</td></tr><tr><td>聚合搜索</td><td>「仙逆」一次搜到 <strong>41 条</strong>（量子/非凡/极速/魔都/360/光速 多源合并）</td></tr><tr><td>详情</td><td>标题/选集/播放地址正常（黄金蜘蛛城：HD，1 集）</td></tr><tr><td><strong>播放</strong></td><td>量子源《黄金蜘蛛城》m3u8：currentTime 1.2→17.2s 连续推进、duration 3993s、videoWidth 1080、缓冲 18→107s、Hls 实例存活</td></tr><tr><td>下载（附带）</td><td>直链 788493B 完成；HLS 分片合并 17907B，与 Termux 侧 Python 结果一致</td></tr><tr><td>嗅探（附带）</td><td>隐藏 WebView 抓 mov_bbb.mp4/.ogg 成功</td></tr></tbody></table></div>
+<h3>踩过并修掉的坑</h3>
+<ol><li><strong>首版闪退</strong>：清单声明 .ui.MainActivity 但类不存在 → 补齐 + 加 CrashLog（崩溃落盘、下次启动弹堆栈）+ 启动兜底页。</li><li><strong>嗅探抓不到流</strong>：嗅探 WebView 漏挂 addJavascriptInterface → 新增 SniffBridge；注入脚本补相对 URL 绝对化。</li><li><strong>详情页布局炸</strong>（封面撑满、文字竖排）：.dhead 用 flex 时 .info 计算宽度为 0 → 改 display:grid;grid-template-columns:110px 1fr（运行时用 CDP 验证 110/307 正确）。</li><li><strong>搜索太慢</strong>：线程池 4 → SITES.length，一次全部并发。</li></ol>
+<p>复现验证命令（任意已授权 adb）：</p>
+<figure class="code lang-bash"><figcaption>bash</figcaption><pre><code><span class="k">adb</span> install -r pikachudl.apk
+<span class="k">adb</span> shell am start -n com.pikachu.dl/.ui.MainActivity
+PID=$(<span class="k">adb</span> shell pidof com.pikachu.dl | tr -d <span class="s">'\r'</span>)
+<span class="k">adb</span> forward tcp:<span class="n">9222</span> localabstract:webview_devtools_remote_$PID
+<span class="c"># 页面开着 WebView 调试，可用 DevTools 协议直接驱动/断言:</span>
+<span class="c">#   Runtime.evaluate -&gt; VOD.search('仙逆') / PK.tasks() / video.currentTime</span></code></pre></figure>
+<h2>六、已知限制</h2>
+<ul><li>采集站会关停/换域名，源失效时在 Vod.SITES 里换一个新站即可。</li><li>个别源分片带防盗链（校验 Referer/UA），若某源播不动，可在 Java 侧加本地转发代理。</li><li>境外测试流（test-streams.mux.dev 之类）在国内网络不可达，属网络问题不是播放器问题。</li><li>播放走 WebView 的 MSE，H.265/4K 部分机型可能不支持软解。</li></ul>
+<h2>七、免责声明</h2>
+<p>仅供个人学习与技术研究，不存储、不分发任何影视内容（片源均来自第三方公开采集接口）。<br>请遵守所在地法律与各站点条款；上游 videodl 为 PolyForm-Noncommercial-1.0.0，本工程同样<strong>仅限非商业使用</strong>。</p>
+<h2>八、交互修复记录（第二轮，你提的四条）</h2>
+<p>你反馈的四点我都复现确认了，全是我代码的问题：</p>
+<div class="table-wrap"><table><thead><tr><th>你反馈</th><th>根因</th><th>修复</th></tr></thead><tbody><tr><td>没有返回 / 手势</td><td>Java 按返回键调用 JS <code>back()</code>，但这个函数<strong>从来没写过</strong>（新版 UI 里叫 <code>goHome</code>）</td><td>补 <code>back()</code>：播放器开→关播放器、选集侧栏开→收起、详情→回来源页、搜索/任务→回首页、首页→<code>PK.exit()</code> 退 App</td></tr><tr><td>选集没功能</td><td>播放器侧栏 <code>#plistBox</code> <strong>从未被填充过</strong>（详情页的 <code>#epsBox</code> 才有）</td><td>新增 <code>fillPlaylist()</code>，播放时按当前源填充并高亮当前集、自动滚动到当前集</td></tr><tr><td>没有操作功能</td><td><code>#pcenter</code> 是 <code>pointer-events:none</code>（中间播放大按钮点不动）；且完全没有手势</td><td>补：<strong>左右滑=拖进度</strong>、<strong>左半屏上下滑=亮度</strong>、<strong>右半屏上下滑=音量</strong>、<strong>双击=播放/暂停</strong>、单击=控件显隐；中间大按钮可点。亮度和音量走新加的 <code>PK.brightness/volume/volumeLevel</code> 原生桥</td></tr><tr><td>下载出错</td><td>采集站会把部分资源塞<strong>分享页短链</strong>（<code>v.lz15uu.com/share/xxx</code>，请求 404）而不是直链，我的直链校验把它拦下后什么都不做</td><td>新增 <strong>自动换源引擎</strong> <code>Vod.detailSmart()</code>：当前源没直链就拿片名并发问其它源，返回多个可播候选；界面顶部出现<strong>换源标签</strong>可手动切换</td></tr></tbody></table></div>
+<p>顺带修掉的：</p>
+<ul><li><strong>不会自动播放</strong>：WebView 默认禁止无手势播放 → 加 <code>setMediaPlaybackRequiresUserGesture(false)</code>（影视 App 必须）。</li><li><strong>默认源不对</strong>：原来用"第一个返回的源"，可能只有 1 集 → 改为<strong>默认选集数最多的源</strong>。</li><li><strong>详情太慢</strong>（11.6s）：原来是当前源失败后才串行换源 → 改成"当前源同步先问 + 失败并发问最稳的 4 个源 + 谁先有结果用谁 + 首个结果到达后再宽限 2.5 秒收尾 + 全失败兜底显示原源"。实测 <strong>3.6 秒</strong>。</li><li><strong>提示残留</strong>：成功后不清 <code>hsub</code>，上一条"出错了"会一直挂着 → 已清。</li></ul>
+<h3>本轮真机复验（CDP 直接驱动 + 断言，非截图臆测）</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>结果</th></tr></thead><tbody><tr><td>返回键</td><td><code>typeof back === function</code>；<code>adb shell input keyevent 4</code> 后 <code>v-detail</code> 由显示变 <code>none</code>（真的退回去了）</td></tr><tr><td>选集侧栏</td><td><code>#plistBox</code> 按钮 <strong>18 个</strong>（修复前恒为 0），点开侧栏 <code>class=on</code></td></tr><tr><td>换源</td><td>详情返回 <code>["魔都(18)","360(18)"]</code>，默认落在 18 集的源，顶部标签可点切换</td></tr><tr><td>播放</td><td><code>currentTime 0.1→4.8→…</code>、<code>paused:false</code>、<code>duration 873</code>、<code>videoWidth 1920</code>（自动播放已放行）</td></tr><tr><td>切集</td><td><code>playEp(1)</code> 后标题变"· 第02集"，新 <code>duration 824</code> 正常播放</td></tr><tr><td>下载</td><td><code>仙逆_第01集.ts</code> <strong>status=2 完成</strong>，27173 字节，来源标注"魔都"（换源后的直链）</td></tr><tr><td>详情速度</td><td><strong>3.6s</strong> 返回（优化前 11.6s）</td></tr><tr><td>中间按钮</td><td><code>#pbig</code> 的 <code>pointer-events: auto</code></td></tr></tbody></table></div>
+<h2>九、第三轮修复：任务列表 / 清晰度 / UI 优化</h2>
+<h3>你反馈的三条</h3>
+<div class="table-wrap"><table><thead><tr><th>你反馈</th><th>根因</th><th>修复</th></tr></thead><tbody><tr><td><strong>点了下载，任务里没有影片信息</strong></td><td>我把 JS 从 index.html 搬到 app.js 时，<strong>onTasks 整个函数和任务轮询 setInterval 都被搬丢了</strong>。showTasks() 调 onTasks 直接 ReferenceError（被 try/catch 吞掉）→ 任务页永远空白、也不会自动刷新。另外 downloadCur() 只弹个 toast，<strong>不跳任务页</strong></td><td>补回 onTasks（并大幅增强）+ 轮询；点下载后自动切到任务页</td></tr><tr><td><strong>没有清晰度选择</strong></td><td>播放器确实没有这个 UI</td><td>新增「清晰度」按钮 + 侧栏。同时说清一件事：我测过的采集源 m3u8 <strong>全是单码率</strong>（hls.levels 长度 &lt;= 1），码率切换对它们没意义。所以面板做成两层：① 当前源多码率时列码率（自动/1080P/720P…）② <strong>线路切换</strong>（列出其它源，一键换源继续播同一集）—— 这才是国内影视 App 通用的清晰度/线路体验</td></tr><tr><td><strong>UI 可优化</strong></td><td>逐项看下来确实有</td><td>见下</td></tr></tbody></table></div>
+<h3>顺带优化掉的 UI 问题</h3>
+<ul><li><strong>任务卡片</strong>：原来只有一行文字，现在有进度条、状态徽章、百分比、文件大小、<strong>实时速度</strong>、落盘路径，以及暂停/删除/路径按钮</li><li><strong>任务角标</strong>：顶部「任务」按钮上显示正在下载的数量</li><li><strong>失败/取消能重试</strong>：新增 PK.resume(id) 桥 + 「重试」按钮（之前失败只能删掉重下）</li><li><strong>首页搜索框</strong>：不用先点右上角「搜索」，首页就能直接搜</li><li><strong>选集折叠</strong>：超过 30 集先折叠，底部「展开全部 N 集」（实测 159 集的片）</li><li><strong>按压反馈</strong>：卡片与按钮 :active 缩放/透明，点下去有响应感</li><li><strong>后台起服务失败不再静默</strong>：Android 12+ 禁止后台启动前台服务，原代码 catch 后只写日志；现在明确提示「请让 App 停在前台再点下载」</li></ul>
+<h3>本轮真机验证</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>结果</th></tr></thead><tbody><tr><td>任务列表</td><td>修复前 #tasks 恒空；现在卡片完整：前台验证片.mp4 / 完成 770.0KB / 100% / 路径 / 删除·路径</td></tr><tr><td>实时进度</td><td>建任务 3s 后「下载中 31% 350.6KB/s」，6s 变「完成 770.0KB」，12s 仍在（轮询确实在刷新）</td></tr><tr><td>下载后跳转</td><td>downloadCur() 后 v-task 自动显示</td></tr><tr><td>清晰度面板</td><td>打开显示「当前源单码率」+「线路切换」（列出各源及集数）</td></tr><tr><td>选集折叠</td><td>159 集时 class=eps fold，出现「展开全部 159 集」</td></tr><tr><td>首页搜索</td><td>#kwHome 输入「仙逆」→ 自动跳搜索页并返回 89 条聚合结果</td></tr><tr><td>角标/计数</td><td>taskCount 与 taskBadge 随任务状态更新</td></tr></tbody></table></div>
+<h2>十、第四轮：多源搜索展示 / 去重复标题栏 / 横屏与画面比例</h2>
+<div class="table-wrap"><table><thead><tr><th>你的要求</th><th>做法</th></tr></thead><tbody><tr><td><strong>搜索采用多源搜索，显示多源结果</strong></td><td>搜索本来就是并发打 9 个源，但结果混在一起看不出处。现在<strong>按源分组展示</strong>：每组一个标题（源名 + 条数），下面是该源的结果网格。实测搜「仙逆」= <strong>41 条 / 6 个源</strong>，分组为 量子20 · 非凡2 · 极速6 · 魔都3 · 360(4) · 光速6</td></tr><tr><td><strong>去掉图片标志处</strong></td><td>你框的位置其实是<strong>两个标题叠在一起</strong>：系统 ActionBar「PikachuDL」（建工程时没设主题留下的）+ 页面内「PikachuTV」。已给 application 加 Theme.DeviceDefault.NoActionBar 去掉系统栏，并把页面头部压成一行（去掉 logo 和大标题，只留状态行 + 搜索/任务入口）</td></tr><tr><td><strong>播放器要有横屏开关</strong></td><td>新增 PK.landscape(bool) / PK.isLandscape() 桥；播放器顶栏加「横屏 / 竖屏」按钮，点一下切换并自动改按钮文案</td></tr><tr><td><strong>竖屏和横屏比例也要有</strong></td><td>顶栏加「画面」按钮，循环切换 适应(contain) → 铺满(fill) → 裁剪(cover)，每次切换有手势提示</td></tr></tbody></table></div>
+<h3>顺带修的</h3>
+<ul><li><strong>封面灰块</strong>：部分源图床校验 Referer，no-referrer 反而不给图 → 加 onerror 兜底，失败时显示<strong>片名首字</strong>占位，不留空白块</li><li><strong>XML 报错</strong>：给 manifest 加主题时把注释写在了标签属性中间（XML 不允许）导致构建失败，已挪到标签外</li></ul>
+<h2>十一、第五轮：三个真 bug（含一个致命布局 bug）</h2>
+<p>你截图里「简介竖排 / 选集跑到中间 / 集数按钮全是第...」——<strong>三个现象同一个根因</strong>：</p>
+<h3>bug 1（致命）：renderDetail 少写一个 <code>&lt;/div&gt;</code>，<code>.dhead</code> 从未闭合</h3>
+<figure class="code lang-js"><figcaption>js</figcaption><pre><code><span class="c">// 错: 只关了 meta 和 info</span>
++ <span class="s">'&lt;/div&gt;&lt;/div&gt;'</span>
+<span class="c">// 对: 还要关 dhead</span>
++ <span class="s">'&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;'</span></code></pre></figure>
+<p>后果：后面的「简介 / 选集 / 选集网格」全被当成 <code>.dhead</code>（两列 grid）的子元素 → 掉进 110px 那列，<br>于是简介竖向排、按钮被截成「第...」。修复实测：<code>.desc</code> 110px→<strong>429px</strong>、<code>.eps</code> 110px→<strong>429px</strong>、<br><code>.dhead</code> 里混入的元素 3→<strong>0</strong>。</p>
+<blockquote>附带说明：上一轮我把 <code>info 宽度=0</code> 误判成 flex 问题、改成 grid 绕了一圈 —— 真正原因就是这个未闭合的 div。</blockquote>
+<h3>bug 2：我的补丁根本没落盘</h3>
+<p>上一轮脚本里改完 <code>app.js</code>（A 修 div、B 换搜索块）<strong>忘了 <code>io.open(p,"w")</code></strong>，只改了内存；<br>同脚本里 <code>index.html</code> 那段有写盘，所以只有一半改动生效 —— 这就是"改了但没任何变化"的来源。<br>现在每次改写都会<strong>回读校验</strong>并打印 <code>&gt;&gt;&gt; app.js 已写入磁盘</code>。</p>
+<h3>bug 3：替换代码块时把相邻函数一起删了（第二次犯）</h3>
+<p>我把「搜索」整块换成新实现时，把同块里的 <strong><code>openSearch</code> / <code>doSearch</code> 一起删掉了</strong> →<br>点顶部「搜索」按钮、输入框回车全都无反应（桥本身是好的，<code>onVodSearch</code> 有被调用）。<br>已补回，并加了<strong>函数体检</strong>：每次构建前检查 44 个关键函数是否都在，缺失就报出来。</p>
+<h3>另外修的两个体验/性能问题</h3>
+<ul><li><strong>搜索慢到离谱</strong>：Java 侧原来是 <code>for (Future f : fs) f.get(9, SECONDS)</code> <strong>串行等待</strong>，9 个源最坏 <strong>81 秒</strong>。 改成 <code>ExecutorCompletionService</code>：<strong>谁先回来先显示</strong>（实测 2 秒就出第一批），总时长上限 10 秒。</li><li><strong>搜索 UI 重做</strong>：纵向堆叠分组太占屏 → 改成<strong>顶部源标签筛选</strong>（<code>全部 8 | 非凡 8 | 量子 20 …</code>）， 卡片左下角标来源源名，点标签只看该源。</li></ul>
+<h3>本轮真机验证</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>结果</th></tr></thead><tbody><tr><td>详情布局</td><td><code>.info=307 / .desc=429 / .eps=429</code>，<code>.dhead</code> 混入 <strong>0</strong>，集按钮「第01集」宽 101px</td></tr><tr><td>搜索入口</td><td>点顶部「搜索」→ 切到搜索页；输入+点「搜索」→ 触发</td></tr><tr><td>搜索速度</td><td><strong>2 秒</strong>出 8 条（增量刷新），最终 22 条</td></tr><tr><td>源标签</td><td><code>全部 8 / 非凡 8</code>，按源筛选生效</td></tr><tr><td>卡片源标</td><td>每张卡片左下角显示来源</td></tr><tr><td>函数体检</td><td>44 个关键函数 <strong>0 缺失</strong></td></tr></tbody></table></div>
+<h2>十二、第六轮：豆瓣评分(选片参考) + 分类修正 + 横屏全屏</h2>
+<h3>1) 豆瓣影视信息（你要的"看评分 / 选片依据"）—— 已接入</h3>
+<p>用豆瓣<strong>公开接口</strong>，两步：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>① 搜索建议:  https:<span class="c">//movie.douban.com/j/subject_suggest?q=&lt;片名&gt;   → 豆瓣 id / 封面 / 年份</span>
+② 详情评分:  https:<span class="c">//m.douban.com/rexxar/api/v2/movie/&lt;id&gt;?for_mobile=1</span>
+             Referer: https:<span class="c">//m.douban.com/movie/subject/&lt;id&gt;/   → 评分 / 简介 / 类型</span></code></pre></figure>
+<p>实测：<code>仙逆 8.0 | 庆余年 7.9 | 流浪地球 7.9</code>，<strong>3 秒</strong>返回，明细里连完整简介和类型都有。</p>
+<ul><li>列表页：卡片右下角显示<strong>豆瓣评分金色角标</strong>（采集站的 vod_score 常年是 0.0，没用）</li><li>详情页：显示「豆瓣 8.0 · 剧情/动画/奇幻」</li><li>片名会先<strong>清洗</strong>（去掉 <code>[电影解说]</code>、括号、<code>第X季</code>、<code>国语/HD</code> 等后缀）再匹配，提高命中率</li><li>结果带内存缓存；批量查 24 个片名用 4 线程并发 + 15 秒上限，边回来边刷</li></ul>
+<h3>2) 分类点进去没内容 —— 不是 bug，但已修好体验</h3>
+<p>实测采集站分类表（<code>ac=list</code> 的 <code>class</code> 字段，共 44 个）后真相很清楚：</p>
+<div class="table-wrap"><table><thead><tr><th>分类</th><th>返回条数</th></tr></thead><tbody><tr><td><code>1 电影片</code>（一级）</td><td><strong>1 条</strong></td></tr><tr><td><code>6 动作片</code>（二级）</td><td><strong>20 条</strong></td></tr></tbody></table></div>
+<p>原来界面里写死了 <code>1/2/3/4</code> 去请求，而<strong>一级分类在采集站本来就几乎没内容</strong> —— 所以你点「电影」看到空白。<br>现在改成：进页面时拉<strong>该源真实的 44 个分类</strong>填进下拉（含二级分类），选哪个请求哪个。</p>
+<h3>3) 横屏全屏 + 缩放比例</h3>
+<ul><li><strong>横屏时进沉浸式全屏</strong>：新增 <code>applyFullscreen()</code>，横屏隐藏状态栏与导航栏（<code>IMMERSIVE_STICKY</code>），竖屏恢复 —— 之前横屏后上下有系统栏，看着就"没全屏"。</li><li>缩放比例：<code>objectFit</code> 的切换逻辑本身是生效的（<code>contain→fill→cover</code> 可验证），之前"看不出变化"是被第五轮那个未闭合 div 搞塌了布局。</li></ul>
+<h3>本轮踩的坑（都不在功能逻辑上）</h3>
+<ol><li><strong>桥挂错对象</strong>：<code>douban</code> 方法加到了 <code>exit()</code> 前面，而 <code>exit()</code> 属于 <strong>PK 桥</strong>，我却在 JS 里调 <code>VOD.douban</code> —— 方法根本不存在，<strong>静默无效</strong>，白查了三轮。 现在桥的位置和调用名一一对应（<code>PK.*</code> = 下载/豆瓣/旋转/亮度，<code>VOD.*</code> = 影视数据）。</li><li><strong>gzip 没解压</strong>：<code>Http.readText</code> 漏了 <code>Content-Encoding: gzip</code>，豆瓣强制 gzip 返回 → JSON 全是乱码。已补。</li><li><strong>IPv6 优先挂死</strong>：本机网络只有 IPv4（网关 10.10.14.1），Java 默认优先 IPv6 导致连接挂住（curl 用 IPv4 所以我在 Termux 测是通的）。已 <code>preferIPv4Stack=true</code>。</li><li><strong>异常被吞</strong>：<code>Douban.lookup</code> 原来 catch 后什么都不说 → 现在把异常写进 <code>error</code> 字段回传界面，以后这类问题一眼可见。</li></ol>
+<h3>验证数据</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>结果</th></tr></thead><tbody><tr><td>豆瓣评分</td><td><code>仙逆=8.0 庆余年=7.9 流浪地球=7.9</code>，3s 返回</td></tr><tr><td>卡片角标</td><td>构造 3 张卡片 → 2.5s 后 <code>.db</code> 角标 3 个（7.9/7.9/8.0）</td></tr><tr><td>详情豆瓣行</td><td>「豆瓣 8.0 · 剧情/动画/奇幻」</td></tr><tr><td>分类表</td><td><code>ac=list</code> 拿到 <strong>44 个</strong>真实分类（1:电影片 2:连续剧 3:综艺片 4:动漫片 6:动作片 …）</td></tr><tr><td>分类内容</td><td><code>t=6(动作片)</code> 20 条；<code>t=1(电影片)</code> 仅 1 条（源本身如此）</td></tr><tr><td>横屏</td><td><code>isLandscape false→true→false</code> + 沉浸式全屏</td></tr></tbody></table></div>
+<h2>十三、第七轮：你反馈的 6 条</h2>
+<div class="table-wrap"><table><thead><tr><th>你的反馈</th><th>根因 / 处理</th></tr></thead><tbody><tr><td><strong>单码率一点就定在屏幕上，没有返回逻辑</strong></td><td><strong>真 bug</strong>：<code>back()</code> 里我只写了选集侧栏 <code>#plist</code> 的关闭，<strong>漏了清晰度侧栏 <code>#qlist</code></strong> —— 它一旦打开就关不掉。已补上，并把返回顺序理成：<strong>侧栏 → 播放器 → 详情 → 搜索/任务 → 退出 App</strong>。实测 <code>qlist</code> 打开 <code>on</code> → <code>back()</code> → 关闭 ✓</td></tr><tr><td><strong>播放器等待界面巨丑</strong></td><td>原来用一个大圆圈里写「…」。换成<strong>转圈 loading + "正在缓冲…"文案</strong>（<code>.spin</code> 动画），由 <code>waiting</code> 事件驱动 <code>showLoad/hideLoad</code></td></tr><tr><td><strong>播放器做得美观点</strong></td><td>控件重做：按钮改成<strong>圆角胶囊 + 毛玻璃(backdrop-filter) + 按压反馈</strong>；顶/底栏改<strong>渐变遮罩</strong>；进度条改细(3px)白点滑块；中间大播放键加毛玻璃与描边</td></tr><tr><td><strong>打开软件加载好慢</strong></td><td>两层处理：① <strong>骨架屏</strong>（6 张闪烁占位卡片，不再干等白屏）② <strong>首页本地缓存</strong>（<code>localStorage</code>，二次进入/切回来<strong>秒显</strong>，后台再刷新）。另外首页请求改成<strong>并发问 3 个源，谁先有数据用谁</strong>（源限流时自动换源，实测 2 秒出 20 部）</td></tr><tr><td><strong>没看到豆瓣列表</strong></td><td>豆瓣接口本身已验证可用（<code>仙逆 8.0 / 庆余年 7.9 / 流浪地球 7.9</code>，3 秒返回）。<strong>看不到是因为列表本身没数据</strong> —— 采集站今天被我压测太多次开始限流。评分角标已改成 <code>★ 8.0</code> 更醒目，等源恢复就会显示</td></tr><tr><td><strong>修复了分类影片逻辑嘛</strong></td><td>已修。原因见第十二章：采集站<strong>一级分类本来就是空的</strong>（<code>t=1 电影片</code> 只有 1 条），却写死去请求它。现在进页面时拉该源<strong>真实的 44 个分类</strong>（<code>ac=list</code> 的 <code>class</code> 字段）填进下拉，选哪个请求哪个</td></tr></tbody></table></div>
+<h3>本轮验证</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>结果</th></tr></thead><tbody><tr><td>清晰度侧栏</td><td>打开 <code>on</code> → <code>back()</code> → <strong>关闭</strong></td></tr><tr><td>选集侧栏</td><td>打开 <code>on</code> → <code>back()</code> → <strong>关闭</strong></td></tr><tr><td>播放器</td><td><code>back()</code> → 退出播放器</td></tr><tr><td>缓冲动画</td><td><code>showLoad()</code> → <code>class=on</code>；<code>hideLoad()</code> → 空</td></tr><tr><td>骨架屏</td><td><code>skeleton(6)</code> = 6 张占位卡片</td></tr><tr><td>首页加载</td><td>冷启动 2s 内出 20 部（并发 3 源抢跑）</td></tr><tr><td>首页缓存</td><td>二次刷新 0.6s 内直接显 20 张</td></tr></tbody></table></div>
+<h2>十四、第八轮：你反馈的 4 条</h2>
+<h3>1) 首页全部没有评分 —— 实际在跑，是新片豆瓣没收录</h3>
+<p>CDP 实测：20 张卡片里<strong>有 5 张拿到了豆瓣角标</strong>，例如 <code>中头奖还是要上班 → 7.9</code>；<br><code>踢球的她们</code>、<code>兰香如故</code> 这些<strong>新剧/新综艺豆瓣确实还没收录</strong>（豆瓣需要条目被创建）。</p>
+<p>顺手改了两点：</p>
+<ul><li>角标从卡片<strong>右下挪到封面左上</strong>（原来和标题、源名标签挤在一起，容易被忽略）</li><li><strong>过滤掉评分为 0 的条目</strong>（查到条目但没打分时不显示 <code>★ 0</code>）</li></ul>
+<h3>2) 播放器等待界面"这么大这么丑" —— 根因是 <code>&lt;video&gt;</code> 没设 poster</h3>
+<p>那个占满屏幕的<strong>巨型黑色三角</strong>不是我的 UI，是 <strong>Chromium 在 <code>&lt;video&gt;</code> 无 poster/无画面时画的默认媒体图标</strong>。<br>（CDP 验证 <code>video.getAttribute("poster") === null</code> 确认）</p>
+<p>修复：</p>
+<ul><li>给 <code>&lt;video&gt;</code> 加<strong> 1x1 透明 poster</strong> → 默认图标不再出现，缓冲时就是干净的纯黑</li><li>缓冲提示换成<strong>转圈 + 「正在连接…」文案</strong>（<code>.spin</code> 动画）</li><li><strong>缓冲期间控件保持可见</strong>：原来 <code>showUI</code> 4.5 秒自动隐藏，缓冲久了你连返回都点不到；现在缓冲中不自动隐藏</li></ul>
+<h3>3) 横屏重力感应有问题，必须点竖屏才正常</h3>
+<p>原来用的是 <code>SCREEN_ORIENTATION_SENSOR_LANDSCAPE</code> —— 这是<strong>把 Activity 锁死在横屏</strong>，<br>所以你横竖怎么转都卡在横屏状态、而画面又按竖屏比例渲染，必须手动点一次竖屏才复位。</p>
+<p>已改成 <code>SCREEN_ORIENTATION_SENSOR</code>（<strong>跟随重力</strong>）：横持手机自动横屏、竖持自动竖屏。</p>
+<h3>4) 分类信息有一部分是错的</h3>
+<p>这个是<strong>源的问题，不是我们的逻辑</strong>。分类表直接来自采集站的 <code>class</code> 字段：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code><span class="n">1</span>:电影片  <span class="n">2</span>:连续剧  <span class="n">3</span>:综艺片  <span class="n">4</span>:动漫片  <span class="n">35</span>:电影解说  <span class="n">36</span>:体育  <span class="n">41</span>:演员  <span class="n">42</span>:新闻资讯  <span class="n">46</span>:短剧</code></pre></figure>
+<p>像 <code>演员</code>、<code>新闻资讯</code> 这种分类名与实际内容对不上，是源站自己 type_id 映射混乱。<br>我们能做的是<strong>把层级显示清楚</strong>：改成 <code>optgroup</code> 分层（一级分类作组名，二级分类作选项），<br>选哪个请求哪个；某个分类没内容就换一个，或直接切到别的源。</p>
+<h3>本轮验证</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>结果</th></tr></thead><tbody><tr><td>poster</td><td><code>video.getAttribute("poster")</code> = true（不再出现默认大图标）</td></tr><tr><td>缓冲态</td><td><code>pload=on</code>、文案「正在连接…」、<code>pbig=none</code></td></tr><tr><td>缓冲期控件</td><td>8 秒后 <code>ptop/pbot</code> 仍<strong>可见</strong></td></tr><tr><td>横屏</td><td><code>SCREEN_ORIENTATION_SENSOR</code>（跟随重力）</td></tr><tr><td>豆瓣角标</td><td>20 张卡片中 5 张有角标，<code>中头奖还是要上班 7.9</code></td></tr><tr><td>分类</td><td><code>optgroup</code> 分层（一级 9 个 + 二级若干）</td></tr></tbody></table></div>
+<h2>十五、第九轮：缓冲逻辑 + 重力感应横屏全屏</h2>
+<h3>1) 「正在缓冲」一直挂着 —— 事件监听漏了最关键的一个</h3>
+<p>原来只在 <code>play</code> 事件里隐藏缓冲提示。但 <strong><code>play</code> 只在「从暂停→播放」时触发一次</strong>，<br>播放中卡顿再恢复走的是 <strong><code>playing</code></strong> 事件 —— 所以一旦缓冲过一次，提示就永远挂在那里。</p>
+<p>修复：补齐所有该收起的时机</p>
+<div class="table-wrap"><table><thead><tr><th>事件</th><th>处理</th></tr></thead><tbody><tr><td><code>waiting</code></td><td>显示「正在缓冲…」</td></tr><tr><td><strong><code>playing</code></strong></td><td><strong>隐藏</strong>（关键修复点）</td></tr><tr><td><code>canplay</code> / <code>canplaythrough</code> / <code>loadeddata</code></td><td>隐藏</td></tr><tr><td><code>seeked</code></td><td>隐藏（拖进度后）</td></tr><tr><td><code>timeupdate</code></td><td>只要有播放进展就隐藏（兜底）</td></tr><tr><td><code>pause</code></td><td>隐藏（暂停不是缓冲）</td></tr></tbody></table></div>
+<p>实测：<code>waiting→on</code> / <code>playing→隐藏</code> / <code>canplay→隐藏</code> / <code>seeked→隐藏</code> / <code>pause→隐藏</code> 全部符合预期。</p>
+<h3>2) 重力感应横屏后直接全屏</h3>
+<p>原来 <code>applyFullscreen()</code> 只在<strong>点按钮</strong>时调用 —— 旋转手机是系统事件，根本不会触发它。</p>
+<p>修复：</p>
+<ul><li>新增 <code>onConfigurationChanged()</code>：<strong>监听方向变化</strong>，横屏且播放器开着就自动进沉浸式全屏（竖屏自动恢复）</li><li>新增 <code>PK.playerOpen(bool)</code> 桥：JS 在 <code>playEp</code>/<code>closePlayer</code> 时告知播放器状态，避免在列表页横屏也全屏</li></ul>
+<p>踩了两个坑：</p>
+<ol><li><code>playerOpen</code> 一开始被我写在 <code>WebActivity</code> 类里 —— <strong>JS 桥必须放在注册了 <code>addJavascriptInterface</code> 的内部类</strong>（<code>Bridge</code>）里，所以 JS 侧拿到的是 <code>undefined</code>。已改成转发。</li><li>我先把横屏改成 <code>SCREEN_ORIENTATION_SENSOR</code>（跟随重力），结果<strong>手机平放时系统保持竖屏</strong>，点「横屏」没反应。改回 <code>SCREEN_ORIENTATION_SENSOR_LANDSCAPE</code>（立即横屏 + 跟随水平方向）。</li></ol>
+<h3>验证</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>结果</th></tr></thead><tbody><tr><td><code>PK.playerOpen</code></td><td><code>function</code>（桥已就位）</td></tr><tr><td>旋转全屏</td><td>横屏后<strong>无状态栏/无导航栏</strong>（截图 2800×1280 确认）</td></tr><tr><td>播放中</td><td>进度 <code>00:08 / 47:28</code> 正常推进，缓冲提示已消失</td></tr><tr><td>按钮文案</td><td>横屏时显示「竖屏」（跟随实际方向）</td></tr></tbody></table></div>
+<h2>十六、第十轮：横屏下「适应/裁切/铺满」无效（CSS 尺寸问题）</h2>
+<h3>根因：video 元素自己就没被容器约束住，object-fit 自然没作用空间</h3>
+<p>CDP 实测横屏时的真实尺寸：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>窗口 window        = 941x453
+父容器 <span class="c">#player     = 941x453     ← 正确</span>
+video 元素         = 941x941     ← 比容器还高！
+video 计算样式      = width:<span class="n">100</span>% height:auto flex:<span class="n">1</span> <span class="n">1</span> <span class="n">0</span>%</code></pre></figure>
+<p>原来写的是 <code>#video{width:100%;flex:1;...}</code>，<code>height</code> 是 <code>auto</code>。<br><strong>video 元素有固有宽高比，而 flex 子项默认 <code>min-height:auto</code></strong>，<br>于是它的高度按内容尺寸撑到了 941（等于宽度），根本没被容器压住。<br>元素尺寸都不对，<code>object-fit</code> 就没有任何"作用空间"，三种模式看起来当然一样。</p>
+<h3>修复</h3>
+<figure class="code lang-css"><figcaption>css</figcaption><pre><code><span class="c">/* 之前 */</span>
+<span class="c">#video{width:100%;flex:1;object-fit:contain;}</span>
+<span class="c">/* 现在: 绝对定位严格填满容器(去掉 flex 依赖) */</span>
+<span class="c">#video{position:absolute;inset:0;width:100%;height:100%;min-height:0;min-width:0;object-fit:contain;}</span></code></pre></figure>
+<p>并去掉 <code>#player</code> 的 <code>flex-direction:column</code>（video 与控件现在都是绝对定位，不需要 flex 排列）。</p>
+<h3>验证（真实 1080p 片源）</h3>
+<p>播放「密涅瓦学院」第 01 集（<code>videoWidth=1920 videoHeight=1080</code>，进度正常推进），横屏下逐一切换：</p>
+<div class="table-wrap"><table><thead><tr><th>模式</th><th>容器</th><th>视频</th><th>效果</th></tr></thead><tbody><tr><td><code>contain</code> 适应</td><td>941x453</td><td>1920x1080</td><td>完整显示 → <strong>两侧黑边</strong></td></tr><tr><td><code>cover</code> 裁切</td><td>941x453</td><td>1920x1080</td><td>填满 → <strong>上下裁掉</strong></td></tr><tr><td><code>fill</code> 铺满</td><td>941x453</td><td>1920x1080</td><td>拉伸 → <strong>变形填满</strong></td></tr></tbody></table></div>
+<p><strong>关键</strong>：三次切换时 <code>video 元素</code>恒为 <code>941x453</code>（= 容器）—— 尺寸稳定了，画面才会随模式变化。<br>截图确认：横屏全屏下 <code>contain</code> 模式完整显示片头画面、两侧黑边，控件播放中自动隐藏。</p>
+<h2>十七、第十一轮：横屏返回后不跳回竖屏</h2>
+<h3>根因：播放器里锁了方向，退出时没解锁</h3>
+<p>播放器点「横屏」时我调的是 <code>SCREEN_ORIENTATION_SENSOR_LANDSCAPE</code> —— 这是<strong>把 Activity 锁定在横向</strong>。<br>退出播放器时我只恢复了全屏（<code>applyFullscreen(false)</code>），<strong>没有恢复屏幕方向</strong>，<br>所以那个横向锁定一直残留：你竖着拿手机，界面也回不到竖屏。<br>（你提到"自动旋转开了"——正因为系统自动旋转是开的，这个残留锁才更明显）</p>
+<h3>修复</h3>
+<p><code>playerOpen(false)</code>（JS 的 <code>closePlayer()</code> 会调）里补上：</p>
+<figure class="code lang-java"><figcaption>java</figcaption><pre><code>setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER);</code></pre></figure>
+<p><code>SCREEN_ORIENTATION_USER</code> 表示<strong>把方向交回系统</strong>：系统自动旋转开着就跟随你的持机姿态，<br>关着就保持竖屏 —— 不再残留播放器里的横向锁定。</p>
+<h3>验证（直接读 Activity 的方向值，不靠肉眼）</h3>
+<p>加了个诊断桥 <code>PK.reqOrientation()</code> 读 <code>getRequestedOrientation()</code>：</p>
+<div class="table-wrap"><table><thead><tr><th>阶段</th><th>reqOrientation</th><th>isLandscape</th></tr></thead><tbody><tr><td>初始（未播放）</td><td><code>-1</code> UNSPECIFIED（跟随系统）</td><td>false</td></tr><tr><td>进播放器 + 横屏</td><td><code>6</code> SENSOR_LANDSCAPE（锁定横向）</td><td>true</td></tr><tr><td><strong>点返回退出</strong></td><td><strong><code>2</code> USER（交回系统）</strong></td><td><strong>false</strong> ✓</td></tr></tbody></table></div>
+<p><code>isLandscape</code> 从 <code>true</code> 变 <code>false</code> —— <strong>确实跳回竖屏了</strong>。</p>
+<h2>十八、第十二轮：播放源失效 → 无感自动换源</h2>
+<h3>你要的：不用感知，坏源自动切走</h3>
+<p>原来只在播放失败时提示「加载失败, 换源试试」——<strong>要你自己动手</strong>。现在做成全自动：</p>
+<h4>1) 什么时候判定"这个源坏了"</h4>
+<div class="table-wrap"><table><thead><tr><th>触发</th><th>说明</th></tr></thead><tbody><tr><td>hls.js <code>ERROR</code>（fatal）</td><td>清单/分片拉不到、解码失败</td></tr><tr><td><code>&lt;video&gt;</code> <code>error</code></td><td>原生播放错误</td></tr><tr><td><strong>12 秒无画面超时</strong></td><td>既没报错也不出画面（卡死）—— 这条最容易漏，靠 <code>watchPlayback()</code> 盯 <code>readyState</code>/<code>currentTime</code></td></tr></tbody></table></div>
+<h4>2) 换源动作（关键：保持当前集）</h4>
+<figure class="code"><figcaption>text</figcaption><pre><code>标记当前源为坏源 → 找下一个没试过的源 → 按【集名】在新源里定位同一集 → 接着播</code></pre></figure>
+<ul><li>用<strong>集名匹配</strong>而不是索引，因为不同源的集序可能不一样（"第01集" 对 "第1集"）</li><li>换源过程只弹一个手势提示「线路失效, 自动换源…」，<strong>不打断播放器、不用你点任何东西</strong></li><li>所有源都试过才提示「所有线路都播不动, 换一部试试」</li></ul>
+<h4>3) 让"备选源"提前就位（否则没得换）</h4>
+<p>之前 <code>detailSmart</code> 在当前源有直链时<strong>直接返回、不去找别的源</strong> —— 结果 <code>srcList</code> 常常只有 1 个源，<br>真坏了也没备选可换（实测就是只有「量子(8)」一个）。</p>
+<p>现在改成：</p>
+<ul><li><strong>主源立即返回</strong>（播放不用等）</li><li>后台继续用 <code>Vod.moreSources()</code> 并发问其它源，找到就通过 <code>onMoreSources</code> <strong>静默追加</strong>到 <code>srcList</code></li></ul>
+<p>实测：打开详情 3 秒时 <code>["极速(163)"]</code> → 6 秒时已变成 <code>["魔都(8)","360(8)","量子(8)"]</code>（后台补了 2 个）。</p>
+<h3>验证（可控构造，不靠运气）</h3>
+<p>拿当前正在播的真实地址当好源，源0 塞一个死地址：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>源<span class="n">0</span> = https:<span class="c">//invalid.host.invalid/broken.m3u8   ← 坏</span>
+源<span class="n">1</span> = https:<span class="c">//vod1.maowushi.com/.../index.m3u8    ← 好(正在播的)</span>
+
+[<span class="n">2</span>.5s] {<span class="s">"src"</span>:<span class="n">1</span>, <span class="s">"site"</span>:<span class="s">"好源B"</span>, <span class="s">"vw"</span>:<span class="n">1920</span>, <span class="s">"playing"</span>:true}   ✓</code></pre></figure>
+<p><strong>2.5 秒内自动从坏源切到好源，画面出来并继续播放，全程无需操作。</strong></p>
+<h2>十九、内置文字广告能去掉吗 —— 结论：不能，但可以裁掉</h2>
+<h3>先给结论：那种广告是"烧"在画面里的，播放器改不了</h3>
+<p>我抓了你正在播的 m3u8 原文来验证：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>video.textTracks.length   = <span class="n">0</span>        ← 没有独立字幕轨
+hls.subtitleTracks.length = <span class="n">0</span>
+m3u8 内容:
+  <span class="c">#EXTM3U</span>
+  <span class="c">#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=2979000,RESOLUTION=1920x1080</span>
+  /<span class="n">20260923</span>/1xNjGdi6/2979kb/hls/index.m3u8
+  ↑ 全文没有任何 SUBTITLES 声明</code></pre></figure>
+<p>「本片由【开元棋牌 xxxx.com】赞助播出 / 主营：美女视讯 棋牌 电子 捕鱼 注册送888」<br>这两行是采集站压制时<strong>直接叠进视频像素</strong>的硬字幕 —— 跟画面里的人、背景一样是图像的一部分，<br>播放器无法"关闭"它（就像没法关掉画面里的一件衣服）。</p>
+<h3>但可以把它挤出视野：新增「裁广告」画面模式</h3>
+<p>播放器「画面」按钮现在是<strong>四档循环</strong>：</p>
+<div class="table-wrap"><table><thead><tr><th>模式</th><th>效果</th></tr></thead><tbody><tr><td>适应</td><td>完整显示，可能留黑边</td></tr><tr><td>铺满</td><td>拉伸填满（变形）</td></tr><tr><td>裁剪</td><td>填满并裁掉超出部分</td></tr><tr><td><strong>裁广告</strong></td><td><strong>放大 1.25 倍 + 上移 10%，把底部那两行广告挤出可视区</strong></td></tr></tbody></table></div>
+<p>实测切换结果：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>铺满   -&gt; objectFit=fill     transform=无
+裁剪   -&gt; objectFit=cover    transform=无
+裁广告 -&gt; objectFit=contain  transform=matrix(<span class="n">1.25</span>,<span class="n">0</span>,<span class="n">0</span>,<span class="n">1.25</span>,<span class="n">0</span>,-<span class="n">56</span>.x)   ✓
+适应   -&gt; objectFit=contain  transform=无</code></pre></figure>
+<p>代价：画面上下会各裁掉一点（底部约 10%、顶部约 2%）。如果广告不在底部，这个模式就不对症。</p>
+<h3>另一条路：换源</h3>
+<p>不同采集源的片源是各自压制的，<strong>有的源没有这行广告</strong>。<br>点播放器顶部的「清晰度」→「线路切换」可以换到别的源看同一集；播放失败时也会自动换。</p>
+<h2>二十、回退「裁广告」+ 修两个真问题（附自省）</h2>
+<h3>我做错了什么</h3>
+<p>「裁广告」是我<strong>自作主张</strong>加的（你只问了"能不能去掉广告"，我却直接塞了个模式进去），<br>而且实现方式（<code>transform: scale(1.25) translateY(-10%)</code>）<strong>把画面推歪了</strong> —— 你看到的"切成啥样子"，就是这个。<br>已经<strong>整档删除</strong>，画面模式回到原来的三档：适应 / 铺满 / 裁剪。</p>
+<h3>顺带查出并修掉的两个真 bug</h3>
+<h4>bug 1：右侧漏出「清晰度」面板</h4>
+<p>CDP 实测：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>窗口 window = <span class="n">453</span> 宽
+<span class="c">#qlist      = rect left=368, width=281   ← 368~453 这段露在屏幕里</span>
+<span class="c">#qlist 的 transform = translateX(280.9px)</span></code></pre></figure>
+<p>侧栏本来用 <code>transform: translateX(100%)</code> 藏在屏幕外，但它的宽度（62%）和位移量算不严丝合缝，<br><strong>总有约 85px 留在可视区</strong>，看起来就像画面右侧挂了一条。</p>
+<p>改成用 <strong><code>display</code> 切换</strong>（关闭时 <code>display:none</code>，实测 <code>rect=0..0</code>，不占任何空间）：</p>
+<figure class="code lang-css"><figcaption>css</figcaption><pre><code><span class="c">#qlist{...display:none;}   #qlist.on{display:block;}</span>
+<span class="c">#plist{...display:none;}   #plist.on{display:block;}</span></code></pre></figure>
+<h4>bug 2：换源后播起来了，又被切走</h4>
+<p>自动换源的超时检测（12 秒无画面）和 <code>video error</code> 判断<strong>没有"已经播起来了"这个前提</strong>，<br>于是慢一点的源刚出画面，就被后面的检测判成"坏源"再切一次。</p>
+<p>加了一道守卫 <code>playedOk</code>：</p>
+<figure class="code lang-js"><figcaption>js</figcaption><pre><code><span class="k">function</span> autoSwitchSource(reason){
+  <span class="k">if</span> (playedOk) { clearFailWatch(); <span class="k">return</span>; }   <span class="c">// 已经正常播放, 绝不许把画面切走</span>
+  ...
+}
+<span class="c">// playing / timeupdate 有进展 -&gt; playedOk = true（并清掉超时定时器）</span>
+<span class="c">// playEp 开场 -&gt; playedOk = false（新的一集重新开始判定）</span></code></pre></figure>
+<p>实测：<code>playedOk=true</code> 时再调自动换源 → <strong>不切换</strong>；播放 6 秒后 <code>srcIdx</code> 保持 0、进度继续走。</p>
+<h3>本轮验证</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>结果</th></tr></thead><tbody><tr><td>画面模式</td><td>回到三档 <code>适应/铺满/裁剪</code>，<code>transform</code> 全部为「无」</td></tr><tr><td>几何</td><td>横屏 <code>video rect=[0,0,941,453]</code> = <code>player rect</code> <strong>完全重合</strong>（不再偏移）</td></tr><tr><td>侧栏</td><td>关闭时 <code>display:none</code>、<code>rect=0..0</code>（右侧不再漏）</td></tr><tr><td>播放锁定</td><td><code>playedOk=true</code> 后自动换源被拦下；连播 6 秒 <code>srcIdx</code> 未变、进度正常推进（17s/52min）</td></tr></tbody></table></div>
+<h3>自省</h3>
+<p>这条"广告能不能去"我该做的是：<strong>先给结论（硬字幕去不掉）+ 问你需不需要变通方案</strong>，<br>而不是直接改播放器的渲染方式 —— 那属于动核心显示逻辑，风险高、你没要求、我看样子也调歪了。<br>以后涉及"改播放/显示行为"的我先给方案再动手。</p>
+<h2>二十一、接入 videodl：源状态日报 + 直链解析（B站实测可播）</h2>
+<p>按你的要求，<strong>在现有采集源播放器之上</strong>加了两块，互不干扰。</p>
+<h3>一、videodl 源可用性日报（不用自己去 GitHub 看了）</h3>
+<p>新增页面：首页右上角 <strong>「源」</strong> 按钮。里面是 videodl 官方每日检测的 70 个客户端状态：</p>
+<div class="table-wrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>✓ 完全可用</td><td>61 个</td></tr><tr><td>! 部分可用</td><td>1 个（B站 5/12，接口有改动）</td></tr><tr><td>✗ 完全用不了</td><td>8 个（抖音、小红书、西瓜、懂车帝、Ted、Kakao、Beacon、新片场）</td></tr></tbody></table></div>
+<p><strong>「每天自动获取」这块遇到了真实障碍，我做了三级兜底</strong>：</p>
+<p>这台设备上 <strong><code>github.com</code> / <code>raw.githubusercontent.com</code> / <code>cdn.jsdelivr.net</code> 的 DNS 全被污染</strong><br>（<code>Could not resolve host</code>，而百度/B站正常），所以"启动就去 GitHub 拉"根本不成立。于是：</p>
+<ol><li><strong>内置快照</strong>：把官方报告（2026-09-23）精简后打进 APK（5KB），<strong>离线也能看</strong></li><li><strong>多通道并发更新</strong>：点「联网更新」会同时试 6 个通道（GitHub raw / jsDelivr 两个节点 / ghproxy / gh-proxy / gitclone），<strong>谁先通用谁</strong>，12 秒总超时；实测<strong>有通道成功</strong>（页面标记会从"内置快照"变成"在线更新"）</li><li><strong>手动导入兜底</strong>：你能上网的设备下载 <code>videodl_status.json</code>，按「导入路径」提示放进 App 私有目录即可</li></ol>
+<h3>二、videodl 式直链解析（B站 / 抖音 / 快手 / 通用网页）</h3>
+<p>新增页面：首页右上角 <strong>「直链」</strong> 按钮。粘贴链接 → 解析 → 可播可下。</p>
+<p>实测（真机）：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>输入  https:<span class="c">//www.bilibili.com/video/BV1GJ411x7h7</span>
+解析  【官方 MV】Never Gonna Give You Up - Rick Astley  (bilibili, video/mp4)
+播放  videoWidth=<span class="n">1280</span>  currentTime 正常推进  ✓ 截图确认画面出来了</code></pre></figure>
+<p>支持范围（诚实说明）：<strong>B站(BV/av) / 抖音分享链 / 快手 / 通用网页(og:video、&amp;lt;video&amp;gt;) / 各类直链</strong>。<br>YouTube、优酷、爱奇艺、腾讯 这些需要各自签名算法（videodl 用 Python 实现），<strong>手机端没内置</strong> —— 看这些片请用「搜索」走采集源。</p>
+<h3>三、为了让 B站真能播，踩了两个硬坎</h3>
+<p><strong>坎 1：CDN 防盗链 + 浏览器不给设 Referer</strong><br>WebView 里的 <code>&lt;video&gt;</code>/hls.js <strong>无权设置 Referer</strong>（浏览器安全限制），而 B站 CDN 没 Referer 就 403。<br>解法是 App 内起一个<strong>本地流代理</strong>（<code>LocalProxy</code>，随机端口）：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>播放器请求  http:<span class="c">//127.0.0.1:&lt;port&gt;/p?u=&lt;编码后的真实地址&gt;&amp;r=&lt;referer&gt;&amp;c=&lt;cookie&gt;</span>
+Java 侧      带正确 Referer/UA 去拉流, 再把字节流转发回来
+m3u8 还会被重写  → 里面每个分片也换成走代理(否则分片依然被拦)
+支持 Range 转发  → 拖动进度条正常</code></pre></figure>
+<p><strong>坎 2：B站按 UA 放行，手机 UA 直接 403</strong><br>实测四组：</p>
+<div class="table-wrap"><table><thead><tr><th>请求头</th><th>结果</th></tr></thead><tbody><tr><td>无 Referer</td><td><strong>403</strong></td></tr><tr><td>Referer=首页 + <strong>手机 UA</strong></td><td><strong>403</strong>（这就是我第一版失败的原因）</td></tr><tr><td>Referer=首页 + 桌面 UA</td><td><strong>200</strong>（11.8MB 完整下载）</td></tr><tr><td>Referer=视频页 + 桌面 UA</td><td>200</td></tr></tbody></table></div>
+<p>代理里统一换成<strong>桌面 Chrome UA</strong> 后，B站直链 206/200、画面正常。</p>
+<p>顺带还修了一个：<strong>B站返回的是 MP4 不是 m3u8</strong>（<code>mime: video/mp4</code>），<br>而我原来的 <code>playEp</code> 只要 hls.js 可用就一律走它 → 拿 MP4 喂 hls.js 必然失败。<br>现在会先判断后缀/ MIME，是 m3u8 才用 hls.js，否则直接给 <code>&lt;video&gt;</code>。</p>
+<h2>二十二、B站全链路打通（解析 → 播放 → 下载）+ 高清的真实门槛</h2>
+<h3>已完成：B站 720P 单文件，播放和下载都实测通过</h3>
+<div class="table-wrap"><table><thead><tr><th>环节</th><th>结果</th></tr></thead><tbody><tr><td>解析</td><td><code>BV1GJ411x7h7</code> → 【官方 MV】Never Gonna Give You Up（bilibili, video/mp4）</td></tr><tr><td>播放</td><td>走本地代理，1280x720，画面正常（截图确认）</td></tr><tr><td><strong>下载</strong></td><td><strong>49.6MB，27 秒完成</strong>，进度 2%→100%，无报错</td></tr></tbody></table></div>
+<p><strong>下载那次一开始是失败的</strong>（<code>st=3</code>），因为播放走了代理、<strong>下载却忘了走</strong> ——<br><code>DlService</code> 用的是手机 UA，B站照样 403。现在下载和播放统一走本地代理。</p>
+<p>另外给「直链」页加了 <strong>Cookie 输入框</strong>（填 <code>SESSDATA=xxx</code>），解析时会带上，用于解锁更高画质。</p>
+<h3>关于「原视频 / 高清」：卡在哪、需要什么</h3>
+<p>实测 B站两个接口在<strong>未登录</strong>下的上限：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>fnval=<span class="n">1</span>   (当前用的)  quality=<span class="n">64</span> → 720P,  accept_quality=[<span class="n">64</span>, <span class="n">16</span>]        单文件 MP4, 有声音
+fnval=<span class="n">4048</span> (DASH)     accept_quality=[<span class="n">112</span>,<span class="n">80</span>,<span class="n">64</span>,<span class="n">32</span>,<span class="n">16</span>]
+                      但实际只给 480P(<span class="n">32</span>)/360P(<span class="n">16</span>) —— 未登录被降到比单文件还低</code></pre></figure>
+<p><strong>结论</strong>：未登录状态下，<strong>当前拿到的 720P 单文件已经是最优解</strong>（DASH 反而更低）。<br>要真正的高清（1080P / 1080P+ / 4K）需要两样：</p>
+<ol><li><strong>你自己的登录 Cookie</strong>（<code>SESSDATA</code>）→ 已在 App 里加了输入框</li><li><strong>DASH 音视频合并</strong> → 因为 1080P 及以上 B站<strong>强制走 DASH</strong>（视频流和音频流分开，各自是 fMP4 分片）</li></ol>
+<h3>我试过把 ffmpeg 打包进 APK —— 不可行</h3>
+<p>你授权我"需要什么就下载打包"，我照做了：从 Termux 源下了 <code>ffmpeg 8.1.2</code> 的 deb（11MB），解压后实测：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>ffmpeg 主程序只有 399KB，但它有 <span class="n">11</span> 个动态依赖
+直接执行 → CANNOT LINK EXECUTABLE: library <span class="s">"libz.so.1"</span> not found</code></pre></figure>
+<p>Termux 版 ffmpeg 必须跑在 Termux 自己的 prefix 环境里（依赖 <code>libandroid-support.so</code> 等一整套），<br><strong>App 沙箱里起不来</strong>。所以这条"打包现成 ffmpeg"的路走不通。</p>
+<h3>如果要做 1080P，我可以自实现合并（不用 ffmpeg）</h3>
+<p>B站 DASH 流是标准 <strong>fMP4</strong>（实测文件头 <code>ftyp isom</code>），合并本质是 ISO BMFF box 重排：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>读 video 的 init(moov 里的 trak) + audio 的 init
+→ 合成为一个含 <span class="n">2</span> 个 track 的 moov
+→ 分片的 moof+mdat 交替追加
+→ 输出一个完整 MP4（音视频齐全）</code></pre></figure>
+<p>纯 Java 可以写（约 400 行），<strong>APK 体积几乎不增加</strong>，也不依赖任何外部二进制。<br>这需要你在「直链」页填入 <code>SESSDATA</code> 我才能验证效果。</p>
+<h2>二十三、B站下载修复 + 对齐仓库的四种链接</h2>
+<h3>一、"能解析能播放，但下载不了"——根因是我自己引入的</h3>
+<p>你截图里失败那条（<code>今天给缅商们赐冰！</code>）报错是一长串 B站 URL，我按 av 号精确复现了：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>失败原因: 我让下载也走本地代理 → 把 B站的超长签名 URL(带 e=ig8euxZM2rNcNb... 一大串)
+          编码进 ?u= 参数 → 请求行过大 → DlService 直接报错</code></pre></figure>
+<p><strong>修法</strong>：下载<strong>不再走代理</strong>，改由 Java 侧 <code>Http.baseHeaders()</code> <strong>按 Referer 自动选 UA</strong> ——<br>见到 <code>bilibili/douyin/ixigua</code> 就用桌面 UA，其它保持手机 UA。这样既绕过防盗链，又避免超长 URL。</p>
+<p>复现验证（就是你那条）：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>av42140368968 → 今天给缅商们赐冰！
+下载 <span class="n">87</span>.1MB, <span class="n">48</span> 秒完成, 进度 <span class="n">4</span>%→<span class="n">100</span>%, 无报错  ✓</code></pre></figure>
+<h3>二、对齐仓库：B站现在支持四种链接</h3>
+<p>我原来的 B站解析<strong>只认 <code>BV</code> 号</strong>，比仓库少一大截。现在按 <code>videodl/modules/sources/bilibili.py</code> 补齐：</p>
+<div class="table-wrap"><table><thead><tr><th>链接格式</th><th>接口</th><th>状态</th></tr></thead><tbody><tr><td><code>video/BVxxx</code>、<code>/av123</code></td><td><code>x/web-interface/view</code> + <code>x/player/playurl</code></td><td>✓ 实测通过</td></tr><tr><td><strong><code>?p=N</code> 分P</strong></td><td>从 <code>pages</code> 数组取第 N 页的 cid</td><td>✓ 已支持</td></tr><tr><td><code>bangumi/play/ep123</code>（番剧单集）</td><td><code>pgc/view/web/season</code> + <code>pgc/player/web/v2/playurl</code></td><td>✓ 已实现</td></tr><tr><td><code>bangumi/play/ss123</code>（番剧季）</td><td><code>pgc/web/season/section</code></td><td>✓ 已实现</td></tr><tr><td><strong><code>b23.tv/xxx</code> 短链</strong></td><td>跟随重定向拿真实地址；失效则明确报错</td><td>✓ 已实现</td></tr></tbody></table></div>
+<p>顺带印证了一件事：仓库 <code>BilibiliVideoClient.__init__</code> 里默认请求头就是<br><strong>桌面 Chrome UA + <code>Referer: https://www.bilibili.com/</code></strong> —— 和我上一轮踩坑查明的一致。</p>
+<h3>三、关于你给的那条短链</h3>
+<p><code>https://b23.tv/jNlCCXA</code> 我实测返回 <code>{"code":-404,"message":"啥都木有"}</code> ——<br><strong>这条短链本身已经失效</strong>（过期或作者删除），不是算法的问题。现在遇到这种情况会明确提示<br>「B站短链打不开(可能已失效)」，而不是笼统的「没解析出来」。</p>
+<hr>
+<h2>二十四、第十四轮：自动连播（下一集）</h2>
+<h3>一、做了什么</h3>
+<p>播完一集不再干等，<strong>5 秒倒计时自动接下一集</strong>，期间可以取消或立刻播。</p>
+<div class="table-wrap"><table><thead><tr><th>能力</th><th>实现</th></tr></thead><tbody><tr><td>自动接下一集</td><td>监听 video.ended 事件 -&gt; onEnded() -&gt; startAutoNext()</td></tr><tr><td>5 秒倒计时浮层</td><td>#pnext（居中卡片：集名 + 剩余秒数 + 两个按钮）</td></tr><tr><td>取消 / 立即播放</td><td>cancelAutoNext() / playNextNow()</td></tr><tr><td>开关按钮</td><td>播放器底栏「连播 / 不连播」(#pauto)，绿色=开、灰色=关</td></tr><tr><td>记住选择</td><td>localStorage.pk_autonext，下次打开还是上次的选择</td></tr><tr><td>最后一集</td><td>不再弹倒计时，提示「已经是最后一集」</td></tr></tbody></table></div>
+<p>倒计时期间会强制把控件亮出来（showUI() 并把 uiTimer 清掉），否则 4.5 秒后控件自动隐藏，<br>用户就点不到「取消」了。系统返回键会<strong>先关倒计时浮层</strong>，再退播放器。</p>
+<h3>二、真机验证（CDP）</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>#pauto 存在 = true          autoNext 默认 = true        按钮文案 = 连播
+触发 onEnded -&gt; {"shown":"on","nm":"第2集","cd":"5"}
+2 秒后倒计时 = 3
+取消 -&gt; {"cls":"","timer":true}
+立即播放 -&gt; curEp = 1（正确前进一集）
+最后一集 -&gt; 不弹浮层</code></pre></figure>
+<hr>
+<h2>二十五、第十四轮：YouTube / 优酷 / 爱奇艺 / 腾讯 官方解析</h2>
+<p>仓库里这四家分别用「第三方站 + 官方接口」和「WASM/Node 算签名」，手机上没法照搬。<br>这一轮把<strong>能纯 Java 重写的全部重写进 APK</strong>，并把不能的写成多级兜底 + 明确报错。</p>
+<h3>一、优酷：零加密，纯 HTTP（完全可用）</h3>
+<p>官网播放器自己走的两步，照抄即可：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>(1) GET https://log.mmstat.com/eg.js          --&gt; 响应头 ETag 就是 utid(设备标识)
+(2) GET https://ups.youku.com/ups/get.json
+        ?vid=&lt;vid&gt;&amp;ccode=0564&amp;client_ip=192.168.1.1&amp;utid=&lt;etag&gt;&amp;client_ts=&lt;秒&gt;
+    Cookie 必须带 __ysuid=&lt;时间戳+3字母&gt;; xreferrer=http://www.youku.com</code></pre></figure>
+<p>data.stream[] 每条带 m3u8_url / width / height / size，按 height 去重排序即可。</p>
+<p>真机实测 id_XNjQ0ODIxMzg1Mg==：</p>
+<div class="table-wrap"><table><thead><tr><th>候选</th><th>分辨率</th><th>体积</th></tr></thead><tbody><tr><td>1080P</td><td>1920x1080</td><td>5.05 MB</td></tr><tr><td>720P</td><td>1280x720</td><td>2.64 MB</td></tr><tr><td>486P</td><td>864x486</td><td>1.19 MB</td></tr><tr><td>360P</td><td>640x360</td><td>0.86 MB</td></tr></tbody></table></div>
+<p>播放实测 <strong>1920px、进度正常前进</strong>。ups 接口偶发 connection closed，已加重试 3 次 + 退避。</p>
+<h3>二、爱奇艺：把 iqiyi.py 的签名算法翻成 Java（完全可用）</h3>
+<p>accelerator.js 里抠 tvid，然后三个签名：</p>
+<ul><li>sign = md5(按键名排序的 k=v 拼接 + "&amp;secret_key=howcuteitis") 取大写</li><li>authKey = md5(md5("") + tm + tvid)</li><li>vf = md5(ov("/dash?" + query))，ov() 是官方播放器里那段固定字符置换：</li></ul>
+<p>v = (70t + 677i + 21n + 87tin + 59) % 30<br>ch = v + (v &lt; 9 ? 48 : 88)          # 48 是 '0' 的起点, 88 是 'X'</p>
+<p>把这段循环原样搬进 IQiyi.java 的 calcvf()，参数顺序必须和 Python 版<strong>逐字一致</strong><br>（用 LinkedHashMap 保证），否则 md5 对不上。</p>
+<p>返回的 data.program.video[].m3u8 <strong>不是标准 m3u8，是裸 .ts 地址清单</strong>（46 条）。<br>所以新增了一个 LocalProxy 能力（见下），把它拼成播放列表：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>自建播放列表: http://127.0.0.1:&lt;port&gt;/pl/&lt;id&gt;.m3u8
+分片本身仍然走 /p 代理带上 Referer</code></pre></figure>
+<p>真机实测：720P / 49.6 MB / 播放 <strong>1280x536 正常</strong>，下载 100% 完成写出 731.ts。</p>
+<h3>三、腾讯：绕开 ckey(WASM)，用官方更老但可用的 getinfo（解析通，网络受限）</h3>
+<p>仓库 tencent.py 走 platform=10201 + vqq_ckey-8.5.js + ckey.wasm，要跑 Node 才能算 cKey。<br>发现腾讯自己的 platform=11 通道<strong>不需要任何加密</strong>：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>GET https://h5vv.video.qq.com/getinfo
+    ?isHLS=false&amp;charge=0&amp;vid=&lt;vid&gt;&amp;defn=hd&amp;defnpayver=1&amp;otype=json
+    &amp;platform=11&amp;sdtfrom=v1010&amp;host=v.qq.com&amp;fhdswitch=0&amp;show1080p=1
+--&gt; QZOutputJson={ vl.vi[0]: {fn, fvkey, ul.ui[].url, fl.fi[]} }
+最终地址 = ui[].url + fn(去清晰度后缀) + "?sdtfrom=v1010&amp;vkey=" + fvkey</code></pre></figure>
+<p>实测 t410130yz0y：HTTP 206 / video/mp4 / ftypmp42，解析耗时 5 秒，<br>标题「腾讯视频 兰香如故 01」。</p>
+<p>腾讯一次给 4 个镜像，其中一个是 video.dispatch.tc.qq.com 调度器（常常直接重置连接），<br>所以加了 pickMirror()：并发探 4 个，谁先正常回 200/206 用谁（5 秒预算）。</p>
+<p><strong>但</strong>：这台设备的网络到腾讯 CDN 被限速到约 1KB/s（64KB 的 Range 请求要 65 秒）。<br>moov 虽然在文件头 32 字节处，播放器要连续读几百 KB 才能真正起播，所以<br><strong>解析是对的，播放/下载取决于网络</strong>，换网再试即可。</p>
+<h3>四、YouTube：四级兜底 + 把「为什么不行」说清楚（本机 IP 被判机器人）</h3>
+<p>仓库 youtube.py 优先用第三方站（ytdown / downr），失败才走官方 YouTube 类，<br>而后者要靠 jsinterp.py + botguard 完整跑一遍播放器 JS，在 App 里不现实。</p>
+<p>这里实现的是<strong>直连 YouTube 自家 InnerTube 接口</strong>，一次试 7 个客户端：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>ANDROID_VR / IOS / TVHTML5 / ANDROID / WEB / MWEB / WEB_EMBEDDED_PLAYER
+POST https://www.youtube.com/youtubei/v1/player?key=&lt;INNERTUBE_API_KEY&gt;
+--&gt; streamingData.formats[]/adaptiveFormats[] 里带 url 的就是直链(已含 sig/n, 不用再解密)</code></pre></figure>
+<p>三级兜底：(1) InnerTube 多客户端 (2) 网页 ytInitialPlayerResponse（大括号配对解析）<br>(3) 第三方站（ytdown.to / downr.org）。音频轨不单独出候选；只有视频轨的会标「无音轨」。</p>
+<p><strong>本机实测的真实结论</strong>（不是代码问题）：</p>
+<div class="table-wrap"><table><thead><tr><th>客户端</th><th>返回</th></tr></thead><tbody><tr><td>ANDROID_VR</td><td>LOGIN_REQUIRED：Sign in to confirm you're not a bot</td></tr><tr><td>TVHTML5</td><td>LOGIN_REQUIRED：同上</td></tr><tr><td>IOS / ANDROID</td><td>HTTP 400 Precondition check failed</td></tr><tr><td>WEB</td><td>UNPLAYABLE：Video unavailable</td></tr><tr><td>MWEB</td><td>UNPLAYABLE：The page needs to be reloaded</td></tr><tr><td>网页 ytInitialPlayerResponse</td><td>status=OK，但 streamingData 只有 serverAbrStreamingUrl（SABR），<strong>没有一条直链</strong></td></tr><tr><td>ytdown.to</td><td>HTTP 403（Cloudflare 拦这个出口 IP）</td></tr><tr><td>downr.org</td><td>action_forbidden</td></tr></tbody></table></div>
+<p>这台设备的出口 IP 被 YouTube 判定为机器人；而且 2025 年 Web 端已全面切到 <strong>SABR + PO Token</strong>，<br>adaptiveFormats 里根本不下发 url。所以 App 里会明确告诉用户：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>YouTube 解析失败: ANDROID_VR=LOGIN_REQUIRED(...) | ... | 网页=无直链(SABR/需 PO Token) | ...
+若是 "Sign in to confirm you're not a bot", 说明当前网络 IP 被 YouTube 判定为机器人, 换网络再试。</code></pre></figure>
+<p><strong>换到没有被标记的家用宽带 IP，这条链路就会直接出直链</strong>（代码路径已打通并逐条验证过返回结构）。</p>
+<h3>五、顺带修掉的一个老 bug（很重要）</h3>
+<p>LocalProxy.rewriteM3u8() 里拼行用的是 append 的转义反斜杠 n —— Java 里那等于<br><strong>字面的反斜杠 + n</strong>，不是换行。也就是说：<strong>m3u8 重写这条路一直是坏的</strong>，<br>只是之前所有能播的源都是「不需要 Referer、直接由 hls.js 拉 CDN」的，从没走到这里。<br>修成真正的换行之后：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>优酷走代理取 m3u8 -&gt; len=3819 / 换行数=14（分片已改写成 127.0.0.1 代理地址）
+首分片 -&gt; HTTP 206</code></pre></figure>
+<p>另外给 LocalProxy 加了：</p>
+<ul><li>/pl/&lt;id&gt;.m3u8：把「一串裸 .ts 地址」登记成播放列表（爱奇艺/腾讯这种没有 m3u8 的源）；</li><li>响应统一带 Connection: close（一个连接只处理一个请求，避免浏览器复用打到已关闭的 socket）；</li><li>Access-Control-Expose-Headers: Content-Range, ...（个别内核读不到 Content-Range 会卡在 readyState=0）。</li></ul>
+<h3>六、嗅探器加了网络层抓流</h3>
+<p>隐藏 WebView 之前只靠注入 JS 找 video/source/og:video。现在补上<br>WebViewClient.shouldInterceptRequest，<strong>页面自己发的媒体请求也能抓到</strong>：</p>
+<ul><li>只认 GET（YouTube 的 SABR serverAbrStreamingUrl 是 POST，拿到也用不了，直接跳过）；</li><li>命中 .m3u8/.mp4/.flv/.mpd/.m4s/videoplayback/format=mp4 才收。</li></ul>
+<p>实测 <a href="https://www.qq.com/" target="_blank" rel="noopener">https://www.qq.com/</a> 这种 DOM 里没视频的页面也能从网络层抓到 1 条候选。</p>
+<h3>七、这一轮的完整真机结果</h3>
+<div class="table-wrap"><table><thead><tr><th>平台</th><th>解析</th><th>播放</th><th>下载</th></tr></thead><tbody><tr><td>爱奇艺</td><td>2 秒 1 条(720P)</td><td>1280x536 正常</td><td>49.6 MB 100%</td></tr><tr><td>优酷</td><td>2 秒 4 条(最高 1080P)</td><td>1920px 正常</td><td>分片走代理正常</td></tr><tr><td>腾讯</td><td>5 秒 1 条(HD)</td><td>CDN 限速 1KB/s，起播要等</td><td>同左</td></tr><tr><td>YouTube</td><td>出口 IP 被判机器人（换网可用）</td><td>-</td><td>-</td></tr><tr><td>B站 BV/av</td><td>通过</td><td>1280px 正常</td><td>上一轮已验证</td></tr><tr><td>通用网页</td><td>og:video / video 标签 / 网络层</td><td>通过</td><td>通过</td></tr><tr><td>各类直链</td><td>后缀判定直出</td><td>通过</td><td>通过</td></tr></tbody></table></div>
+<h3>八、新增/改动文件</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>extract/Youku.java      优酷官方 ups 链路
+extract/IQiyi.java      iqiyi.py 的 md5 签名算法 Java 版
+extract/Tencent.java    getinfo(platform=11/10801) + 镜像探测
+extract/YouTube.java    InnerTube 7 客户端 + 网页 + 第三方兜底
+core/Digest.java        md5 十六进制小工具
+core/LocalProxy.java    /pl 自建播放列表 + 换行修复 + 连接/头部加固
+core/Http.java          优酷/爱奇艺/腾讯/YouTube/快手 走桌面 UA
+extract/Extractor.java  四个平台的路由（失败不静默退化，抛平台自己的错误）
+ui/WebActivity.java     shouldInterceptRequest 网络层抓流
+assets/app.js           onEnded / startAutoNext / cancelAutoNext / playNextNow / toggleAutoNext
+assets/index.html       #pnext 倒计时浮层 + #pauto 连播开关</code></pre></figure>
+<hr>
+<h2>二十六、第十五轮：B站 1080P 登录态 + 再搬 11 个站点</h2>
+<h3>一、B站 1080P：能拿到的关键在「fnval=1」</h3>
+<p>上一轮留下的门槛是「B站 1080P+ 只有 DASH（音视频分开），要自己写 mp4 合并器」。<br>这轮先把<strong>不需要合并就能拿到的部分</strong>做掉：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>GET https://api.bilibili.com/x/player/playurl
+    ?fnval=1&amp;fourk=1&amp;qn=120&amp;cid=&lt;cid&gt;&amp;bvid=&lt;bvid&gt;
+    Cookie: SESSDATA=xxx</code></pre></figure>
+<ul><li>fnval=1 要的是 <strong>durl（音视频合一）</strong>，能直接播也能直接下 —— 完全绕开合并器；</li><li>qn=120 是「尽量给最高」，B站会按账号权限<strong>自动降级</strong>，返回体里的 data.quality 才是真实清晰度；</li><li>没登录时实测只给 <strong>64（720P）</strong>，与仓库里 BilibiliVideoClient 的注释一致；</li><li>带了 SESSDATA 才会放 80（1080P）/ 112 / 116 / 120。</li></ul>
+<p>App 里现在会<strong>把真实清晰度显示出来</strong>（不再是笼统的 hls），清晰度代码映射：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>6=240P  16=360P  32=480P  64=720P  74=720P60
+80=1080P  112=1080P+  116=1080P60  120=4K  125=HDR  126=杜比视界</code></pre></figure>
+<p>万一某个清晰度只给 DASH，会明确提示：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>B站这个清晰度只给 DASH(1080P+) —— 那是视频/音频分开的流, 需要合并。填上 SESSDATA 可解锁 1080P 的合一流。</code></pre></figure>
+<h3>二、SESSDATA 入口（只存本机）</h3>
+<p>「直链」页那个输入框现在：</p>
+<ul><li>输入即写入 localStorage（key = pk_sessdata），下次打开自动填回去；</li><li>只在下载/代理请求时随 Cookie 发出去，不上传任何地方；</li><li>实测：连假 SESSDATA=test123 也能正常走完整条链路（B站只是不给高清），不会把解析搞挂。</li></ul>
+<p>真机实测（未登录）：解析 1 条、标签 <strong>720P</strong>、播放 1280px 正常；带假 cookie 同样 720P 且 cookie 字段正确透传。</p>
+<p><strong>1080P 需要你自己的 SESSDATA 才能验</strong>（我没有账号）：填进那个框，再解析同一个 BV，<br>标签从 720P 变成 1080P 就说明通了；如果内容本身是 1080P+ / 4K，就会走到上面那条 DASH 提示。</p>
+<h3>三、顺手修掉一个「报错全被吞掉」的 bug</h3>
+<p>WebActivity 解析失败时回调的是 JS 的 onError(...)，但 <strong>app.js 里从来没有 onError 这个函数</strong>。<br>于是所有平台解析失败都是<strong>静默的</strong>：界面卡在「解析中…」，用户看着就像「完全没反应」。<br>现在补上了，失败时会把后端原文直接显示在候选框里，例如：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>解析失败: YouTube 解析失败: ANDROID_VR=Failed to connect to www.youtube.com/157.240.7.20:443
+| IOS=无数据 | TVHTML5=LOGIN_REQUIRED(Sign in to confirm you're not a bot) | WEB=UNPLAYABLE(Video unavailable) | ...</code></pre></figure>
+<h3>四、新增 11 个站点（全部真机验证）</h3>
+<p>选站标准：<strong>不需要 WASM / Node / DRM，一个 GET 或 POST 就能拿到直链</strong>。<br>流程是「先在设备上用 Python 参考实现跑通 → 再翻成 Java → 再在 APK 里回归」，<br>测试 URL 直接取自仓库 scripts/daily_check_videodl.py 里给每个 client 准备的样例。</p>
+<div class="table-wrap"><table><thead><tr><th>站点</th><th>算法要点</th><th>解析</th><th>播放实测</th></tr></thead><tbody><tr><td><strong>AcFun</strong></td><td>页面 window.pageInfo 是<strong>链式赋值</strong>，要按第一个 = 再切一刀；再取 currentVideoInfo.ksPlayJson 里的 m3u8</td><td>1 条</td><td>1080x1920 通过，下载 100%</td></tr><tr><td><strong>好看视频</strong></td><td>haokan.baidu.com/v?_format=json&amp;vid= → clarityUrl[] 按体积取最大</td><td>1 条</td><td>762x422 通过</td></tr><tr><td><strong>全民K歌</strong></td><td>页面 window.__DATA__ → detail.playurl_video</td><td>1 条</td><td>通过</td></tr><tr><td><strong>虎牙</strong></td><td>liveapi.huya.com/moment/getMomentContent?videoId= → definitions[] 按分辨率排序</td><td>3 档</td><td>1080x1920 通过</td></tr><tr><td><strong>梨视频</strong></td><td>videoStatus.jsp 拿到的是预览片；必须把路径里的<strong>时间戳换成 cont-id-</strong> 才是正片</td><td>1 条</td><td>406x720 通过</td></tr><tr><td><strong>知乎</strong></td><td>www.zhihu.com/api/v4/zvideos/id → video.playlist 取最高清</td><td>1 条</td><td>通过</td></tr><tr><td><strong>皮皮虾</strong></td><td>短链跳转后取 RENDER_DATA（<strong>URL 编码的 JSON</strong>）</td><td>1 条</td><td>通过</td></tr><tr><td><strong>央视</strong></td><td>页面抠 videoCenterId → vc=md5(tsp+2049+盐+uid) → getHttpVideoInfo.do → hls_url</td><td>1 条</td><td>480x270 通过</td></tr><tr><td><strong>微博</strong></td><td>两条路：带冒号的 id 走 h5.video.weibo.com/api/component；否则走 m.weibo.cn/statuses/show</td><td>1 条</td><td>1920x1080 通过，下载 100%</td></tr><tr><td><strong>六间房</strong></td><td>v.6.cn/coop/mobile/index.php?padapi=minivideo-watchVideo.php&amp;vid= → content.playurl</td><td>1 条</td><td>通过</td></tr><tr><td><strong>微视</strong></td><td>页面 window.Vise.initState → feedsList[0].videoSpecUrls 按清晰度排序</td><td>1 条</td><td>通过</td></tr></tbody></table></div>
+<p>11 个站点<strong>逐个解析成功</strong>（每个约 2 秒），其中 6 个还做了播放验证、2 个做了完整下载验证。</p>
+<p>两个实现上的坑记下来备查：</p>
+<ul><li><strong>百分号解码不能图省事用 URLDecoder</strong>：Java 的 URLDecoder.decode 会把加号变成空格， 皮皮虾的 RENDER_DATA 里 JSON 一旦含加号就被破坏，所以自己写了一个只处理 %XX 的解码器；</li><li><strong>虎牙的 width/height 是反的</strong>（竖屏视频 width=1080 / height=1920）， 标签要用 min(width,height) 才是「多少P」。</li></ul>
+<h3>五、这几个本机没做成（如实记录）</h3>
+<div class="table-wrap"><table><thead><tr><th>站点</th><th>结果</th><th>原因</th></tr></thead><tbody><tr><td>新片场</td><td>HTTP 403</td><td>站点对非浏览器请求直接拒绝</td></tr><tr><td>搜狐视频</td><td>页面里没有 videoInfo</td><td>页面结构已改，仓库那套正则过期</td></tr><tr><td>芒果TV</td><td>首页没抓到 /b/cid/vid.html</td><td>页面已改成 JS 渲染</td></tr><tr><td>1905电影网</td><td>HTTP 403</td><td>同上</td></tr><tr><td>西瓜视频 / 小红书 / TED / 抖音(网页版)</td><td>仓库日报里本身就是 dead</td><td>上游也没通</td></tr></tbody></table></div>
+<p>需要的话下一轮专门啃这几个（多半要用它的 App 接口或需要登录态）。</p>
+<h3>六、文件</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>extract/MoreSites.java  11 个站点解析 + 路由(610 行, 一个文件放得下)
+extract/Extractor.java  MoreSites 接入路由; B站 fnval=1&amp;qn=120 + qn 名称映射
+assets/app.js           新增 onError(错误不再是静默的) + initSessdata(记住 SESSDATA)
+assets/index.html       提示文案更新; SESSDATA 输入框</code></pre></figure>
+<hr>
+<h2>二十七、核查：截图里的「官方解析」能解 VIP 集，我们的算法有吗</h2>
+<p><strong>结论：没有，而且这件事不是算法问题。</strong></p>
+<h3>一、先把 iQiyi 服务端的原话贴出来</h3>
+<p>用《一瓯春》（albumId 8582873758311901）做的对照实验，同一个接口、同一套签名，只换 tvid：</p>
+<div class="table-wrap"><table><thead><tr><th>集</th><th>is_vip</th><th>返回</th></tr></thead><tbody><tr><td>EP1</td><td>false</td><td>code=A00000，program.video 有 4 档，bid=500 的 m3u8 长 408 KB，正常</td></tr><tr><td>EP11 / EP16 / EP17</td><td>true</td><td>code=A00000，<strong>program.video 档位 = 0</strong></td></tr></tbody></table></div>
+<p>VIP 集的原始响应（节选）：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>{"data": {
+  "st": 110,
+  "boss_ts": {
+    "previewTime": 6, "previewType": "1",
+    "code": "Q00505",
+    "msg": "未登录用户：不允许试看鉴权失败",
+    "chargeInfo": {"chargeStatus": 1, "vipContentTypeV2": [-1], ...}
+  },
+  "ctl": {"boss_not_pass": true, "uid": "", "vf": "...", ...},
+  "aid": 8582873758311901, "tvid": 7658778705095400, ...
+}}</code></pre></figure>
+<p>也就是说：<strong>iQiyi 服务端宁可不返回 program，也不下发一片分片</strong>。<br><code>boss_not_pass: true</code> 和 <code>chargeStatus: 1</code> 就是「Boss 计费鉴权未通过」。<br>这不是签名/加密能绕的东西 —— 签名只决定「你是不是一个合法的客户端」，<br>而这里卡的是「<strong>这个账号有没有买</strong>」。</p>
+<h3>二、能试的客户端侧路子我全试了，都是 0 档位</h3>
+<div class="table-wrap"><table><thead><tr><th>试法</th><th>结果</th></tr></thead><tbody><tr><td>bid=800 / 600 / 500 / 200</td><td>program.video = 0</td></tr><tr><td>ori=pcw / h5 / app</td><td>program.video = 0</td></tr><tr><td>qd_v=a1 / 2</td><td>A00001（参数校验不过）</td></tr><tr><td>换回老的手机端接口 cache.m.iqiyi.com/tmts/&lt;tvid&gt;/&lt;vid&gt;/</td><td>A00001，vidl = 0</td></tr><tr><td>补 dfp / 换 k_ft 掩码</td><td>program.video = 0</td></tr></tbody></table></div>
+<p>（顺带说明：bid 其实只是个「偏好」，一次请求就会把该账号能拿到的所有档位都列出来，<br>所以我们只发一次请求就够，不用循环试 bid。）</p>
+<h3>三、那截图里那个按钮是怎么做到的</h3>
+<p>工具栏上「官方解析」跟「解析播放」挨在一起 —— 这是典型的<strong>浏览器解析插件 / 聚合解析服务</strong>。它要么：</p>
+<ol><li><strong>带着你自己浏览器里已登录的会员 Cookie</strong> 去请求（等于你本人在看）；或</li><li>服务端养着<strong>自己的会员/商务账号</strong>，你给链接、它用它的账号取流再转给你。</li></ol>
+<p>第 2 种就是所谓「全网 VIP 解析」的常见做法 —— 那是<strong>账号共享</strong>，不是算法。<br>我们 App 里没有、也不该内置别人的账号。</p>
+<h3>四、这一轮实际补上的东西</h3>
+<p>客户端绕不过，但「让你自己的会员账号能用上」这件事必须做对：</p>
+<ol><li><strong>精确报错</strong>：以前只会说「爱奇艺返回里没有 program」，现在直接把服务端原话带出来：</li></ol>
+<p>爱奇艺: 这一集是会员内容[Q00505] 未登录用户：不允许试看鉴权失败。<br>iQiyi 服务端直接拒绝下发分片, 填上你自己的爱奇艺会员 Cookie(含 P00001)再试; 没有会员就只能看免费集。</p>
+<ol><li><strong>Cookie 输入框改成通用「会员 Cookie」</strong>：以前只写 B站 SESSDATA，现在写明 「爱奇艺填含 P00001 的完整 Cookie」。它会<strong>原样透传</strong>到 iQiyi 的请求里 （Http.getText(url, referer, cookie) 一路带到 cache.video.iqiyi.com/dash），所以会员 Cookie 一填就生效。</li></ol>
+<p>PC 上取：登录爱奇艺 → F12 → Application → Cookies → iqiyi.com → 把含 P00001<br>（通常还有 P00003、QC005）的那串整个复制过来。</p>
+<ol><li><strong>B站番剧同理</strong>：大会员集现在会把接口的 message 原文带进报错，而不是笼统的「需要大会员」。</li><li>Cookie 依然只存本机 localStorage，只随请求发出去。</li></ol>
+<h3>五、真机验证</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>[VIP 集] 一瓯春 EP16  候选=0
+   提示: 爱奇艺: 这一集是会员内容[Q00505] 未登录用户：不允许试看鉴权失败。
+         iQiyi 服务端直接拒绝下发分片, 填上你自己的爱奇艺会员 Cookie(含 P00001)再试; 没有会员就只能看免费集。
+[免费集] 一瓯春 EP1   候选=1  [720P/ts]   播放 OK 1280px 1.9s
+[回归]   B站 BV1GJ411x7h7  候选=1 [720P/mp4]
+[回归]   优酷 4 档 [1080P/720P/486P/360P]</code></pre></figure>
+<p><strong>如果你有爱奇艺会员</strong>：把 Cookie 填进那个框，再解析 EP16；能出档位就说明这条链路对会员是通的。<br><strong>如果你没有会员</strong>：这个能力只能靠采集源（「搜索」页）—— 那边是第三方站点的片源，跟 VIP 无关。</p>
+<hr>
+<h2>二十八、第十六轮：把能做的都做了（新增 9 个专用解析 + 通用嗅探升级点亮 7 个）</h2>
+<p>本轮目标：<strong>不碰要登录的 B站清晰度</strong>，把「纯 HTTP 能拿到直链」的站点尽量收掉。</p>
+<h3>一、通用嗅探升级：一次点亮 7 个站点</h3>
+<p>原来的 sniff 只认「带媒体后缀的裸链接」，而且属性来源和正文裸链一视同仁。改了三处：</p>
+<ol><li><strong>属性来源不再要求后缀</strong>：@og:video@ / @\&lt;video src\&gt;@ / @\&lt;source src\&gt;@ 是作者明确写的播放地址， 可信度最高。最右的地址是 @web-v01.izuiyou.com/zyvqwz/...@（没有后缀），以前会被丢掉。</li><li><strong>从 query 参数里挖真地址</strong>：有些站点把播放地址藏在播放器 iframe 的参数里，典型是中国日报——</li></ol>
+<p><a href="https://v-hls.chinadaily.com.cn/playerv2/index.html?src=//v-hls.chinadaily.com.cn/stream/xxx.m3u8" target="_blank" rel="noopener">https://v-hls.chinadaily.com.cn/playerv2/index.html?src=//v-hls.chinadaily.com.cn/stream/xxx.m3u8</a></p>
+<p>现在会把候选地址的 query 拆开，找 @src= / url= / video= / playUrl=@ 等键里指向媒体的值（结果：206 + @application/vnd.apple.mpegurl@）。</p>
+<ol><li><strong>补协议相对链接</strong>（@//host/xxx.m3u8@）和 flv 后缀。</li></ol>
+<p>一次改动，<strong>不用写任何站点专用代码</strong>就点亮了：</p>
+<div class="table-wrap"><table><thead><tr><th>站点</th><th>拿到的地址</th></tr></thead><tbody><tr><td>中国日报</td><td>HLS，播放 608x1080</td></tr><tr><td>环球网</td><td>mp4</td></tr><tr><td>人民网</td><td>mp4，播放 1920x1080</td></tr><tr><td>网易新闻</td><td>HLS</td></tr><tr><td>新华网</td><td>mp4</td></tr><tr><td>绿洲（新浪）</td><td>mp4 720P ×2</td></tr><tr><td>开眼视频</td><td>mp4 ×2</td></tr></tbody></table></div>
+<h3>二、新增 9 个专用解析（全部真机验证）</h3>
+<div class="table-wrap"><table><thead><tr><th>站点</th><th>算法要点</th><th>解析</th><th>播放</th><th>下载</th></tr></thead><tbody><tr><td><strong>最右</strong></td><td>POST @detail_h5@ JSON → @data.post.videos[imgs[0].id].url@</td><td>1</td><td>540x960</td><td>100%</td></tr><tr><td><strong>音悦台</strong></td><td>@video-api.yinyuetai.com/video/get@ → @fullClip.urls@ 按 display 排序(MP3 垫底)</td><td>1</td><td>通过</td><td></td></tr><tr><td><strong>芒果TV</strong></td><td>tk2 = <strong>反转的 base64</strong>（纯字符串运算，不需要 WASM）→ @player/video@ 取 pm2 → @getSource@ → <strong>再跳一次 /atcl（它回 JSON，真地址在 info）</strong></td><td>1</td><td>1278x720</td><td>100%</td></tr><tr><td><strong>度小视</strong></td><td>@quanmin.hao222.com/wise/growth/api/sv/immerse@ → @clarityUrl@ 取最大</td><td>1</td><td>通过</td><td></td></tr><tr><td><strong>CCtalk</strong></td><td>@webapi/content/v1.1/video/detail@ → @data.videoUrl@</td><td>1</td><td>通过</td><td></td></tr><tr><td><strong>学习强国</strong></td><td>@boot-source.xuexi.cn/data/app/\&lt;id\&gt;.js@ → JSONP 剥壳 → @sub_items[].videos[0].video_storage_info@</td><td><strong>13</strong></td><td>通过</td><td></td></tr><tr><td><strong>酷狗MV</strong></td><td>signature = @md5(salt + 排序后的 k=v 拼接 + salt)@ → @data.play[*].downurl@</td><td>1</td><td>1920x1080</td><td></td></tr><tr><td><strong>网易公开课</strong></td><td>@c.open.163.com/open/mob/movie/list.do?plid=@ → 一门课全解析</td><td><strong>4</strong></td><td>1280x720</td><td>100%</td></tr><tr><td><strong>新浪视频</strong></td><td>h5play 那条路官方自己都回 400 了，改用 @api.ivideo.sina.com.cn/public/video/play@</td><td>1</td><td>592x480</td><td></td></tr></tbody></table></div>
+<p>流程照旧：<strong>先用 Python 参考实现在设备上跑通 → 再翻成 Java → 再在 APK 里回归</strong>。</p>
+<h3>三、覆盖率变化</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>站点客户端:  18  →  27 专用 + 7 通用嗅探 = 34/70      （未实现 52 → 36）
+聚合解析:     0  →   0/37
+引擎能力:     5  →   5/16</code></pre></figure>
+<h3>四、这一轮明确「不做 / 做不了」的（也写进 AUDIT.md 第六节）</h3>
+<p><strong>做得成但性价比低（留到下一轮）</strong></p>
+<ul><li>央视新闻：拿 item_id → 取 base64 → 解出 JSON，可行，中等工作量</li><li>乐视：ror 位运算算 timekey + 上传式解密，站点已半死</li><li>美拍：自定义 sig（md5 结果两两交换），可行但收益低</li><li>56视频：接口通，但它只回一个搜狐播放页地址，要多跳一次；站点半死</li></ul>
+<p><strong>做不了 / 本机验证不了</strong></p>
+<ul><li>百度贴吧 / 酷6 / 1905 / 新片场：站点 403，要浏览器指纹或登录态</li><li>搜狐 / 看看新闻：页面结构已改，仓库那套字段提取过期</li><li>明报：本机 DNS 不可达</li><li>皮皮搞笑：页面已是 JS 壳，没有 RENDER_DATA</li><li>小红书 / 西瓜视频 / 懂车帝 / TED / Kakao / Beacon：<strong>上游日报里本身就是 dead</strong></li><li>海外 21 个：本机网络不可达，写了也无法验证</li></ul>
+<p><strong>工程量大（不建议现在碰）</strong></p>
+<ul><li>Widevine DRM 解密（仅 Player.pl / Witty TV 需要）</li><li>浏览器自动化（已用 WebView 顶了一半）</li><li>JS/WASM 执行引擎</li><li>DASH 音视频合并 + MP4 封装（B站清晰度那条已被排除，剩下的需求不迫切）</li><li>37 个第三方聚合解析（稳定性完全不受我们控制）</li></ul>
+<h3>五、文件</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>extract/Extractor.java      通用嗅探升级: 属性来源免后缀 + query 挖媒体 + 协议相对链接
+extract/MoreSites.java      追加 9 个站点(12~20) + 路由 + enc/post/firstUrl 工具
+AUDIT.md                    更新覆盖率与剩余 36 个的逐条原因</code></pre></figure>
+<hr>
+<h2>二十九、第十七轮：站点补齐 + 37 家聚合兜底 + 观看记录 + 跳过片头片尾</h2>
+<h3>一、站点再补 3 个（30 专用 + 7 通用 = 37/70）</h3>
+<div class="table-wrap"><table><thead><tr><th>站点</th><th>算法要点</th><th>解析</th><th>播放</th></tr></thead><tbody><tr><td><strong>央视新闻</strong></td><td>EMAS 网关签名：参数按键名排序 → md5 → <strong>HMAC-SHA256(key=emasgatewayh5)</strong> → 三个 x-emas-gw-* 头；响应是 <strong>base64 的 JSON</strong></td><td>1 条 HLS</td><td>1920px 通过</td></tr><tr><td><strong>美拍</strong></td><td>sig = 参数值排序拼接 + 两段盐 + sigTime → md5 → <strong>相邻字符两两交换</strong></td><td>1 条</td><td>720px 通过</td></tr><tr><td><strong>56视频</strong></td><td>页面 var videoInfo → 只回一个搜狐播放页；<strong>最后由聚合兜底救回来</strong></td><td>2 条(聚合/vget)</td><td>960px 通过</td></tr></tbody></table></div>
+<p>央视新闻这个签名有个坑值得记下来：上游是<br>@&amp;@.join(["&amp;&amp;", appKey, md5, ts, api, ver, "&amp;&amp;&amp;&amp;"])，<br>展开后<strong>开头是 3 个 &amp;、结尾是 5 个 &amp;</strong>。我第一次写成 4 个 &amp; 开头，接口就一直不返回 response，<br>而且报错信息完全看不出是签名问题。这种地方只能靠「照抄公式 + 逐字符对齐」来保证。</p>
+<h3>二、37 家聚合解析全部登记（兜底）</h3>
+<p>对应仓库 <code>modules/common/</code> 的 37 个 client。<strong>不逐个重写它们的业务代码</strong>，而是抽出共性：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>表 = {名字, 方法, 地址, 参数名, 参数风格(query/form/json)}
+扫描器 = 把响应里的 \/ \u002F 转义还原, 再捞出所有可播地址</code></pre></figure>
+<p>为什么可行：这些服务的返回字段名五花八门（@video_url@ / @url@ / @resource_url@ / @playUrl@ …），<br>但<strong>直链本身一定是 http...mp4 / m3u8</strong>，所以不需要懂它们的 schema。</p>
+<p><strong>并发 + 总预算</strong>：37 家一起发太慢，6 个 6 个地跑，谁先出结果就用谁，14 秒到点就放弃。<br>表里把实测可用的排在最前面（第一波就能命中）。</p>
+<p>本机网络实测（目标=B站 BV1GJ411x7h7）：</p>
+<div class="table-wrap"><table><thead><tr><th>状态</th><th>家数</th><th>例子</th></tr></thead><tbody><tr><td><strong>可用</strong></td><td>6</td><td>kit9、longzhu、anyfetcher、xiaolvfang、qzxdptools、gvvip</td></tr><tr><td>403 / 405 / 500</td><td>9</td><td>mizhi、snapany、qzxdptools(无头)、apicx、vthreads、bv、xiazaitool…</td></tr><tr><td>需要签名 key（RSA 两跳）</td><td>4</td><td>gv、kedou、odown、ray</td></tr><tr><td>需要浏览器 / JS 守卫</td><td>5</td><td>kukutool(_guard)、pv、videofk、veedmate、snapwc</td></tr><tr><td>站点已挂 / 接口变了</td><td>13</td><td>jisuyun(不可达)、qingqiu、kuleu、nologo(缺签名)、wzjun、xcvts(apikey 过期)…</td></tr></tbody></table></div>
+<p><strong>其余 31 家全部留在表里</strong>：接口地址、参数名都在，服务恢复或换个链接类型（比如抖音）就自动生效，<br>不需要改代码。这也让 56视频这种「自己只给播放页」的站点有了救回来的机会。</p>
+<h3>三、观看记录（继续观看）</h3>
+<ul><li>播放中<strong>每 5 秒</strong>落一次进度；关播放器、切集、播完都会记；</li><li>首页顶部多了一块横滑卡片：剧名 + 本集名 + @12:34 / 45:00@ + 进度条，最多 12 条；</li><li>点卡片：还在同一部剧就直接跳那集；不在就<strong>重新拉详情 → 自动跳到那一集 → 自动定位到上次秒数</strong> （@loadedmetadata@ 时 seek，并给一个「已定位到 12:34」的手势提示）；</li><li>一集看到 90% 以上算看完，<strong>选集列表和播放器侧栏都会给它打勾 ✓</strong>；</li><li>记录里带 @site@ / @id@，所以换部剧再回来也能一键续播；「清空」在右上角。</li></ul>
+<h3>四、跳过片头 / 片尾</h3>
+<p>播放器底栏新增「跳过」按钮（有设置时会高亮），面板里：</p>
+<ul><li><strong>开关</strong>：关掉就完全不干预；</li><li><strong>片头</strong>：开播自动跳到该秒数（只跳一次，跳过的瞬间给手势提示）；</li><li><strong>片尾</strong>：剩余时间小于该秒数时<strong>直接当播完</strong> → 配合自动连播就是「无感自动下一集」；</li><li>两个输入框旁边各有「<strong>用当前进度</strong>」按钮：片头取 @currentTime@，片尾取 @duration - currentTime@， 看到片头刚结束/片尾刚开始时点一下就行，不用自己算；</li><li><strong>保存(仅本剧)</strong> 与 <strong>保存为默认</strong> 两种：前者只对当前这部剧生效（存在 @per[剧名]@ 里）， 后者作为全局默认。读取时优先本剧、没有才用默认。</li></ul>
+<h3>五、顺手修的两件事</h3>
+<ol><li><strong>假阳性</strong>：上一轮为了让「没有后缀的地址」能过（最右那种），把属性来源一律放行了； 结果 YouTube 页面的 @og:video@（其实是 @/embed/xxx@ 播放页）被当成媒体收了下来。 现在拆开：@&lt;video src&gt;@ / @&lt;source src&gt;@ 免后缀（它们是媒体元素，地址一定就是媒体）， @og:video@ 仍然必须带媒体后缀 —— 因为 og:video 经常给的是播放页/iframe。</li><li><strong>超时</strong>：被污染的域名（YouTube 现在解析到 Facebook 的 IP）以前能把一次解析拖到 <strong>90 秒以上</strong>。 现在 Http 默认超时收到 8s/20s，YouTube 的 7 个客户端加 18 秒总预算， 聚合兜底 14 秒。实测：平台解析 1~3 秒、纯网页嗅探 1 秒、完整失败路径 15 秒。</li></ol>
+<h3>六、真机验证汇总</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>[OK] 央视频新闻   候选=1 [央视新闻|HLS]        播放 OK 1920px
+[OK] 美拍         候选=1 [美拍|direct/mp4]      播放 OK 720px
+[OK] 56视频       候选=2 [聚合/vget|direct/mp4] 播放 OK 960px
+[OK] 开眼/环球网/绿洲/网易新闻/新华网 (通用嗅探)  各 1~2 条
+[OK] 芒果TV/爱奇艺/AcFun/微博/B站/优酷 (回归)     各 1~4 条
+[OK] 观看记录     卡片渲染 / 打勾 ✓ / 清空 全部正常
+[OK] 跳过片头片尾 本剧保存 + 全局默认 + 按钮高亮 全部正常
+[--] 无视频页     15 秒内给出「没解析出来」(不再无限转圈)</code></pre></figure>
+<h3>七、文件</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>extract/CommonParsers.java  37 家聚合解析表 + 并发兜底 + 通用响应扫描器
+extract/MoreSites.java      追加 央视新闻(21)/美拍(22)/56视频(23)
+extract/Extractor.java      聚合兜底接入 + 嗅探假阳性修复(og:video 必须带后缀)
+extract/YouTube.java        7 客户端加 18 秒总预算
+core/Http.java              默认超时 15s/30s → 8s/20s
+assets/app.js               观看记录 + 跳过片头片尾 + 已看打勾
+assets/index.html           继续观看横滑区 + 跳过面板 + 相关样式
+AUDIT.md                    覆盖率 37/70, 聚合兜底可用家数</code></pre></figure>
+<hr>
+<h2>三十、修复：竖屏下「选集」点不到</h2>
+<p><strong>现象</strong>：竖屏播放器底栏的「选集」按钮消失了/点不到。</p>
+<p><strong>原因</strong>（实测数据，不是猜的）：上一轮我往底栏加了「连播」和「跳过」两个按钮，<br>一行里挤了 8 个按钮：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>视口宽 = 453   底栏宽 = 421   底栏 scrollWidth = 466
+上一集[16-75] 暂停[81-129] 下一集[135-194] 1.0x[206-255]
+连播[261-309] 跳过[315-363] 清晰度[369-428] 选集[434-482]  ← 超出视口 453</code></pre></figure>
+<p>「选集」的右边界 482 &gt; 视口 453，被挤到屏幕外，所以点不到（@vis:false@）。</p>
+<p><strong>修法</strong>：底栏拆成两行，并且两行都允许换行兜底。</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>第一行: 上一集 / 播放暂停 / 下一集 / (弹簧) / 倍速
+第二行: 连播 / 跳过 / 清晰度 / 选集</code></pre></figure>
+<p><strong>修完实测</strong>：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>底栏  : rowW=421 scrollWidth=421（不再溢出）
+第二行: 连播[16-62] 跳过[68-114] 清晰度[120-177] 选集[183-229] 全部 vis=true, overflow=false
+越界检查: 竖屏 [] / 横屏 []（ptop+prow+prow2 全部按钮都在视口内）
+真实剧集: 《仙逆》1 个源 / 159 集 -&gt; 侧栏 159 条, 选集面板 335x941 正常开合</code></pre></figure>
+<p>顺带一提：这次也算给上一轮的教训收了尾 —— <strong>播放器底栏是手机端最容易挤爆的地方</strong>，<br>以后再加按钮必须先量 @scrollWidth vs @innerWidth@。</p>
+<hr>
+<h2>三十一、第十八轮：单行底栏 + 改名 ZY影视 + 图标 + 中间播放键重做</h2>
+<h3>一、底栏回到单行，传输键改符号</h3>
+<p>上一轮为了塞下 8 个文字按钮拆成两行，确实丑。这轮的取舍是：</p>
+<ul><li><strong>传输三键用 SVG 符号</strong>：上一集 / 播放暂停 / 下一集，宽度从 ~60px 降到 42px；</li><li><strong>「单码率」按钮取消</strong>：它的功能（清晰度 + 线路切换）<strong>挪进「选集」面板</strong>， 面板标题右边多了一个「清晰度/线路」入口 —— 能力没丢，底栏清出来了；</li><li>剩下 4 个胶囊：@1.0x@ / 连播 / 跳过 / 选集。</li></ul>
+<p>实测（视口 453px）：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>底栏  : rowW=421  scrollW=421（不溢出）
+7 个控件全部 vis=true
+选集面板: 159 条, 「清晰度/线路」入口可见, 点进去能看到 线路切换(360/量子/魔都 各 159 集)</code></pre></figure>
+<h3>二、中间播放键重做（玻璃质感）</h3>
+<p>原来是「一个深色圆圈 + 一个文字 ▶」，字重和圆心都不对，看着廉价。现在：</p>
+<ul><li>用 <strong>SVG 画</strong>（三角形带圆角、坐标系光学居中，往右挪 4px），不再用文字符号；</li><li>玻璃质感：@radial-gradient@ 高光 + @backdrop-filter: blur(14px) saturate(150%)@</li><ul><li>1px 白色描边 + 外圈 6px 柔光 + @inset@ 上下内阴影（顶部亮线、底部压暗）；</li></ul><li>四种状态都是独立的 SVG 层，靠 class 切换：@play@ / @pause@ / @wait@（转圈）/ @err@（红色感叹号）；</li><li>按下有 @scale(.93)@ 的回弹。</li></ul>
+<p>截了元素级渲染确认过效果（CDP @Page.captureScreenshot@ + clip，放大 3 倍）。</p>
+<h3>三、改名 + 图标</h3>
+<ul><li>应用名 → <strong>ZY影视</strong>（@android:label@ + 启动 Activity 的 label 都改了）；</li><li>图标是<strong>代码画出来的</strong>（纯 Python 写 PNG，没有依赖任何图形库）： 圆角方形 + 紫→蓝对角渐变 + 左上高光 + 右下压暗，白色 ZY（用「带圆角的条形」拼笔画）， 右下角一个绿色播放角标；</li><li>出了 <strong>5 个密度</strong>：mdpi 48 / hdpi 72 / xhdpi 96 / xxhdpi 144 / xxxhdpi 192， 放在 @res/mipmap-*/ic_launcher.png@，清单里 @android:icon@ 和 @android:roundIcon@ 都指向它；</li><li>构建脚本加了一步 @aapt2 compile --dir res@（aapt2 link 的位置参数必须是编译后的资源）；</li><li>产物文件名 → <strong>ZY影视.apk</strong>。</li></ul>
+<h3>四、验证</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>application-label:'ZY影视'
+application-icon-160/240/320/480/640 -&gt; res/mipmap-*/ic_launcher.png（5 个密度都在）
+底栏 scrollW=421 不溢出, 7 个控件全可见
+大按钮: class="big play" 76x76, 内含 4 个 SVG
+底栏播放键: class="pbtn ic play", 内含 2 个 SVG
+选集: 可开, 159 条, 清晰度入口可见</code></pre></figure>
+<h3>五、文件</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>assets/index.html   底栏改单行 + SVG 传输键 + 玻璃播放键 + 选集面板里的清晰度入口
+assets/app.js       setBig()/setPlayIcon() 状态机, #pq 引用全部容错
+res/mipmap-*/        5 个密度的 ic_launcher.png
+AndroidManifest.xml  label=ZY影视, icon/roundIcon
+abuild/build.sh      aapt2 compile 资源 + 产物改名 ZY影视.apk</code></pre></figure>
+<hr>
+<h2>三十二、修复：中间播放键「红球 + 没居中」和底栏三颗「黑按钮」</h2>
+<p>你截图里那三个问题都复现并修掉了，而且原因都不是"调个色"能解决的。</p>
+<h3>一、中间那颗为什么会被染成红球</h3>
+<p>上一版我给它写的是 @radial-gradient(...., rgba(0,0,0,.30))@ —— 中心是<strong>半透明黑</strong>。<br>配上 @backdrop-filter@，它会把身后的画面颜色吸上来：压在红色的发行许可证画面上，<br>就变成一颗红球，怎么调角度都不对。</p>
+<p><strong>改成中性白玻璃</strong>：@linear-gradient(180deg, rgba(255,255,255,.34), rgba(255,255,255,.15))@</p>
+<ul><li>@backdrop-filter: blur(16px) saturate(115%)@ + @inset@ 1.5px 白描边 + 顶部高光线 + 底部内高光。</li></ul>
+<p>现在不管身后是黑是红，它都是一块干净的毛玻璃。</p>
+<h3>二、三角形为什么看着没居中</h3>
+<p>上一版用 @margin-left:4px@ 硬挪，纯属手感。现在按<strong>描边后的外框</strong>算：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>顶点 x 取 8.5 / 15.5  -&gt;  外框中点正好 12
+stroke-width 2.4 左右各外扩 1.2  -&gt;  外框还是 12
+最后只做 0.6px 的光学微调</code></pre></figure>
+<p>三角形三个角用 @stroke-linejoin:round@ 磨圆，不再是硬邦邦的尖角。</p>
+<h3>三、底栏三颗为什么是"黑的"（而且左右两颗是空的）</h3>
+<p>两个独立问题：</p>
+<ol><li><strong>看不见质感</strong>：@.pbtn@ 原来的背景是 @rgba(255,255,255,.14)@ 纯色， 压在纯黑视频上就是一块深灰。现在全部换成毛玻璃： 半透明白渐变 + 1px 亮边 + @inset@ 顶高光线 + 柔和投影，和中间那颗呼应； 传输三键还改成了<strong>圆形</strong>。</li><li><strong>上一集/下一集根本没渲染</strong>（这个最严重）：我给 @.pbtn.ic svg@ 设了 @display:none@ 当默认， 想着"只有播放键需要切换图标"，结果上一集/下一集内部的 SVG 没有 class， 被这条规则一起隐藏了 —— 屏幕上就是两个空圆圈。 改成只对播放键内部两层(@#pbtn .bi@)做隐藏/切换。</li></ol>
+<h3>四、顺手抓到的第三个 bug：上一集和下一集画反了</h3>
+<p>修好显示之后一眼看出来了：第一颗画的是「竖条在左 + 三角形朝右」，那是<strong>下一集</strong>的图形。<br>两边的三角形方向对调，现在是标准的 ⏮ (左三角+左竖条) 和 ⏭ (右三角+右竖条)。</p>
+<h3>五、验证</h3>
+<p>我把播放器画面那一块<strong>单独截出来放大 3 倍</strong>看的（CDP @Page.captureScreenshot@ + clip），<br>因为整屏截图会被别的窗口盖住：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>中间按钮: 中性毛玻璃, 无染色, 三角形居中(78x78)
+底栏三键: ⏮ / ▶ / ⏭ 三个圆形毛玻璃, 图标齐全, 方向正确
+底栏几何: rowW=421 scrollW=421, 7 个控件全部可见
+选集 159 条, 清晰度/线路入口正常</code></pre></figure>
+<h3>六、教训</h3>
+<ul><li>半透明背景 + @backdrop-filter@ <strong>一定会被身后的画面染色</strong>，要中性就用白色系并提高一点不透明度；</li><li>给一类元素设 @display:none@ 当"默认隐藏"很危险 —— 没有 class 的同类元素会被误伤；</li><li>图标方向这种"一眼能看出来"的东西，<strong>必须把渲染结果截出来自己看</strong>，光看代码判断不出来。</li></ul>
+<hr>
+<h2>三十三、第十九轮：任务删不掉的真 bug + 顶部改应用名 + 全局毛玻璃</h2>
+<h3>一、「腾讯视频.mp4」为什么删不掉（两个 bug 叠一起）</h3>
+<ol><li><strong>重启后没人重新提交任务</strong>：@Store.save()@ 会把「运行中/排队中」统一写成 @QUEUED@， 但 App 重启后<strong>没有任何地方把它们重新丢回线程池</strong> —— 于是永远停在「排队中 0%」， 既跑不动也看不到进度。现在 @load()@ 里把它们标成 <strong>失败("已中断, 可重试")</strong>， 用户能直接重试或删除。</li><li><strong>排队中的任务根本没有删除按钮</strong>：任务卡片的按钮是二选一 —— 「运行中/排队中 → 暂停」否则「删除」。所以一个卡在排队中的任务<strong>只有暂停可以点</strong>， 永远删不掉。现在<strong>删除按钮对所有状态都存在</strong>。</li></ol>
+<p>修复后实测按钮：运行中 = 暂停/删除/路径；失败 = 重试/删除/路径<br>那个卡住的任务也已经清掉了（当前任务列表为空）。</p>
+<h3>二、顶部「1 个源可用」改成应用名</h3>
+<p>顶部现在固定是 <strong>ZY 图标 + ZY影视 + 副标题</strong>，不再被"共 N 部 / N 个源可用"覆盖：</p>
+<ul><li>首页的数量挪到底部那行：@— 点这里加载更多 —   共 20 部@；</li><li>详情页的源数量挪进详情信息里：@共 159 个可播地址 · 3 个源@；</li><li>解析出错不再占用顶部，只用 toast + 内容区提示。</li></ul>
+<h3>三、全局毛玻璃</h3>
+<p>之前只有播放器控件是玻璃，其它页面还是纯色深灰。这轮统一：</p>
+<ul><li><strong>背景先铺光斑</strong>：纯黑底上打毛玻璃是看不出效果的（没东西可模糊），所以 body 上加了 4 团低饱和径向渐变（紫/蓝/青/粉，透明度 .13~.34），全局固定；</li><li><strong>玻璃三件套</strong>做成 CSS 变量：@--g1/--g2@(白渐变)、@--hair@(1px 亮边)、@--blur@(20px + 150% 饱和)， 统一配上 @inset 0 1px 0@ 顶高光 + 柔和投影；</li><li>应用到：顶栏、搜索框/下拉、主按钮（绿但加了光泽和投影）、ghost 按钮、分类 chips、 封面卡片、简介框、选集按钮、标签、任务卡、继续观看卡、三个侧栏面板（改成 @rgba(11,14,21,.66)@ + 26px 模糊）、骨架屏。</li></ul>
+<h3>四、顺手修的两个小问题</h3>
+<ul><li><strong>播放器会盖住整屏</strong>：@show()@ 切页面时如果播放器还开着（@position:fixed;z-index:50@）会一直盖在上面。 现在 @show()@ 里检测到播放器开着就自动 @closePlayer()@。</li><li><strong>直链解析的记录点「继续观看」会报错</strong>（因为它没有 site/id）。现在把原始直链一起存进记录， 点进去会自动回直链页重新解析同一个链接。</li></ul>
+<h3>五、验证</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>顶部: {"logo":"ZY","h1":"ZY影视","sub":"影视聚合 · 点开即播"}
+任务: 运行中=暂停/删除/路径, 失败=重试/删除/路径（删除按钮齐全）
+首页: 20 张卡片 + 6 张继续观看卡（132px 宽, 标题正确省略）
+底栏: scrollW=421 不溢出
+侧栏面板: 半透明 + 26px 模糊</code></pre></figure>
+<h3>六、文件</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>core/Store.java        重启后残留的排队/运行任务 -&gt; 标记为已中断
+assets/app.js          删除按钮对所有状态可见; show() 自动关播放器; 直链记录可续看; 数量信息挪位
+assets/index.html      顶部加 ZY 图标 + 应用名; 全局毛玻璃 CSS（含背景光斑）</code></pre></figure>
+<hr>
+<h2>三十四、第二十轮：观看记录管理（清理功能）</h2>
+<p>之前只有一个藏在小字里的「清空」，这轮做成完整的记录管理页。</p>
+<h3>一、入口</h3>
+<ul><li>顶栏新增 <strong>记录</strong> 按钮（顶栏现在是 搜索/记录/任务/直链/源，实测 5 个按钮不溢出）；</li><li>首页「继续观看」标题右边也从「清空」改成 <strong>管理 ›</strong>，点进去是同一个页面。</li></ul>
+<h3>二、管理页能做什么</h3>
+<div class="table-wrap"><table><thead><tr><th>能力</th><th>说明</th></tr></thead><tbody><tr><td><strong>单条删除</strong></td><td>每行右边一个红色「删除」，删完首页的继续观看卡片同步刷新</td></tr><tr><td><strong>勾选批量删</strong></td><td>行左边圆形勾选，按钮会实时变成「删除选中 3」</td></tr><tr><td><strong>全选 / 取消全选</strong></td><td>一键切换，按钮文案跟着变</td></tr><tr><td><strong>清空全部</strong></td><td>带二次确认（@confirm@，主 WebView 有 WebChromeClient 所以能弹窗）</td></tr><tr><td><strong>自动清理上限</strong></td><td>「只保留最近 [20/40/80/不限] 条」下拉，改完立刻按新上限裁剪</td></tr></tbody></table></div>
+<p>每行显示：剧名 / 第几集 / 已看时长 ÷ 总时长 / 来源 / <strong>相对时间</strong>（刚刚 / N 分钟前 / N 小时前 / N 天前 / 月日）+ 进度条。</p>
+<h3>三、两个实现细节</h3>
+<ol><li><strong>删除是精确操作，不能走「保留 N 条」的收尾</strong>：@histStore()@ 本身带自动裁剪， 所以单条/批量删除走单独的 @histStoreRaw()@，否则「删掉中间一条」会被上限逻辑重复裁剪。</li><li><strong>改上限时即时生效</strong>：@histSetKeep()@ 立即按新值裁剪并存盘，不是等下次写入才生效。</li></ol>
+<h3>四、验证（真机 CDP）</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>pk_hist 原值: []
+造记录 -&gt; 4
+管理页: {"条数":"4 条","行数":4,"删除按钮":4}
+勾选2条: {"选中":2,"按钮":"删除选中 2"}
+删除选中后: 2 条 | 2 条
+再删1条: 1 条
+全选: 1 行 | 按钮= 取消全选
+清空后: 0 条 | 空态= 还没有观看记录，看过之后这里会自动记下来
+顶栏: ["搜索","记录","任务","直链","源"]  溢出=false</code></pre></figure>
+<h3>五、文件</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>assets/index.html   新增 v-hist 管理页 + 顶栏「记录」入口 + .hrow 玻璃样式
+assets/app.js       openHistory/renderHistoryFull/histToggleSel/histToggleAll/
+                    histDeleteOne/histDeleteSelected/histSetKeep/ago() + back() 兼容</code></pre></figure>
+<hr>
+<h2>三十五、第二十一轮：缓存进度条 + 进度条改细</h2>
+<h3>一、进度条为什么"粗"——不是调数值能解决的</h3>
+<p>实测：@#prange@ 的 CSS 明明写的是 @height:3px@，但 @getBoundingClientRect().height@ 是 <strong>21.4px</strong>。<br>原生 @&lt;input type=range&gt;@ 的盒模型压不下去（UA 默认的 padding/border 会把它撑起来），<br>所以<strong>改成自绘</strong>：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>#ptrack        18px 的容器(只管触摸区域)
+  ::before     2.5px 的半透明轨道
+  #pbuf        已缓存的那段(白)
+  #pfill       已播放的那段(绿)
+  #pthumb      10px 的小圆点
+  #prange      透明 input, 只负责交互, 上下各溢出 9px -&gt; 36px 触摸高度</code></pre></figure>
+<p>实测：轨道 3px、圆点 10px、交互盒 36px —— <strong>又细又好点</strong>。<br>按住拖动时轨道变粗到 5px、圆点 14px，松手回细（细条也不难拖）。</p>
+<h3>二、缓存进度条（"缓存加速"效果）</h3>
+<p>两件事一起做，光画个条是假的：</p>
+<ol><li><strong>真加大预缓存</strong>（hls.js）：</li></ol>
+<p>maxBufferLength: 60          # 目标缓冲 60 秒(原来 30)<br>maxMaxBufferLength: 180      # 上限 3 分钟<br>maxBufferSize: 80MB<br>backBufferLength: 30<br>startLevel: -1</p>
+<ol><li><strong>把缓存画出来</strong>：@#pbuf@ 的宽度取 @video.buffered@ 里<strong>当前播放位置所在的那一段</strong>的结尾 （取不到就取最后一段），监听 @progress / timeupdate / durationchange / seeked / canplay@ 持续更新。</li><li><strong>加载层顺带显示百分比</strong>：缓冲时不再只写"正在缓冲…"，而是 <strong>「正在缓存 32%」</strong>——用户能看见进度在动，感受完全不同。 同时已缓存那段会加一道缓慢流动的高光（@.loading@ 类），看着就是"正在往里灌"。</li></ol>
+<p>实测（仙逆 第01集，时长 1577 秒）：</p>
+<figure class="code"><figcaption>text</figcaption><pre><code>播放到 7s   -&gt; 已缓存到 51s
+跳到 113s   -&gt; 已缓存到 191s
+进度条像素:  已播放 25px / 已缓存 42px / 轨道 344px   (缓存明显跑在前面)</code></pre></figure>
+<h3>三、这轮<strong>没做</strong>的东西（附原因，避免你以为忘了）</h3>
+<div class="table-wrap"><table><thead><tr><th>暂时不做</th><th>原因</th></tr></thead><tbody><tr><td><strong>反代接入</strong>（App 端那 4 步）</td><td>你还没有服务器；代码已在 @server/@ 里备好，等有机器再接</td></tr><tr><td>Widevine DRM（Player.pl / Witty TV）</td><td>法律红线，技术上也不该做</td></tr><tr><td>浏览器自动化（快手/芒果TV/新片场/gvvip）</td><td>已用 WebView 顶了一半，收益递减</td></tr><tr><td>37 个聚合解析逐个适配</td><td>框架和整张表都在，本机 6 家可用；其余等它们恢复或换链接类型自动生效</td></tr><tr><td>海外 22 个站点</td><td>本机网络不可达，写了也没法验证</td></tr><tr><td>字幕 / 免费代理池 / MCP server / 配置化</td><td>优先级低，且不影响日常使用</td></tr></tbody></table></div>
+<p>| DASH 音视频合并（手机端） | B站清晰度那条已按你要求排除；除此之外还没遇到非合并不行的源</p>
+<h3>四、文件</h3>
+<figure class="code"><figcaption>text</figcaption><pre><code>assets/index.html   自绘进度条(轨道/缓存/播放/圆点) + 缓存流动高光 + 拖动变粗
+assets/app.js       syncBar()/bufEnd()/bufLoading(); hls.js 缓冲参数; 加载层显示缓存百分比</code></pre></figure>
+    </article>
+    <div class="prev-next"><a class="pn-item" href="p-08-Bandizip_授权验证算法解剖报告.html?v=mufoubee"><div class="pn-label">上一篇</div><div>Bandizip 7.46 安装包 + 授权验证算法 · 完整解剖 / 再验证 / 注册机实现报告</div></a><div class="pn-item disabled"><div class="pn-label">下一篇</div><div>已无更多</div></div></div>
+    <p class="back-wrap"><a class="back" href="../?v=mufoubee">← 返回首页</a></p>
+    <section class="comments">
+      <div class="panel-head">评论</div>
+      <div class="ut-box" id="ut-box"></div>
+    </section>
+  </div>
+</main>
+<footer class="site-footer">
+  <div class="cloud-rule"></div>
+  <div class="foot-rule"></div>
+  <div class="copyright">© 2026 - <span id="year"></span> ZY驿站 · 保留所有权利</div>
+  <div class="foot-stats">
+    <span>浏览量 <b id="busuanzi_value_site_pv">—</b></span>
+    <span>访客数 <b id="busuanzi_value_site_uv">—</b></span>
+    <span>本页阅读 <b id="busuanzi_value_page_pv">—</b></span>
+    <span>本站已运行 <b id="runtime" data-start="2026-09-22">—</b></span>
+  </div>
+  <div class="foot-note">felixdsh2.eu.cc</div>
+</footer>
+<div class="search-modal" id="search-modal" hidden style="display:none">
+  <div class="search-box">
+    <div class="search-head"><span>检 索</span> <a href="javascript:;" id="search-close">×</a></div>
+    <input id="search-input" type="search" placeholder="输入关键词，如 授权 / 补丁 / Android" autocomplete="off">
+    <div class="search-result" id="search-result"><p class="tip">输入关键词开始检索</p></div>
+  </div>
+</div>
+<button id="top" class="to-top" aria-label="回到顶部"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6"/><path d="M6.5 11.5L12 6l5.5 5.5"/></svg></button>
+<script>/* app.js —— 墨雪 / 墨迹拖尾 / 侧栏 / 搜索 / 列表 / 统计 / 留言板（零依赖） */
+/* 特效开关（记忆在 localStorage，可在顶栏一键关闭） */
+/* 特效常开：墨雪与墨迹一直运行（不再提供开关） */
+window.__FX = { on: true, snowResume: null, dreamResume: null };
+/* 构建版本戳：与页面注入的 window.__VQ 一致，动态渲染出来的链接同样免缓存 */
+var VQ = (window.__VQ || ''), VQA = VQ.replace('?', '&');
+/* app.js —— 飘雪 / 指针流光 / 侧栏 / 搜索 / 列表渲染 / 统计 / 留言板（合并版，零依赖） */
+/* snow.js —— 飘雪氛围层（系统减少动态时自动关闭） */
+(function () {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var cv = document.getElementById('snow-canvas');
+  if (!cv) return;
+  var ctx = cv.getContext('2d'), DPR = Math.min(devicePixelRatio || 1, 2);
+  var W = 0, H = 0, flakes = [], raf = 0, running = true;
+  function resize() {
+    W = innerWidth; H = innerHeight;
+    cv.width = W * DPR; cv.height = H * DPR;
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    var n = Math.min(42, Math.round(W / 26));
+    flakes = [];
+    for (var i = 0; i < n; i++) flakes.push({
+      x: Math.random() * W, y: Math.random() * H,
+      r: 0.8 + Math.random() * 1.6, sp: 0.18 + Math.random() * 0.5,
+      sw: Math.random() * 2 - 1, o: 0.16 + Math.random() * 0.22
+    });
+  }
+  resize();
+  addEventListener('resize', resize, { passive: true });
+  function frame() {
+    if (!running) return;
+    if (window.__FX && !window.__FX.on) { ctx.clearRect(0, 0, W, H); raf = 0; return; }
+    ctx.clearRect(0, 0, W, H);
+    for (var i = 0; i < flakes.length; i++) {
+      var f = flakes[i];
+      f.y += f.sp; f.x += Math.sin((f.y + i * 20) / 60) * 0.5 + f.sw * 0.2;
+      if (f.y > H + 6) { f.y = -6; f.x = Math.random() * W; }
+      if (f.x < -6) f.x = W + 6; else if (f.x > W + 6) f.x = -6;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, 6.2832);
+      ctx.fillStyle = (document.documentElement.getAttribute('data-theme') === 'dark')
+        ? 'rgba(232,226,210,' + f.o + ')' : 'rgba(58,54,48,' + f.o + ')';
+      ctx.fill();
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  raf = requestAnimationFrame(frame);
+  if (window.__FX) window.__FX.snowResume = function () { if (running && !raf) raf = requestAnimationFrame(frame); };
+  document.addEventListener('visibilitychange', function () {
+    running = !document.hidden;
+    if (running) raf = requestAnimationFrame(frame); else cancelAnimationFrame(raf);
+  });
+})();
+/* dream.js —— 全局指针流光拖尾 + 星尘（Canvas 2D，无依赖） */
+(function () {
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var canvas = document.getElementById('dream-canvas');
+  if (!canvas || reduce) return;
+
+  var ctx = canvas.getContext('2d');
+  var DPR = Math.min(devicePixelRatio || 1, 2);
+  var W = 0, H = 0, raf = 0, last = performance.now(), idleSince = performance.now();
+  var pointer = { x: innerWidth / 2, y: innerHeight * 0.35, has: false, amt: 0 };
+  var parts = [];
+  var DARK = document.documentElement.getAttribute('data-theme') === 'dark';
+  var HALO = DARK ? ['236,230,214', '214,206,190', '190,182,166', '222,216,200']
+                  : ['58,54,48', '96,90,80', '128,120,106', '78,72,64'];
+
+  function resize() {
+    W = innerWidth; H = innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  resize();
+  addEventListener('resize', resize, { passive: true });
+
+  function spawn(n, x, y, power) {
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * Math.PI * 2, s = Math.random() * 1.1;
+      parts.push({
+        x: x + Math.cos(a) * 8, y: y + Math.sin(a) * 8,
+        vx: Math.cos(a) * s * (power || 1), vy: Math.sin(a) * s * (power || 1) - 0.25,
+        r: 6 + Math.random() * 22,
+        life: 1, decay: 0.008 + Math.random() * 0.012,
+        c: HALO[(Math.random() * HALO.length) | 0]
+      });
+    }
+    if (parts.length > 320) parts.splice(0, parts.length - 320);
+    idleSince = 0;
+  }
+
+  function move(x, y) {
+    var dx = x - pointer.x, dy = y - pointer.y, d = Math.hypot(dx, dy);
+    pointer.x = x; pointer.y = y; pointer.has = true;
+    pointer.amt = Math.min(1, pointer.amt + 0.35);
+    spawn(Math.max(1, Math.min(3, (d / 22) | 0) + 1), x, y, 1);
+    idleSince = 0;
+  }
+
+  addEventListener('pointermove', function (e) { move(e.clientX, e.clientY); }, { passive: true });
+  addEventListener('touchmove', function (e) { var t = e.touches[0]; if (t) move(t.clientX, t.clientY); }, { passive: true });
+  addEventListener('pointerdown', function (e) { spawn(18, e.clientX, e.clientY, 2.2); }, { passive: true });
+  addEventListener('pointerleave', function () { pointer.has = false; }, { passive: true });
+
+  function frame(now) {
+    if (window.__FX && !window.__FX.on) { ctx.clearRect(0, 0, W, H); raf = 0; return; }
+    var dt = Math.min(2.5, (now - last) / 16.667); last = now;
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+
+    for (var i = parts.length - 1; i >= 0; i--) {
+      var p = parts[i];
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vx *= 0.985; p.vy = p.vy * 0.985 - 0.006 * dt;
+      p.life -= p.decay * dt;
+      if (p.life <= 0) { parts.splice(i, 1); continue; }
+      var r = p.r * (1.25 - p.life * 0.5);
+      var g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+      g.addColorStop(0, 'rgba(' + p.c + ',' + (0.16 * p.life).toFixed(3) + ')');
+      g.addColorStop(0.45, 'rgba(' + p.c + ',' + (0.06 * p.life).toFixed(3) + ')');
+      g.addColorStop(1, 'rgba(' + p.c + ',0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.2832); ctx.fill();
+    }
+
+    if (pointer.has) {
+      var size = 190 + pointer.amt * 70;
+      var g2 = ctx.createRadialGradient(pointer.x, pointer.y, 0, pointer.x, pointer.y, size);
+      g2.addColorStop(0, 'rgba(' + (DARK ? '236,230,214' : '58,54,48') + ',' + (0.07 * pointer.amt).toFixed(3) + ')');
+      g2.addColorStop(0.4, 'rgba(' + (DARK ? '200,192,176' : '104,98,88') + ',' + (0.04 * pointer.amt).toFixed(3) + ')');
+      g2.addColorStop(1, 'rgba(124,92,255,0)');
+      ctx.fillStyle = g2;
+      ctx.beginPath(); ctx.arc(pointer.x, pointer.y, size, 0, 6.2832); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    pointer.amt *= 0.94;
+
+    if (!parts.length && !pointer.has) {
+      if (!idleSince) idleSince = now;
+      if (now - idleSince > 700) { raf = 0; return; }
+    }
+    raf = requestAnimationFrame(frame);
+  }
+
+  function ensure() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } }
+  if (window.__FX) window.__FX.dreamResume = function () { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
+  addEventListener('pointermove', ensure, { passive: true });
+  addEventListener('touchmove', ensure, { passive: true });
+  addEventListener('pointerdown', ensure, { passive: true });
+  addEventListener('visibilitychange', function () {
+    if (document.hidden) { cancelAnimationFrame(raf); raf = 0; } else ensure();
+  });
+
+  var lastScroll = scrollY;
+  addEventListener('scroll', function () {
+    var d = Math.abs(scrollY - lastScroll); lastScroll = scrollY;
+    if (d > 40) { spawn(1, Math.random() * W, scrollY > 0 ? H * 0.85 : H * 0.2, 0.6); ensure(); }
+  }, { passive: true });
+})();
+/* ui.js —— 侧栏 / 顶栏 / 打字机 / 搜索 / 文章列表 / 归档 / 计时 */
+(function () {
+  var SVm = function (p) { return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
+  var MG = {
+    date: SVm('<rect x="4" y="6" width="16" height="14" rx="1.5"/><path d="M4 10h16"/><path d="M8.5 4v3M15.5 4v3"/>'),
+    time: SVm('<circle cx="12" cy="12" r="7.5"/><path d="M12 7.5V12l3.2 2"/>'),
+    chars: SVm('<path d="M4 6h16M4 12h16M4 18h16"/><path d="M9 4v16"/>')
+  };
+  var CAT_ART = {
+    '授权算法': ['#efe9dd','#e3dccd','授'], '补丁改造': ['#f1ece2','#e5ded0','补'],
+    '逆向分析': ['#eee9de','#e0d9ca','逆'], '技术笔记': ['#f2eee6','#e6e0d3','笔'],
+    '安全研究': ['#f0ebe1','#e4ddce','安']
+  };
+  function catArt(c) { return CAT_ART[c] || ['#f2eee6', '#e6e0d3', '文']; }
+  var depth = document.body.getAttribute('data-depth') === '1';
+  var UP = depth ? '../' : './';
+
+  /* ---- 侧栏抽屉 ---- */
+  var side = document.getElementById('sidebar'), mask = document.getElementById('sidebar-mask');
+  function toggleSide(on) {
+    if (!side) return;
+    var willOpen = (on === undefined) ? !side.classList.contains('open') : on;
+    side.classList.toggle('open', willOpen);
+    if (mask) mask.classList.toggle('show', willOpen);
+    try { localStorage.setItem('side', willOpen ? '1' : '0'); } catch (e) {}
+  }
+  var mb = document.getElementById('menu-btn');
+  if (mb) mb.addEventListener('click', function () { toggleSide(); });
+  if (mask) mask.addEventListener('click', function () { toggleSide(false); });
+  var sc2 = document.getElementById('sidebar-close');
+  if (sc2) sc2.addEventListener('click', function () { toggleSide(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { toggleSide(false); closeSearch(); } });
+  if (location.hash === '#search') setTimeout(function () { openSearch(); }, 120);
+  if (innerWidth >= 1180) { try { if (localStorage.getItem('side') === '1') document.body.classList.add('fixed-side'); } catch (e) {} }
+
+  /* ---- 顶栏滚动变实心 ---- */
+  var header = document.getElementById('site-header');
+  var onScroll = function () {
+    if (header) header.classList.toggle('solid', scrollY > 60);
+    var t = document.getElementById('top');
+    if (t) t.classList.toggle('show', scrollY > 420);
+    var bar = document.getElementById('progress');
+    if (bar) { var h = document.body.scrollHeight - innerHeight; bar.style.width = (h > 0 ? (scrollY / h) * 100 : 0) + '%'; }
+  };
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  var topBtn = document.getElementById('top');
+  if (topBtn) topBtn.addEventListener('click', function () { scrollTo({ top: 0, behavior: 'smooth' }); });
+
+  /* ---- 主题 ---- */
+  var root = document.documentElement, tb = document.getElementById('theme-btn');
+  var cur = localStorage.getItem('theme');
+  if (cur) root.dataset.theme = cur;
+  var paint = function () { if (tb) tb.textContent = root.dataset.theme === 'dark' ? '纸' : '墨'; };
+  paint();
+  if (tb) tb.addEventListener('click', function () {
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', root.dataset.theme); paint();
+  });
+
+  /* ---- 打字机 ---- */
+  var typed = document.getElementById('typed');
+  if (typed) {
+    var lines = (typed.getAttribute('data-lines') || '').split('|').filter(Boolean);
+    var li = 0, ci = 0, del = false;
+    (function tick() {
+      var s = lines[li] || '';
+      typed.textContent = del ? s.slice(0, ci--) : s.slice(0, ci++);
+      var wait = del ? 45 : 105;
+      if (!del && ci > s.length + 6) { del = true; wait = 1400; }
+      if (del && ci < 0) { del = false; li = (li + 1) % lines.length; wait = 320; }
+      setTimeout(tick, wait);
+    })();
+  }
+
+  /* ---- 数据：文章清单 ---- */
+  var posts = window.__POSTS || [];
+  function loadPosts(cb) { cb(posts); }
+
+  /* ---- 首页列表 + 分类筛选 ---- */
+  var list = document.getElementById('post-list');
+  if (list) {
+    var strip = document.getElementById('cat-strip');
+    var empty = document.getElementById('list-empty');
+    var Q = (typeof URLSearchParams === 'function') ? new URLSearchParams(location.search) : { get: function () { return null; } };
+    var fCat = Q.get('cat') || '', fTag = Q.get('tag') || '';
+    loadPosts(function (all) {
+      var cats = {};
+      all.forEach(function (p) { cats[p.category] = (cats[p.category] || 0) + 1; });
+      if (strip) {
+        var html = '<button class="cat-pill' + (!fCat && !fTag ? ' on' : '') + '" data-cat="">全部 <b>' + all.length + '</b></button>';
+        Object.keys(cats).forEach(function (c) {
+          html += '<button class="cat-pill' + (fCat === c ? ' on' : '') + '" data-cat="' + c + '">' + c + ' <b>' + cats[c] + '</b></button>';
+        });
+        strip.innerHTML = html;
+        strip.addEventListener('click', function (e) {
+          var b = e.target.closest ? e.target.closest('.cat-pill') : null;
+          if (!b) return;
+          [].forEach.call(strip.querySelectorAll('.cat-pill'), function (x) { x.classList.remove('on'); });
+          b.classList.add('on');
+          if (history.replaceState) history.replaceState(null, '', location.pathname);
+          var fb = document.getElementById('filter-bar'); if (fb) fb.parentNode.removeChild(fb);
+          render(b.getAttribute('data-cat'), '');
+        });
+      }
+      if ((fCat || fTag) && strip && strip.parentNode) {
+        var bar = document.createElement('div');
+        bar.className = 'filter-bar';
+        bar.id = 'filter-bar';
+        bar.innerHTML = '当前筛选：<b>' + (fCat ? '分类 · ' + fCat : '标签 · #' + fTag) + '</b>' +
+          '　<a href="' + UP + 'index.html' + VQ + '">清除 ×</a>';
+        strip.parentNode.insertBefore(bar, strip);
+      }
+      render(fCat, fTag);
+      function render(cat, tag) {
+        var arr = all.filter(function (p) {
+          if (cat && p.category !== cat) return false;
+          if (tag && (p.tags || []).indexOf(tag) < 0) return false;
+          return true;
+        });
+        var filtered = !!(cat || tag);
+        if (!arr.length) {
+          list.innerHTML = '';
+          if (empty) { empty.hidden = false; empty.textContent = filtered ? '这个筛选下还没有文章' : '没有找到匹配的文章'; }
+          return;
+        }
+        if (empty) empty.hidden = true;
+        list.innerHTML = arr.map(function (p, i) {
+          return '<article class="post-card' + (i === 0 && !filtered ? ' hero-card' : '') + '">' +
+            '<a class="card-img" href="' + UP + 'posts/' + p.slug + '.html' + VQ + '">' +
+            '<span class="cover-grad" style="background-image:url(' + p.cover + ')"><i class="cover-swords"></i></span>' +
+            '<span class="cat-badge">' + p.category + '</span></a>' +
+            '<div class="card-body"><h2><a href="' + UP + 'posts/' + p.slug + '.html' + VQ + '">' + p.title + '</a></h2>' +
+            '<p class="excerpt">' + p.desc + '</p>' +
+            '<div class="card-meta"><span class="author">ZY</span>' +
+            '<span>' + MG.date + p.date + '</span><span>' + MG.time + '约 ' + p.readMins + ' 分钟</span><span>' + MG.chars + p.chars + ' 字</span></div>' +
+            '<div class="card-tags">' + (p.tags || []).map(function (t, k) {
+              return '<a class="tag-pill' + (k % 2 ? ' alt' : '') + '" href="' + UP + 'index.html?tag=' + encodeURIComponent(t) + VQA + '">#' + t + '</a>';
+            }).join('') + '</div></div></article>';
+        }).join('');
+      }
+    });
+  }
+
+  /* ---- 归档时间轴 ---- */
+  var tl = document.getElementById('timeline');
+  if (tl) {
+    loadPosts(function (all) {
+      var c = document.getElementById('archive-count');
+      if (c) c.textContent = '共 ' + all.length + ' 篇文章';
+      var byYear = {};
+      all.forEach(function (p) { (byYear[p.date.slice(0, 4)] = byYear[p.date.slice(0, 4)] || []).push(p); });
+      var out = '';
+      Object.keys(byYear).sort().reverse().forEach(function (y) {
+        out += '<h2 style="margin:26px 0 6px;font-size:20px">' + y + ' 年 <span class="tip" style="font-size:13px">（' + byYear[y].length + ' 篇）</span></h2>';
+        byYear[y].forEach(function (p) {
+          out += '<div class="tl-item"><div class="tl-date">' + p.date + ' · ' + p.category + '</div>' +
+            '<a class="tl-title" href="' + UP + 'posts/' + p.slug + '.html' + VQ + '">' + p.title + '</a></div>';
+        });
+      });
+      tl.innerHTML = out || '<p class="tip center">还没有文章</p>';
+    });
+  }
+
+  /* ---- 标签墙 / 分类墙 ---- */
+  var tagWall = document.getElementById('tag-wall'), catWall = document.getElementById('cat-wall');
+  if (tagWall || catWall) {
+    loadPosts(function (all) {
+      var tags = {}, cats = {};
+      all.forEach(function (p) {
+        (p.tags || []).forEach(function (t) { tags[t] = (tags[t] || 0) + 1; });
+        cats[p.category] = (cats[p.category] || 0) + 1;
+      });
+      var paintWall = function (el, obj, kind) {
+        if (!el) return;
+        el.innerHTML = Object.keys(obj).sort(function (a, b) { return obj[b] - obj[a]; }).map(function (k) {
+          var href = UP + 'index.html?' + kind + '=' + encodeURIComponent(k) + VQA;
+          var label = (kind === 'tag') ? '#' + k : k;
+          return '<a class="wall-item" href="' + href + '"><span>' + label + '</span><span class="count">' + obj[k] + '</span></a>';
+        }).join('');
+      };
+      paintWall(tagWall, tags, 'tag');
+      paintWall(catWall, cats, 'cat');
+    });
+  }
+
+  /* ---- 搜索弹窗（显式 style 控制，避免 hidden 失效导致遮挡）---- */
+  var modal = document.getElementById('search-modal'), input = document.getElementById('search-input'),
+      result = document.getElementById('search-result');
+  function toggleSearch(on) {
+    if (!modal) return;
+    var show = (on === undefined) ? (modal.style.display !== 'block') : on;
+    modal.style.display = show ? 'block' : 'none';
+    modal.hidden = !show;
+    document.body.classList.toggle('modal-open', show);
+    if (show) {
+      if (input) { input.value = ''; setTimeout(function () { input.focus(); }, 30); }
+      if (result) result.innerHTML = '<p class="tip">输入关键词开始检索</p>';
+      if (history.replaceState) history.replaceState(null, '', location.pathname + '#search');
+    } else if (location.hash === '#search' && history.replaceState) {
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+  }
+  function openSearch() { toggleSearch(true); }
+  function closeSearch() { toggleSearch(false); }
+  var sb = document.getElementById('search-btn');
+  if (sb) sb.addEventListener('click', openSearch);
+  var sc = document.getElementById('search-close');
+  if (sc) sc.addEventListener('click', closeSearch);
+  if (modal) modal.addEventListener('click', function (e) { if (e.target === modal) closeSearch(); });
+  if (result) result.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a.sr-item') : null;
+    if (a) closeSearch();            // 允许默认跳转，仅关闭弹窗
+  });
+  if (input) input.addEventListener('input', function () {
+    var kw = input.value.trim().toLowerCase();
+    if (!kw) { result.innerHTML = '<p class="tip">输入关键词检索全部文章…</p>'; return; }
+    loadPosts(function (all) {
+      var hit = all.filter(function (p) {
+        return (p.title + p.desc + (p.tags || []).join(' ') + p.category).toLowerCase().indexOf(kw) > -1;
+      });
+      result.innerHTML = hit.length ? hit.map(function (p) {
+        return '<a class="sr-item" href="' + UP + 'posts/' + p.slug + '.html' + VQ + '"><div class="sr-t">' + p.title +
+          '</div><div class="sr-d">' + p.date + ' · ' + p.category + ' · ' + p.desc + '</div></a>';
+      }).join('') : '<p class="tip">没有匹配的文章</p>';
+    });
+  });
+
+  /* ---- 页脚运行时间 ---- */
+  var rt = document.getElementById('runtime');
+  if (rt) {
+    var start = new Date(rt.getAttribute('data-start') + 'T00:00:00');
+    (function up() {
+      var d = Date.now() - start.getTime();
+      var day = Math.floor(d / 864e5), h = Math.floor(d % 864e5 / 36e5), m = Math.floor(d % 36e5 / 6e4), s = Math.floor(d % 6e4 / 1000);
+      rt.textContent = day + ' 天 ' + h + ' 小时 ' + m + ' 分 ' + s + ' 秒';
+      setTimeout(up, 1000);
+    })();
+  }
+})();
+/* main.js —— 访问统计 / 留言板 / year / 进度条兜底 */
+(function () {
+  var y = document.getElementById('year'), y2 = document.getElementById('year2');
+  if (y) y.textContent = new Date().getFullYear();
+  if (y2) y2.textContent = new Date().getFullYear();
+
+  /* ---- 浏览量 / 访客数 / 本页阅读（不蒜子 2.4，写入 busuanzi_value_* 元素）---- */
+  (function () {
+    var IDS = ['busuanzi_value_site_pv', 'busuanzi_value_site_uv', 'busuanzi_value_page_pv'];
+    var slot = document.getElementById('busuanzi_value_site_pv');
+    if (!slot) return;
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js';
+    document.head.appendChild(s);   /* 由脚本直接写入上面三个元素；不可用时保持 — */
+  })();
+
+  /* ---- 在线留言 ---- */
+  var ut = document.getElementById('ut-box');
+  if (ut) {
+    var sc = document.createElement('script');
+    sc.src = 'https://utteranc.es/client.js';
+    sc.setAttribute('repo', 'JM-919/jm-919.github.io');
+    sc.setAttribute('issue-term', 'pathname');
+    sc.setAttribute('theme', document.documentElement.getAttribute('data-theme') === 'dark' ? 'github-dark' : 'github-light');
+    sc.setAttribute('crossorigin', 'anonymous');
+    sc.async = true;
+    sc.onerror = function () { var f = document.getElementById('ut-fallback'); if (f) f.hidden = false; };
+    ut.appendChild(sc);
+    setTimeout(function () { if (!ut.querySelector('iframe')) { var f = document.getElementById('ut-fallback'); if (f) f.hidden = false; } }, 7000);
+  }
+
+  /* ---- 留言板（本地）---- */
+  var form = document.getElementById('msg-form');
+  if (form) {
+    var KEY = 'felix_msgs';
+    var read = function () { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } };
+    var wrap = document.getElementById('msg-list');
+    function paint() {
+      var list = read();
+      if (!wrap) return;
+      wrap.innerHTML = list.length ? list.map(function (m) {
+        return '<div class="msg-item"><span class="who">' + m.who + '</span><span class="when">' + m.when +
+          '</span><p style="margin:6px 0 0">' + m.text.replace(/</g, '&lt;') + '</p></div>';
+      }).join('') : '<p class="tip center">还没有留言，来做第一个吧</p>';
+    }
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var who = (document.getElementById('msg-who').value || '').trim() || '匿名同学';
+      var text = (document.getElementById('msg-text').value || '').trim();
+      if (!text) return;
+      var list = read();
+      list.unshift({ who: who, text: text, when: new Date().toLocaleString() });
+      localStorage.setItem(KEY, JSON.stringify(list.slice(0, 50)));
+      document.getElementById('msg-text').value = '';
+      paint();
+    });
+    paint();
+  }
+
+  /* ---- 首页 banner 底部"回到顶部"图标 ---- */
+  var bt = document.getElementById('banner-top');
+  if (bt) bt.addEventListener('click', function (e) { e.preventDefault(); scrollTo({ top: 0, behavior: 'smooth' }); });
+})();</script>
+</body>
+</html>
