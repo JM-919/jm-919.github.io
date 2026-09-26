@@ -68,15 +68,15 @@ node build_site.js
 GH_TOKEN=xxxxx node deploy_github.js
 ```
 
-构建是**预渲染**的：@.nojekyll@ 关闭 Jekyll，直接上传 @.md@ 不会生成页面 —— 首页 / 归档 / 标签 /
+构建是**预渲染**的：`.nojekyll` 关闭 Jekyll，直接上传 `.md` 不会生成页面 —— 首页 / 归档 / 标签 /
 分类 / sitemap 都是构建期产物，必须走上面的两步。
 
 ### md 的两种开头
 
-1. **纯 Markdown**：首行的 @# 标题@ 作为文章标题，日期取文件修改时间；
+1. **纯 Markdown**：首行的 `# 标题` 作为文章标题，日期取文件修改时间；
 2. **Jekyll front matter**（现成草稿常见，推荐）：
 
-`@markdown
+```markdown
 ---
 title: "Win11 + WSL2 + Ubuntu 24.04：DeepSeek Harness 插件折腾记"
 date: 2026-09-27 10:00:00 +0800
@@ -86,20 +86,20 @@ description: "首页卡片上的摘要"
 ---
 
 正文……
-`@
+```
 
-构建器会把 @title / date / categories / tags / description@ 取成文章元数据（标题、日期、分类取第一项、
-标签最多 3 个、摘要），@permalink@ @layout@ 这类键忽略；Jekyll 的 @<!--more-->@ 摘要标记直接丢掉 ——
+构建器会把 `title / date / categories / tags / description` 取成文章元数据（标题、日期、分类取第一项、
+标签最多 3 个、摘要），`permalink` `layout` 这类键忽略；Jekyll 的 `<!--more-->` 摘要标记直接丢掉 ——
 都不会被渲染进正文。
 
 ### 文章 URL 为什么不会变
 
-@p-0N-xxx@ 是文章的永久路径，评论与浏览量都按 @pathname@ 归属。构建时 slug 映射从**三处**合并
-（@.slugmap.json@ → @posts.json@ → 现存 @posts/*.html@ 文件名，先到先得、绝不覆盖），构建结束后
-**写回 @.slugmap.json@**，并删掉不再使用的陈旧文章页。
+`p-0N-xxx` 是文章的永久路径，评论与浏览量都按 `pathname` 归属。构建时 slug 映射从**三处**合并
+（`.slugmap.json` → `posts.json` → 现存 `posts/*.html` 文件名，先到先得、绝不覆盖），构建结束后
+**写回 `.slugmap.json`**，并删掉不再使用的陈旧文章页。
 
-这样新增文章不会再按目录顺序"抢号"把已上线文章挤成新编号（踩过一次：新文章抢走 @p-09@，
-把 ZY影视 顶到 @p-10@，老链接直接失效）。
+这样新增文章不会再按目录顺序"抢号"把已上线文章挤成新编号（踩过一次：新文章抢走 `p-09`，
+把 ZY影视 顶到 `p-10`，老链接直接失效）。
 
 ## 文章配图
 
