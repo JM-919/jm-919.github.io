@@ -1068,7 +1068,7 @@ html[data-theme="dark"] .post-figure img{background:#1e2029;border-color:#e9e5da
   box-shadow:10px 10px 0 rgba(0,0,0,.55) !important}
 html[data-theme="dark"] .post-figure figcaption{color:#b3ada0 !important}
 </style>
-<script>window.__VQ="?v=mufpjbxr";</script>
+<script>window.__VQ="?v=muimg3a0";</script>
     <script>window.__POSTS=[];</script>
 </head>
 <body data-depth="1">
@@ -1077,7 +1077,7 @@ html[data-theme="dark"] .post-figure figcaption{color:#b3ada0 !important}
 <canvas id="dream-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:60"></canvas>
 <header class="site-header" id="site-header">
   <a class="menu-btn" id="menu-btn" href="javascript:;" aria-label="菜单"><i></i><i></i><i></i></a>
-  <a class="header-brand" href="../index.html?v=mufpjbxr"><span class="brand-seal">Z</span>ZY驿站</a>
+  <a class="header-brand" href="../index.html?v=muimg3a0"><span class="brand-seal">Z</span>ZY驿站</a>
   <nav class="header-icons">
     <a href="javascript:;" id="search-btn" aria-label="检索"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></a>
     <a href="javascript:;" id="theme-btn" aria-label="切换昼夜">墨</a>
@@ -1093,13 +1093,13 @@ html[data-theme="dark"] .post-figure figcaption{color:#b3ada0 !important}
     <div class="cloud-rule"></div>
   </div>
   <nav class="sidebar-menu">
-    <a href="../index.html?v=mufpjbxr"><i class="ch">首</i><span class="lb">首页</span></a>
-    <a href="../tags.html?v=mufpjbxr"><i class="ch">签</i><span class="lb">标签</span></a>
-    <a href="../categories.html?v=mufpjbxr"><i class="ch">类</i><span class="lb">分类</span></a>
-    <a href="../archive.html?v=mufpjbxr"><i class="ch">档</i><span class="lb">归档</span></a>
-    <a href="../about.html?v=mufpjbxr"><i class="ch">关</i><span class="lb">关于</span></a>
-    <a href="../contact.html?v=mufpjbxr"><i class="ch">言</i><span class="lb">留言板</span></a>
-    <a href="../friends.html?v=mufpjbxr"><i class="ch">链</i><span class="lb">友情链接</span></a>
+    <a href="../index.html?v=muimg3a0"><i class="ch">首</i><span class="lb">首页</span></a>
+    <a href="../tags.html?v=muimg3a0"><i class="ch">签</i><span class="lb">标签</span></a>
+    <a href="../categories.html?v=muimg3a0"><i class="ch">类</i><span class="lb">分类</span></a>
+    <a href="../archive.html?v=muimg3a0"><i class="ch">档</i><span class="lb">归档</span></a>
+    <a href="../about.html?v=muimg3a0"><i class="ch">关</i><span class="lb">关于</span></a>
+    <a href="../contact.html?v=muimg3a0"><i class="ch">言</i><span class="lb">留言板</span></a>
+    <a href="../friends.html?v=muimg3a0"><i class="ch">链</i><span class="lb">友情链接</span></a>
     <a href="https://github.com/JM-919" target="_blank" rel="noopener"><i class="ch">码</i><span class="lb">GitHub</span></a>
   </nav>
   <div class="sidebar-foot">
@@ -1117,7 +1117,7 @@ html[data-theme="dark"] .post-figure figcaption{color:#b3ada0 !important}
       <span>29309 字</span><i>·</i>
       <span>约 61 分钟</span>
     </div>
-    <div class="post-tags"><a class="tag-pill" href="../index.html?tag=%E6%8E%88%E6%9D%83%E7%AE%97%E6%B3%95&v=mufpjbxr">#授权算法</a><a class="tag-pill" href="../index.html?tag=%E9%80%86%E5%90%91%E5%88%86%E6%9E%90&v=mufpjbxr">#逆向分析</a><a class="tag-pill" href="../index.html?tag=Android&v=mufpjbxr">#Android</a></div>
+    <div class="post-tags"><a class="tag-pill" href="../index.html?tag=%E6%8E%88%E6%9D%83%E7%AE%97%E6%B3%95&v=muimg3a0">#授权算法</a><a class="tag-pill" href="../index.html?tag=%E9%80%86%E5%90%91%E5%88%86%E6%9E%90&v=muimg3a0">#逆向分析</a><a class="tag-pill" href="../index.html?tag=Android&v=muimg3a0">#Android</a></div>
   </div>
   <div class="post-wrap">
     <article class="article-body">
@@ -1397,8 +1397,8 @@ the resources.arsc of installed APKs to be stored uncompressed and aligned on a 
 <h3>18.4 关于"token 是不是本地算得出来"的一点新判断</h3>
 <p>7.46 的写入路径 <code>0xCF980</code> 走的是 <strong><code>0xD4CB0</code></strong>（16 字节 → 32 hex，内部用 <code>rand()</code> 派生），<br>而 <code>MD5(UTF-16LE)</code> 原语 <code>0xD4940</code> 主要被 <strong><code>0xD57C0</code>（内置常量比对）</strong> 与 hid 采集使用。<br>这意味着：写进注册表的 token <strong>很可能是服务端下发数据（guid 等）的转写，而不是由邮箱/密钥本地推导</strong>。<br>若如此，<strong>假设 A（离线只看 <code>ENT</code>+<code>2099</code>）才是唯一可行的本地路径</strong> —— 这也解释了为什么"离线注册"只给企业版。</p>
     </article>
-    <div class="prev-next"><a class="pn-item" href="p-03-Safengine_验证服务器解剖报告.html?v=mufpjbxr"><div class="pn-label">上一篇</div><div>Safengine Shielden 2.4 —— 验证服务器地址解剖报告</div></a><div class="pn-item disabled"><div class="pn-label">下一篇</div><div>已无更多</div></div></div>
-    <p class="back-wrap"><a class="back" href="../?v=mufpjbxr">← 返回首页</a></p>
+    <div class="prev-next"><a class="pn-item" href="p-03-Safengine_验证服务器解剖报告.html?v=muimg3a0"><div class="pn-label">上一篇</div><div>Safengine Shielden 2.4 —— 验证服务器地址解剖报告</div></a><a class="pn-item" href="p-10-Win11-WSL2-Ubuntu24.04_DeepSeekHarness插件折腾记.html?v=muimg3a0"><div class="pn-label">下一篇</div><div>Win11 + WSL2 + Ubuntu 24.04：DeepSeek Harness 插件折腾记</div></a></div>
+    <p class="back-wrap"><a class="back" href="../?v=muimg3a0">← 返回首页</a></p>
     <section class="comments">
       <div class="panel-head">评论</div>
       <div class="ut-box" id="ut-box"></div>
