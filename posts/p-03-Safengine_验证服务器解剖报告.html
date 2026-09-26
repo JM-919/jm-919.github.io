@@ -1068,7 +1068,7 @@ html[data-theme="dark"] .post-figure img{background:#1e2029;border-color:#e9e5da
   box-shadow:10px 10px 0 rgba(0,0,0,.55) !important}
 html[data-theme="dark"] .post-figure figcaption{color:#b3ada0 !important}
 </style>
-<script>window.__VQ="?v=mufpjbxr";</script>
+<script>window.__VQ="?v=muimg3a0";</script>
     <script>window.__POSTS=[];</script>
 </head>
 <body data-depth="1">
@@ -1077,7 +1077,7 @@ html[data-theme="dark"] .post-figure figcaption{color:#b3ada0 !important}
 <canvas id="dream-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:60"></canvas>
 <header class="site-header" id="site-header">
   <a class="menu-btn" id="menu-btn" href="javascript:;" aria-label="菜单"><i></i><i></i><i></i></a>
-  <a class="header-brand" href="../index.html?v=mufpjbxr"><span class="brand-seal">Z</span>ZY驿站</a>
+  <a class="header-brand" href="../index.html?v=muimg3a0"><span class="brand-seal">Z</span>ZY驿站</a>
   <nav class="header-icons">
     <a href="javascript:;" id="search-btn" aria-label="检索"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></a>
     <a href="javascript:;" id="theme-btn" aria-label="切换昼夜">墨</a>
@@ -1093,13 +1093,13 @@ html[data-theme="dark"] .post-figure figcaption{color:#b3ada0 !important}
     <div class="cloud-rule"></div>
   </div>
   <nav class="sidebar-menu">
-    <a href="../index.html?v=mufpjbxr"><i class="ch">首</i><span class="lb">首页</span></a>
-    <a href="../tags.html?v=mufpjbxr"><i class="ch">签</i><span class="lb">标签</span></a>
-    <a href="../categories.html?v=mufpjbxr"><i class="ch">类</i><span class="lb">分类</span></a>
-    <a href="../archive.html?v=mufpjbxr"><i class="ch">档</i><span class="lb">归档</span></a>
-    <a href="../about.html?v=mufpjbxr"><i class="ch">关</i><span class="lb">关于</span></a>
-    <a href="../contact.html?v=mufpjbxr"><i class="ch">言</i><span class="lb">留言板</span></a>
-    <a href="../friends.html?v=mufpjbxr"><i class="ch">链</i><span class="lb">友情链接</span></a>
+    <a href="../index.html?v=muimg3a0"><i class="ch">首</i><span class="lb">首页</span></a>
+    <a href="../tags.html?v=muimg3a0"><i class="ch">签</i><span class="lb">标签</span></a>
+    <a href="../categories.html?v=muimg3a0"><i class="ch">类</i><span class="lb">分类</span></a>
+    <a href="../archive.html?v=muimg3a0"><i class="ch">档</i><span class="lb">归档</span></a>
+    <a href="../about.html?v=muimg3a0"><i class="ch">关</i><span class="lb">关于</span></a>
+    <a href="../contact.html?v=muimg3a0"><i class="ch">言</i><span class="lb">留言板</span></a>
+    <a href="../friends.html?v=muimg3a0"><i class="ch">链</i><span class="lb">友情链接</span></a>
     <a href="https://github.com/JM-919" target="_blank" rel="noopener"><i class="ch">码</i><span class="lb">GitHub</span></a>
   </nav>
   <div class="sidebar-foot">
@@ -1117,7 +1117,7 @@ html[data-theme="dark"] .post-figure figcaption{color:#b3ada0 !important}
       <span>20200 字</span><i>·</i>
       <span>约 42 分钟</span>
     </div>
-    <div class="post-tags"><a class="tag-pill" href="../index.html?tag=%E9%80%86%E5%90%91%E5%88%86%E6%9E%90&v=mufpjbxr">#逆向分析</a><a class="tag-pill" href="../index.html?tag=%E6%9C%8D%E5%8A%A1%E5%99%A8&v=mufpjbxr">#服务器</a></div>
+    <div class="post-tags"><a class="tag-pill" href="../index.html?tag=%E9%80%86%E5%90%91%E5%88%86%E6%9E%90&v=muimg3a0">#逆向分析</a><a class="tag-pill" href="../index.html?tag=%E6%9C%8D%E5%8A%A1%E5%99%A8&v=muimg3a0">#服务器</a></div>
   </div>
   <div class="post-wrap">
     <article class="article-body">
@@ -1345,8 +1345,8 @@ b8 <span class="n">06</span> <span class="n">00</span> <span class="n">00</span>
 <h3>7.5 对我们目标（转本地验证）的含义</h3>
 <ol><li><strong>改插件不能绕过服务器验证</strong> —— 验证逻辑不在插件里，在壳（受保护程序的 Safengine 运行时）里</li><li><strong><code>GET_LICENSE</code> 插件理论上能拿到授权文件明文</strong>（<code>pKeyBuf</code>/<code>dwKeySize</code>）—— 这是观察授权结构的<strong>合法切入点</strong>，但 Splash/DllBox 都没用这个类型</li><li>插件引用的是 <code>SESDKDummy.dll</code> / <code>SESDKDummy64.dll</code>（45 / 42 个 SDK 导出）—— <strong>真正实现</strong>在壳内，Dummy 只是链接期的桩。想知道授权怎么校验，得看壳，不是看插件</li><li>与 3306 / 10001 两条通道<strong>无关</strong>：插件不发任何网络请求</li></ol>
     </article>
-    <div class="prev-next"><a class="pn-item" href="p-09-ZY影视.html?v=mufpjbxr"><div class="pn-label">上一篇</div><div>PikachuTV —— 手机端影视聚合播放器（基于 videodl 的改造版）</div></a><a class="pn-item" href="p-08-Bandizip_授权验证算法解剖报告.html?v=mufpjbxr"><div class="pn-label">下一篇</div><div>Bandizip 7.46 安装包 + 授权验证算法 · 完整解剖 / 再验证 / 注册机实现报告</div></a></div>
-    <p class="back-wrap"><a class="back" href="../?v=mufpjbxr">← 返回首页</a></p>
+    <div class="prev-next"><a class="pn-item" href="p-09-ZY影视.html?v=muimg3a0"><div class="pn-label">上一篇</div><div>PikachuTV —— 手机端影视聚合播放器（基于 videodl 的改造版）</div></a><a class="pn-item" href="p-08-Bandizip_授权验证算法解剖报告.html?v=muimg3a0"><div class="pn-label">下一篇</div><div>Bandizip 7.46 安装包 + 授权验证算法 · 完整解剖 / 再验证 / 注册机实现报告</div></a></div>
+    <p class="back-wrap"><a class="back" href="../?v=muimg3a0">← 返回首页</a></p>
     <section class="comments">
       <div class="panel-head">评论</div>
       <div class="ut-box" id="ut-box"></div>
